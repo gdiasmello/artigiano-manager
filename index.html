@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano Pro V14</title>
+    <title>Artigiano Pro V14.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -21,13 +21,12 @@
             <p style="color:var(--text-sec); margin-bottom:20px;">Selecione seu perfil para iniciar a contagem.</p>
             
             <div class="user-grid">
-                <button v-for="u in usuarios" :key="u" class="user-btn" @click="fazerLogin(u)">
+                <button v-for="u in config.usuariosLista" :key="u" class="user-btn" @click="fazerLogin(u)">
                     {{ u }}
                 </button>
             </div>
             
-            <div v-if="usuarios.length === 0" style="margin-top:20px; font-size:0.8rem; color:var(--text-sec);">
-                (Cadastre usuários nas configurações após entrar)
+            <div style="margin-top:20px; font-size:0.8rem; color:var(--text-sec);">
                 <button class="btn-outline" @click="fazerLogin('Admin')" style="margin-top:10px;">Entrar como Admin</button>
             </div>
         </div>
@@ -135,7 +134,7 @@
         </div>
         
         <div class="extras-area" style="margin-top:20px;">
-            <h4 style="margin:0 0 10px 0; color:var(--text);">Observação Geral (Vai em todos):</h4>
+            <h4 style="margin:0 0 10px 0; color:var(--text);">Observação Geral:</h4>
             <textarea class="extra-input" v-model="observacaoExtra" rows="2" placeholder="Ex: Entregar na porta lateral..."></textarea>
         </div>
     </div>
@@ -157,7 +156,7 @@
         <div class="modal-header"><h2>Configurações</h2><button class="close-btn" @click="mostrandoConfig = false">X</button></div>
 
         <div class="config-group">
-            <div class="group-title"><i class="fas fa-truck"></i> Fornecedores (Contatos)</div>
+            <div class="group-title"><i class="fas fa-truck"></i> Fornecedores</div>
             <div style="padding:10px;">
                 <div v-for="(f, idx) in config.fornecedores" :key="f.id" class="rota-item-clean">
                     <span>{{ f.nome }}</span>
@@ -180,7 +179,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <input class="form-input" v-model="novoUsuarioNome" placeholder="Nome do Pizzaiolo" style="margin:0;">
+                    <input class="form-input" v-model="novoUsuarioNome" placeholder="Nome" style="margin:0;">
                     <button class="btn-full" style="width:auto; margin:0;" @click="adicionarUsuario">+</button>
                 </div>
             </div>
@@ -193,7 +192,7 @@
                 
                 <div style="display:flex; gap:10px;">
                     <select class="form-input" v-model="novoProd.setor">
-                        <option value="" disabled selected>Local (Rota)</option>
+                        <option value="" disabled selected>Local</option>
                         <option v-for="l in config.rota" :value="l">{{ l }}</option>
                     </select>
                     <select class="form-input" v-model="novoProd.fornecedorId">
@@ -205,32 +204,32 @@
                 <div style="background:var(--bg); padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed var(--border);">
                     <div style="display:flex; gap:10px; align-items:center;">
                         <div style="flex:1">
-                            <label style="font-size:0.65rem;">Eu conto em:</label>
+                            <label style="font-size:0.65rem;">Conto em:</label>
                             <input class="form-input" v-model="novoProd.unQ" placeholder="Ex: Unidade" style="margin:0;">
                         </div>
                         <i class="fas fa-arrow-right" style="color:var(--text-sec)"></i>
                         <div style="flex:1">
-                            <label style="font-size:0.65rem;">Eu compro em:</label>
+                            <label style="font-size:0.65rem;">Peço em:</label>
                             <input class="form-input" v-model="novoProd.unC" placeholder="Ex: Caixa" style="margin:0;">
                         </div>
                     </div>
                     <div style="margin-top:10px;">
                         <label style="font-size:0.7rem; color:var(--primary);">Quantas {{ novoProd.unQ || 'Unidades' }} vêm na {{ novoProd.unC || 'Caixa' }}?</label>
-                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 6 (se vem 6 na caixa)">
+                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 6">
                     </div>
                 </div>
 
                 <label style="font-size:0.7rem;">Estoque Mínimo (em {{ novoProd.unC || 'Unidade de Compra' }})</label>
-                <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2 (Quero ter 2 caixas)">
+                <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2">
 
-                <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar Alteração</button>
-                <button v-else class="btn-full" @click="adicionarProduto">Cadastrar Produto</button>
+                <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar</button>
+                <button v-else class="btn-full" @click="adicionarProduto">Cadastrar</button>
                 <button v-if="editandoId" class="btn-outline" @click="cancelarEdicao" style="margin-top:10px; width:100%;">Cancelar</button>
             </div>
         </div>
 
         <div class="config-group">
-            <div class="group-title">Ordem da Rota</div>
+            <div class="group-title">Rota</div>
             <div v-for="(local, index) in config.rota" :key="local" class="rota-item-clean">
                 <span>{{ index + 1 }}. {{ local }}</span>
                 <div class="rota-controles">
