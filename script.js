@@ -1,4 +1,4 @@
-// --- SUA CHAVE FIREBASE ---
+// --- SUA CHAVE (NÃO MEXER) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4",
     authDomain: "artigiano-app.firebaseapp.com",
@@ -11,11 +11,8 @@ const firebaseConfig = {
 
 let db;
 try {
-    if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.database();
-        console.log("Firebase OK");
-    }
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
 } catch (e) { console.error(e); }
 
 const { createApp } = Vue
@@ -40,7 +37,7 @@ createApp({
             produtos: [],
             historico: [],
             
-            // FORM
+            // TEMPS
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false },
             novoUsuarioNome: '', novoUsuarioPin: '',
@@ -49,6 +46,7 @@ createApp({
         }
     },
     computed: {
+        semUsuarios() { return !this.usuarios || this.usuarios.length === 0; },
         dataHoje() { return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); },
         produtosFiltrados() {
             let lista = this.produtos.filter(p => {
@@ -76,7 +74,6 @@ createApp({
         },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.setor === local); },
         itensContados() { return this.produtosFiltrados.filter(p => p.contagem !== '' || p.ignorar).length; },
-        percentualConcluido() { return this.produtosFiltrados.length === 0 ? 0 : (this.itensContados / this.produtosFiltrados.length) * 100; },
         diaDaSemana() { return new Date().getDay(); },
         feriadoAtivo() {
             if(!this.config.feriados) return null;
@@ -107,7 +104,7 @@ createApp({
         }
     },
     methods: {
-        // LOGIN
+        // LOGIN & ADMIN
         addPin(n) { 
             if(this.pinDigitado.length < 4) {
                 this.pinDigitado += n;
@@ -116,11 +113,6 @@ createApp({
         },
         limparPin() { this.pinDigitado = this.pinDigitado.slice(0, -1); },
         tentarLogin() {
-            // BACKDOOR TEMPORÁRIO (Se banco vazio)
-            if ((!this.usuarios || this.usuarios.length === 0) && this.pinDigitado === '1234') {
-                this.usuarioLogado = { nome: 'Gabriel (Temp)', admin: true };
-                return;
-            }
             const user = this.usuarios.find(u => u.pin == this.pinDigitado);
             if(user) {
                 this.usuarioLogado = user;
@@ -131,8 +123,8 @@ createApp({
             }
         },
         criarPrimeiroAdmin() {
+            // Se não tem ninguém, cria o Admin Supremo
             if(this.novoUsuarioNome && this.novoUsuarioPin) {
-                // PRIMEIRO USUÁRIO É SEMPRE ADMIN
                 const u = { nome: this.novoUsuarioNome, pin: this.novoUsuarioPin, admin: true };
                 if(!this.usuarios) this.usuarios = [];
                 this.usuarios.push(u);
@@ -143,6 +135,7 @@ createApp({
         logout() { this.usuarioLogado = null; this.modoSelecionado = null; this.pinDigitado = ''; },
         
         adicionarUsuario() {
+            // Só Admin pode adicionar
             if(this.novoUsuarioNome && this.novoUsuarioPin) {
                 if(!this.usuarios) this.usuarios = [];
                 this.usuarios.push({ nome: this.novoUsuarioNome, pin: this.novoUsuarioPin, admin: false });
@@ -257,6 +250,7 @@ createApp({
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
         apagarHistorico(idx) { if(confirm('Apagar?')) { this.historico.splice(idx, 1); this.salvarGeral(); } },
+        
         resetarTudo() { if(confirm('⚠️ Apagar TUDO do Banco?')) { if(db){ db.ref('/').remove(); } window.location.reload(); } },
     },
     mounted() { this.carregarDados(); }
