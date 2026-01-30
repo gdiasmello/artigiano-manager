@@ -3,29 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano V26</title>
+    <title>Artigiano V27</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#F2F2F7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=26">
+    <link rel="stylesheet" href="styles.css?v=27">
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
 
-<div id="erro-loading" style="display:none; padding:40px; text-align:center; font-family:sans-serif;">
-    <h2 style="color:#FF3B30;">Ocorreu um erro 😕</h2>
-    <p>O aplicativo não conseguiu carregar.</p>
-    <button onclick="localStorage.clear(); window.location.reload();" style="padding:15px; background:#007AFF; color:white; border:none; border-radius:10px; margin-top:20px;">
-        Forçar Reinício (Reset)
-    </button>
+<div id="debug-error" style="display:none; padding:30px; color:red; background:white; font-family:monospace; z-index:9999; position:fixed; top:0; left:0; width:100%; height:100%;">
+    <h3>⚠️ Ocorreu um erro no código:</h3>
+    <p id="error-msg">Carregando...</p>
+    <button onclick="localStorage.clear(); window.location.reload();" style="padding:10px; border:1px solid red; background:#fff; margin-top:20px;">RESETAR TUDO</button>
 </div>
+
+<script>
+    // Captura qualquer erro de script e mostra na tela
+    window.onerror = function(message, source, lineno, colno, error) {
+        document.getElementById('debug-error').style.display = 'block';
+        document.getElementById('error-msg').innerText = message + "\nLinha: " + lineno;
+    };
+</script>
 
 <div id="app" v-cloak>
 
@@ -137,30 +143,30 @@
                         <i class="fas fa-trash text-red" @click="removerUsuario(idx)" v-if="!u.admin"></i>
                     </div>
                     <div class="add-row">
-                        <input v-model="novoUsuarioNome" placeholder="Nome">
-                        <input v-model="novoUsuarioPin" type="tel" placeholder="PIN" style="width:60px">
-                        <button @click="adicionarUsuario">Add</button>
+                        <input v-model="novoUsuarioNome" placeholder="Nome" class="ios-input">
+                        <input v-model="novoUsuarioPin" type="tel" placeholder="PIN" style="width:60px" class="ios-input">
+                        <button class="ios-btn-primary" @click="adicionarUsuario">Add</button>
                     </div>
                 </div>
                 <div class="config-section" v-else>
-                    <p style="text-align:center; color:#8E8E93; font-size:0.9rem;">Você não tem permissão para gerenciar usuários.</p>
+                    <p style="text-align:center; color:#8E8E93;">Área restrita ao administrador.</p>
                 </div>
 
                 <div class="config-section">
                     <h4>📦 Novo Produto</h4>
                     <div class="add-column">
-                        <input v-model="novoProd.nome" placeholder="Nome">
+                        <input v-model="novoProd.nome" placeholder="Nome" class="ios-input">
                         <div class="row">
-                            <select v-model="novoProd.setor"><option value="" disabled>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
-                            <select v-model="novoProd.destinoId"><option value="" disabled>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
+                            <select v-model="novoProd.setor" class="ios-input"><option value="" disabled>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
+                            <select v-model="novoProd.destinoId" class="ios-input"><option value="" disabled>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
                         </div>
                         <div class="row">
-                            <input v-model="novoProd.unQ" placeholder="Conta (Un)">
-                            <input v-model="novoProd.unC" placeholder="Pede (Cx)">
+                            <input v-model="novoProd.unQ" placeholder="Conta (Un)" class="ios-input">
+                            <input v-model="novoProd.unC" placeholder="Pede (Cx)" class="ios-input">
                         </div>
                         <div class="row">
-                            <input v-model.number="novoProd.fator" placeholder="Qtd Cx" type="number">
-                            <input v-model.number="novoProd.meta" placeholder="Meta" type="number">
+                            <input v-model.number="novoProd.fator" placeholder="Qtd Cx" type="number" class="ios-input">
+                            <input v-model.number="novoProd.meta" placeholder="Meta" type="number" class="ios-input">
                         </div>
                         <button class="ios-btn-primary" @click="adicionarProduto">Salvar</button>
                     </div>
@@ -173,9 +179,9 @@
                         <i class="fas fa-trash text-red" @click="removerDestino(idx)"></i>
                     </div>
                     <div class="add-row">
-                        <input v-model="novoDestino.nome" placeholder="Nome">
-                        <input v-model="novoDestino.telefone" placeholder="Zap">
-                        <button @click="adicionarDestino">Add</button>
+                        <input v-model="novoDestino.nome" placeholder="Nome" class="ios-input">
+                        <input v-model="novoDestino.telefone" placeholder="Zap" class="ios-input">
+                        <button class="ios-btn-primary" @click="adicionarDestino">Add</button>
                     </div>
                 </div>
 
@@ -213,15 +219,6 @@
 
 </div>
 
-<script>
-    setTimeout(function(){
-        if(!document.getElementById('app').__vue_app__) {
-            document.getElementById('erro-loading').style.display = 'block';
-            document.getElementById('app').style.display = 'none';
-        }
-    }, 4000);
-</script>
-
-<script src="script.js?v=26"></script>
+<script src="script.js?v=27"></script>
 </body>
 </html>

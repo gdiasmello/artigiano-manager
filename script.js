@@ -1,4 +1,4 @@
-// --- SUA CHAVE (NÃO MEXER) ---
+// --- CONFIGURAÇÃO DO SEU FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4",
     authDomain: "artigiano-app.firebaseapp.com",
@@ -9,15 +9,25 @@ const firebaseConfig = {
     appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
 };
 
+// Inicializa o Banco
 let db;
 try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-} catch (e) { console.error(e); }
+    // Usa a versão compat do HTML
+    if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        console.log("Firebase Conectado!");
+    } else {
+        console.error("Erro Crítico: Biblioteca Firebase não carregou no HTML.");
+        alert("Erro: O sistema não carregou. Verifique sua conexão.");
+    }
+} catch (e) {
+    console.error("Erro ao iniciar Firebase:", e);
+}
 
 const { createApp } = Vue
 
-createApp({
+const app = createApp({
     data() {
         return {
             conectado: false,
@@ -27,7 +37,7 @@ createApp({
             erroLogin: '',
             usuarios: [], 
             
-            // APP
+            // UI
             modoSelecionado: null,
             mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
             termoBusca: '', observacaoExtra: '',
@@ -48,6 +58,7 @@ createApp({
     computed: {
         semUsuarios() { return !this.usuarios || this.usuarios.length === 0; },
         dataHoje() { return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); },
+        
         produtosFiltrados() {
             let lista = this.produtos.filter(p => {
                 if(this.termoBusca && !p.nome.toLowerCase().includes(this.termoBusca.toLowerCase())) return false;
@@ -74,7 +85,9 @@ createApp({
         },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.setor === local); },
         itensContados() { return this.produtosFiltrados.filter(p => p.contagem !== '' || p.ignorar).length; },
+        percentualConcluido() { return this.produtosFiltrados.length === 0 ? 0 : (this.itensContados / this.produtosFiltrados.length) * 100; },
         diaDaSemana() { return new Date().getDay(); },
+        
         feriadoAtivo() {
             if(!this.config.feriados) return null;
             const hoje = new Date(); const limite = new Date(); limite.setDate(hoje.getDate()+3);
@@ -104,7 +117,7 @@ createApp({
         }
     },
     methods: {
-        // LOGIN & ADMIN
+        // LOGIN
         addPin(n) { 
             if(this.pinDigitado.length < 4) {
                 this.pinDigitado += n;
@@ -123,7 +136,6 @@ createApp({
             }
         },
         criarPrimeiroAdmin() {
-            // Se não tem ninguém, cria o Admin Supremo
             if(this.novoUsuarioNome && this.novoUsuarioPin) {
                 const u = { nome: this.novoUsuarioNome, pin: this.novoUsuarioPin, admin: true };
                 if(!this.usuarios) this.usuarios = [];
@@ -135,7 +147,6 @@ createApp({
         logout() { this.usuarioLogado = null; this.modoSelecionado = null; this.pinDigitado = ''; },
         
         adicionarUsuario() {
-            // Só Admin pode adicionar
             if(this.novoUsuarioNome && this.novoUsuarioPin) {
                 if(!this.usuarios) this.usuarios = [];
                 this.usuarios.push({ nome: this.novoUsuarioNome, pin: this.novoUsuarioPin, admin: false });
@@ -170,6 +181,9 @@ createApp({
                         this.usuarios = d.usuarios || [];
                         this.conectado = true;
                     } else { this.conectado = true; }
+                }, (error) => {
+                    console.error("Erro Conexão:", error);
+                    this.conectado = false;
                 });
             }
         },
