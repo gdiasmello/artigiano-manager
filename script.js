@@ -3,9 +3,12 @@ const { createApp } = Vue
 const app = createApp({
     data() {
         return {
+            // UI
+            modoSelecionado: null, // null, 'sacolao', 'geral', 'todos'
             mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
             temaEscuro: false, termoBusca: '', observacaoExtra: '',
             
+            // DADOS
             config: { 
                 nomeEmpresa: 'Artigiano', 
                 rota: ['Geladeira', 'Estoque Seco', 'Freezer'],
@@ -15,6 +18,7 @@ const app = createApp({
             produtos: [],
             historico: [],
             
+            // TEMPS
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false },
             novoFeriado: { nome: '', dia: '', mes: '' },
@@ -23,25 +27,49 @@ const app = createApp({
         }
     },
     computed: {
+        // --- FILTRO INTELIGENTE (O CORAÇÃO DA V19) ---
+        produtosFiltrados() {
+            // Primeiro filtra pela barra de busca
+            let lista = this.produtos.filter(p => {
+                if(this.termoBusca && !p.nome.toLowerCase().includes(this.termoBusca.toLowerCase())) return false;
+                return true;
+            });
+
+            // Depois filtra pelo Modo Selecionado
+            if (this.modoSelecionado === 'sacolao') {
+                return lista.filter(p => {
+                    const nomeDestino = this.getNomeDestino(p.destinoId).toLowerCase();
+                    // Palavras-chave para Sacolão
+                    return nomeDestino.includes('sacol') || nomeDestino.includes('horti') || nomeDestino.includes('fruta') || nomeDestino.includes('legume') || nomeDestino.includes('feira');
+                });
+            } else if (this.modoSelecionado === 'geral') {
+                return lista.filter(p => {
+                    const nomeDestino = this.getNomeDestino(p.destinoId).toLowerCase();
+                    // Tudo que NÃO é sacolão
+                    return !(nomeDestino.includes('sacol') || nomeDestino.includes('horti') || nomeDestino.includes('fruta') || nomeDestino.includes('legume'));
+                });
+            }
+            
+            // Se for 'todos', retorna tudo
+            return lista;
+        },
+
         rotaExibicao() { 
             const rotas = (this.config && Array.isArray(this.config.rota)) ? this.config.rota : ['Geral'];
-            const setoresUsados = [...new Set(this.produtos.map(p => p.setor))];
+            const setoresUsados = [...new Set(this.produtosFiltrados.map(p => p.setor))]; // Usa filtrados
             const orfaos = setoresUsados.filter(s => !rotas.includes(s));
             return [...rotas, ...orfaos];
         },
-        produtosVisiveisPorLocal() {
-            const grupos = {};
-            const termo = this.termoBusca ? this.termoBusca.toLowerCase() : '';
-            this.produtos.forEach(p => {
-                if(termo && !p.nome.toLowerCase().includes(termo)) return;
-                const setor = p.setor || 'Geral';
-                if(!grupos[setor]) grupos[setor] = [];
-                grupos[setor].push(p);
-            });
-            return grupos;
+        
+        // Pega produtos de um local específico, respeitando o filtro atual
+        produtosDoLocal() {
+            return (local) => {
+                return this.produtosFiltrados.filter(p => p.setor === local);
+            }
         },
-        itensContados() { return this.produtos.filter(p => p.contagem !== '' || p.ignorar).length; },
-        percentualConcluido() { return this.produtos.length === 0 ? 0 : (this.itensContados / this.produtos.length) * 100; },
+
+        itensContados() { return this.produtosFiltrados.filter(p => p.contagem !== '' || p.ignorar).length; },
+        percentualConcluido() { return this.produtosFiltrados.length === 0 ? 0 : (this.itensContados / this.produtosFiltrados.length) * 100; },
         
         diaDaSemana() { return new Date().getDay(); }, 
         diaDaSemanaExtenso() { const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']; return dias[this.diaDaSemana]; },
@@ -59,7 +87,10 @@ const app = createApp({
 
         pedidosPorDestino() {
             const grupos = {};
-            this.produtos.forEach(p => {
+            // Usa 'produtos' (todos) para garantir que nada fique para trás se trocar de modo sem querer, 
+            // ou 'produtosFiltrados' se quiser enviar só o da sessão. 
+            // Melhor usar FILTRADOS para evitar enviar coisa errada.
+            this.produtosFiltrados.forEach(p => {
                 const calculo = this.calculaFalta(p);
                 if (!p.ignorar && p.contagem !== '' && calculo.qtd > 0) {
                     const dId = p.destinoId || 'geral';
@@ -78,6 +109,10 @@ const app = createApp({
         dadosExportacao() { return JSON.stringify({ produtos: this.produtos, config: this.config }); }
     },
     methods: {
+        selecionarModo(modo) {
+            this.modoSelecionado = modo;
+        },
+
         calculaFalta(p) {
             if (p.ignorar || p.contagem === '') return { qtd: 0, fatorMultiplicador: 1 };
             
@@ -183,7 +218,6 @@ const app = createApp({
             msg += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
             msg += `----------------\n`;
             
-            // CRIAÇÃO DO RESUMO DETALHADO PARA O HISTÓRICO
             let textoHistorico = "";
             itens.forEach(i => {
                 msg += i.texto + '\n';
@@ -195,11 +229,10 @@ const app = createApp({
                 textoHistorico += `\nOBS: ${this.observacaoExtra}`;
             }
 
-            // SALVA DETALHES AGORA!
             this.historico.unshift({
                 data: new Date().toLocaleString('pt-BR'),
                 destino: nomeDest,
-                detalhes: textoHistorico // Novo campo
+                detalhes: textoHistorico
             });
             if(this.historico.length > 50) this.historico.pop();
             this.salvar();
@@ -225,12 +258,12 @@ const app = createApp({
         adicionarLocal() { if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvar(); } },
 
         salvar() { 
-            try { localStorage.setItem('artigiano_v18_final', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); } catch(e) {}
+            try { localStorage.setItem('artigiano_v19_app', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); } catch(e) {}
         },
         carregar() {
             try {
-                let s = localStorage.getItem('artigiano_v18_final');
-                if (!s) s = localStorage.getItem('artigiano_v17_smart') || localStorage.getItem('artigiano_v16_smart') || localStorage.getItem('artigiano_v15_nolock');
+                let s = localStorage.getItem('artigiano_v19_app');
+                if (!s) s = localStorage.getItem('artigiano_v18_final') || localStorage.getItem('artigiano_v17_smart');
 
                 if (s) {
                     const d = JSON.parse(s);
@@ -249,7 +282,7 @@ const app = createApp({
         },
         importarDados() { 
             try { 
-                localStorage.setItem('artigiano_v18_final', document.querySelector('textarea').value); 
+                localStorage.setItem('artigiano_v19_app', document.querySelector('textarea').value); 
                 this.carregar(); alert('Importado!'); this.mostrandoConfig = false; 
             } catch(e){ alert('Erro.'); } 
         }

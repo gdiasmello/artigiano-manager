@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V18</title>
+    <title>Artigiano App</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#C0392B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -14,10 +20,37 @@
 
 <div id="app" :data-theme="temaEscuro ? 'dark' : 'light'">
 
-    <div class="header" v-if="!mostrandoPreview">
+    <div class="start-screen" v-if="!modoSelecionado">
+        <div class="start-content">
+            <div style="margin-bottom:30px;">
+                <h1>🍕 Artigiano</h1>
+                <p>O que vamos pedir hoje?</p>
+            </div>
+            
+            <button class="mode-btn btn-sacolao" @click="selecionarModo('sacolao')">
+                <i class="fas fa-carrot fa-2x"></i><br>
+                SACOLÃO / HORTI
+            </button>
+
+            <button class="mode-btn btn-geral" @click="selecionarModo('geral')">
+                <i class="fas fa-boxes fa-2x"></i><br>
+                GERAL / INS.
+            </button>
+
+            <button class="btn-outline" @click="selecionarModo('todos')" style="margin-top:20px; width:100%;">
+                Ver Tudo
+            </button>
+        </div>
+    </div>
+
+    <div class="header" v-if="modoSelecionado && !mostrandoPreview">
         <div>
-            <h1>🍕 {{ config.nomeEmpresa }}</h1>
-            <small style="font-size:0.7rem; color:var(--text-sec);">{{ diaDaSemanaExtenso }}</small>
+            <div @click="modoSelecionado = null" style="font-size:0.7rem; color:var(--text-sec); cursor:pointer; display:flex; align-items:center; gap:5px;">
+                <i class="fas fa-arrow-left"></i> Trocar Modo
+            </div>
+            <h1>
+                {{ modoSelecionado === 'sacolao' ? '🥬 Sacolão' : (modoSelecionado === 'geral' ? '📦 Geral' : '🍕 Tudo') }}
+            </h1>
         </div>
         <div class="header-actions">
             <button class="header-btn" @click="toggleHistorico"><i class="fas fa-history"></i></button>
@@ -25,36 +58,35 @@
         </div>
     </div>
 
-    <div class="progress-container" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico && produtos.length > 0">
+    <div class="progress-container" v-if="modoSelecionado && !mostrandoPreview && !mostrandoConfig && !mostrandoHistorico && produtosFiltrados.length > 0">
         <div class="progress-bar-bg"><div class="progress-fill" :style="{width: percentualConcluido + '%'}"></div></div>
-        <div class="progress-text">{{ itensContados }} de {{ produtos.length }}</div>
+        <div class="progress-text">{{ itensContados }} de {{ produtosFiltrados.length }}</div>
     </div>
 
-    <div class="feriado-alert" v-if="!mostrandoPreview && !mostrandoConfig">
+    <div class="feriado-alert" v-if="modoSelecionado && !mostrandoPreview && !mostrandoConfig">
         <div v-if="feriadoAtivo">🎉 Feriado: {{ feriadoAtivo.nome }} (+50%)</div>
-        <div v-else-if="diaDaSemana === 5">📅 Hoje é Sexta! Estoque de Sacolão triplicado (x3).</div>
-        <div v-else-if="diaDaSemana === 1">⚠️ Amanhã a loja fecha (Terça). Peça pouco.</div>
+        <div v-else-if="diaDaSemana === 5 && modoSelecionado !== 'geral'">📅 Hoje é Sexta! Sacolão x3.</div>
+        <div v-else-if="diaDaSemana === 1">⚠️ Amanhã (Terça) fecha. Peça pouco.</div>
     </div>
 
-    <div class="search-bar" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
+    <div class="search-bar" v-if="modoSelecionado && !mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
         <input type="text" class="search-input" v-model="termoBusca" placeholder="🔍 Buscar item...">
     </div>
 
-    <div v-if="!mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
+    <div v-if="modoSelecionado && !mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
         
-        <div v-if="produtos.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
-            <i class="fas fa-pizza-slice fa-3x" style="color:var(--primary)"></i><br><br>
-            <b>Bem-vindo!</b><br>
-            A tela de login foi removida.<br>
-            Configure seus produtos na engrenagem.
+        <div v-if="produtosFiltrados.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
+            <i class="fas fa-check-circle fa-3x" style="color:var(--text-sec)"></i><br><br>
+            Nenhum produto nesta categoria.<br>
+            (Verifique os Destinos nas configurações)
         </div>
 
         <div v-for="local in rotaExibicao" :key="local">
-            <div v-if="produtosVisiveisPorLocal[local] && produtosVisiveisPorLocal[local].length > 0" class="local-header">
+            <div v-if="produtosDoLocal(local).length > 0" class="local-header">
                 <i class="fas fa-map-marker-alt"></i> {{ local }}
             </div>
 
-            <div v-for="p in produtosVisiveisPorLocal[local]" :key="p.id" class="prod-card" :class="{ ignorado: p.ignorar, pedir: calculaFalta(p).qtd > 0 && !p.ignorar, ok: calculaFalta(p).qtd <= 0 && !p.ignorar }">
+            <div v-for="p in produtosDoLocal(local)" :key="p.id" class="prod-card" :class="{ ignorado: p.ignorar, pedir: calculaFalta(p).qtd > 0 && !p.ignorar, ok: calculaFalta(p).qtd <= 0 && !p.ignorar }">
                 <div class="card-top">
                     <div>
                         <div class="prod-name">
@@ -98,84 +130,48 @@
             </div>
         </div>
 
-        <div v-if="produtos.length > 0" class="finalizar-card" @click="abrirPreview">
+        <div v-if="produtosFiltrados.length > 0" class="finalizar-card" @click="abrirPreview">
             <h2>FINALIZAR <i class="fas fa-check-double"></i></h2>
         </div>
     </div>
 
     <div class="modal-overlay" :class="{open: mostrandoPreview}">
         <div class="modal-header"><h2>Enviar Pedidos</h2><button class="close-btn" @click="mostrandoPreview = false">X</button></div>
-        
         <div style="padding:15px; text-align:center;" v-if="Object.keys(pedidosPorDestino).length === 0">
-            <i class="fas fa-check-circle fa-3x" style="color:var(--secondary)"></i>
-            <p>Tudo certo! Nada para pedir.</p>
+            <i class="fas fa-check-circle fa-3x" style="color:var(--secondary)"></i><p>Tudo certo! Nada para pedir.</p>
         </div>
-
         <div v-for="(itens, destinoId) in pedidosPorDestino" :key="destinoId" class="supplier-card">
-            <div class="supplier-header">
-                <span><i class="fas fa-truck"></i> {{ getNomeDestino(destinoId) }}</span>
-                <span class="badge-count">{{ itens.length }} itens</span>
-            </div>
-            <div class="supplier-items">
-                <div v-for="item in itens" style="border-bottom:1px solid #eee; padding:5px 0;">
-                    {{ item.texto }}
-                </div>
-            </div>
-            <button class="btn-whatsapp" @click="enviarWhatsApp(destinoId, itens)">
-                <i class="fab fa-whatsapp"></i> Enviar WhatsApp
-            </button>
+            <div class="supplier-header"><span><i class="fas fa-truck"></i> {{ getNomeDestino(destinoId) }}</span><span class="badge-count">{{ itens.length }} itens</span></div>
+            <div class="supplier-items"><div v-for="item in itens" style="border-bottom:1px solid #eee; padding:5px 0;">{{ item.texto }}</div></div>
+            <button class="btn-whatsapp" @click="enviarWhatsApp(destinoId, itens)"><i class="fab fa-whatsapp"></i> Enviar WhatsApp</button>
         </div>
-        
-        <div class="extras-area" style="margin-top:20px;">
-            <h4 style="margin:0 0 10px 0; color:var(--text);">Observação Geral:</h4>
-            <textarea class="extra-input" v-model="observacaoExtra" rows="2" placeholder="Ex: Entregar na lateral..."></textarea>
-        </div>
+        <div class="extras-area" style="margin-top:20px;"><h4 style="margin:0 0 10px 0; color:var(--text);">Observação Geral:</h4><textarea class="extra-input" v-model="observacaoExtra" rows="2" placeholder="Ex: Entregar na lateral..."></textarea></div>
     </div>
 
     <div class="modal-overlay" :class="{open: mostrandoHistorico}">
         <div class="modal-header"><h2>Histórico</h2><button class="close-btn" @click="mostrandoHistorico = false">X</button></div>
-        
-        <div v-if="historico.length === 0" style="text-align:center; padding:20px; color:var(--text-sec);">Nenhum pedido recente.</div>
-        
+        <div v-if="historico.length === 0" style="text-align:center; padding:20px; color:var(--text-sec);">Vazio.</div>
         <div v-for="(h, index) in historico" :key="index" style="background:var(--card); padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid var(--border); box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-            <div style="font-weight:bold; color:var(--primary); font-size:0.85rem; display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:5px;">
-                <span>{{ h.data }}</span>
-                <i class="fas fa-trash" @click="apagarHistorico(index)" style="cursor:pointer;"></i>
-            </div>
+            <div style="font-weight:bold; color:var(--primary); font-size:0.85rem; display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:5px;"><span>{{ h.data }}</span><i class="fas fa-trash" @click="apagarHistorico(index)" style="cursor:pointer;"></i></div>
             <div style="font-size:0.9rem; font-weight:800; color:var(--text);">Para: {{ h.destino }}</div>
-            
             <div style="font-size:0.85rem; color:var(--text-sec); white-space: pre-wrap; margin-top:8px; line-height:1.4; background:var(--input-bg); padding:10px; border-radius:5px;">{{ h.detalhes }}</div>
         </div>
     </div>
 
     <div class="modal-overlay" :class="{open: mostrandoConfig}">
         <div class="modal-header"><h2>Configurações</h2><button class="close-btn" @click="mostrandoConfig = false">X</button></div>
-
+        
         <div class="config-group">
-            <div class="group-title"><i class="fas fa-truck"></i> Destinos (Fornecedores)</div>
+            <div class="group-title"><i class="fas fa-truck"></i> Destinos</div>
             <div style="padding:10px;">
                 <div v-for="(d, idx) in config.destinos" :key="d.id" style="background:var(--bg); padding:10px; margin-bottom:5px; border-radius:8px; border:1px solid var(--border);">
-                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                        {{ d.nome }}
-                        <i class="fas fa-trash" style="color:var(--danger)" @click="removerDestino(idx)"></i>
-                    </div>
-                    <div style="font-size:0.7rem; color:var(--text-sec);">{{ d.telefone }}</div>
-                    <div style="font-size:0.7rem; color:var(--text-sec); margin-top:3px;">
-                        <i class="fas fa-calendar-check" v-if="d.triplicarSexta" style="color:var(--special)"></i> 
-                        {{ d.triplicarSexta ? 'Triplica meta na Sexta' : 'Meta Normal' }}
-                    </div>
+                    <div style="display:flex; justify-content:space-between; font-weight:bold;">{{ d.nome }}<i class="fas fa-trash" style="color:var(--danger)" @click="removerDestino(idx)"></i></div>
+                    <div style="font-size:0.7rem; color:var(--text-sec);">{{ d.triplicarSexta ? 'Triplica na Sexta' : 'Meta Normal' }}</div>
                 </div>
-                
                 <div style="margin-top:10px; border-top:1px dashed var(--border); padding-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <input class="form-input" v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)" style="flex:1; margin:0;">
-                        <input class="form-input" v-model="novoDestino.telefone" placeholder="WhatsApp" style="flex:1; margin:0;">
-                    </div>
+                    <div style="display:flex; gap:5px;"><input class="form-input" v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)" style="flex:1; margin:0;"><input class="form-input" v-model="novoDestino.telefone" placeholder="Zap" style="flex:1; margin:0;"></div>
                     <input class="form-input" v-model="novoDestino.msgPersonalizada" placeholder="Msg Saudação" style="margin-top:5px;">
-                    <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
-                        <input type="checkbox" v-model="novoDestino.triplicarSexta" id="checkSexta" style="width:20px; height:20px;">
-                        <label for="checkSexta" style="font-size:0.8rem;">Triplicar pedido na Sexta? (Fim de semana)</label>
-                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:10px;"><input type="checkbox" v-model="novoDestino.triplicarSexta" id="checkSexta" style="width:20px; height:20px;"><label for="checkSexta" style="font-size:0.8rem;">Triplicar na Sexta (Sacolão)?</label></div>
                     <button class="btn-full" style="margin-top:5px; padding:10px;" @click="adicionarDestino">Salvar Destino</button>
                 </div>
             </div>
@@ -184,72 +180,27 @@
         <div class="config-group">
             <div class="group-title"><i class="fas fa-box"></i> Produto</div>
             <div style="padding:15px;">
-                <input class="form-input" v-model="novoProd.nome" placeholder="Nome do Produto">
+                <input class="form-input" v-model="novoProd.nome" placeholder="Nome">
                 <div style="display:flex; gap:10px;">
-                    <select class="form-input" v-model="novoProd.setor">
-                        <option value="" disabled selected>Local</option>
-                        <option v-for="l in config.rota" :value="l">{{ l }}</option>
-                    </select>
-                    <select class="form-input" v-model="novoProd.destinoId">
-                        <option value="" disabled selected>Destino</option>
-                        <option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option>
-                    </select>
+                    <select class="form-input" v-model="novoProd.setor"><option value="" disabled selected>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
+                    <select class="form-input" v-model="novoProd.destinoId"><option value="" disabled selected>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
                 </div>
-                <div style="background:var(--bg); padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed var(--border);">
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <div style="flex:1"><label style="font-size:0.65rem;">Conto em:</label><input class="form-input" v-model="novoProd.unQ" placeholder="Ex: Un" style="margin:0;"></div>
-                        <div style="flex:1"><label style="font-size:0.65rem;">Peço em:</label><input class="form-input" v-model="novoProd.unC" placeholder="Ex: Cx" style="margin:0;"></div>
-                    </div>
-                    <div style="margin-top:10px;">
-                        <label style="font-size:0.7rem; color:var(--primary);">Qtd na embalagem de compra?</label>
-                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 20">
-                    </div>
+                <div style="background:var(--bg); padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <div style="display:flex; gap:10px;"><div style="flex:1"><label style="font-size:0.65rem;">Conto em:</label><input class="form-input" v-model="novoProd.unQ" placeholder="Ex: Un"></div><div style="flex:1"><label style="font-size:0.65rem;">Peço em:</label><input class="form-input" v-model="novoProd.unC" placeholder="Ex: Cx"></div></div>
+                    <div style="margin-top:5px;"><label style="font-size:0.7rem;">Qtd na embalagem?</label><input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 20"></div>
                 </div>
-                <label style="font-size:0.7rem;">Meta Mínima (na unidade de compra)</label>
-                <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2">
-                <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar Alteração</button>
+                <label style="font-size:0.7rem;">Meta Mínima</label><input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2">
+                <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar</button>
                 <button v-else class="btn-full" @click="adicionarProduto">Cadastrar</button>
-                <button v-if="editandoId" class="btn-outline" @click="cancelarEdicao" style="margin-top:10px; width:100%;">Cancelar</button>
+                <button v-if="editandoId" class="btn-outline" @click="cancelarEdicao" style="margin-top:10px;">Cancelar</button>
             </div>
         </div>
 
-        <div class="config-group">
-            <div class="group-title"><i class="fas fa-calendar-star"></i> Dias Especiais (+50%)</div>
-            <div style="padding:10px;">
-                <div v-for="(f, idx) in config.feriados" :key="idx" class="rota-item-clean">
-                    <span>{{ f.dia }}/{{ f.mes }} - {{ f.nome }}</span>
-                    <i class="fas fa-trash" style="color:var(--danger)" @click="removerFeriado(idx)"></i>
-                </div>
-                <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input class="form-input" v-model="novoFeriado.nome" placeholder="Nome" style="flex:2; margin:0;">
-                    <input type="number" class="form-input" v-model.number="novoFeriado.dia" placeholder="Dia" style="flex:1; margin:0;">
-                    <input type="number" class="form-input" v-model.number="novoFeriado.mes" placeholder="Mês" style="flex:1; margin:0;">
-                </div>
-                <button class="btn-full" style="width:auto; margin-top:5px;" @click="adicionarFeriado">+</button>
-            </div>
-        </div>
+        <div class="config-group"><div class="group-title">Dias Especiais</div><div style="padding:10px;"><div v-for="(f, idx) in config.feriados" :key="idx" class="rota-item-clean"><span>{{ f.dia }}/{{ f.mes }} - {{ f.nome }}</span><i class="fas fa-trash" style="color:var(--danger)" @click="removerFeriado(idx)"></i></div><div style="display:flex; gap:5px; margin-top:5px;"><input class="form-input" v-model="novoFeriado.nome" placeholder="Nome" style="flex:2; margin:0;"><input type="number" class="form-input" v-model.number="novoFeriado.dia" placeholder="Dia" style="flex:1; margin:0;"><input type="number" class="form-input" v-model.number="novoFeriado.mes" placeholder="Mês" style="flex:1; margin:0;"></div><button class="btn-full" style="width:auto; margin-top:5px;" @click="adicionarFeriado">+</button></div></div>
 
-        <div class="config-group">
-            <div class="group-title">Rota</div>
-            <div v-for="(local, index) in config.rota" :key="local" class="rota-item-clean">
-                <span>{{ index + 1 }}. {{ local }}</span>
-                <div class="rota-controles">
-                    <button @click="moverRota(index, -1)">⬆️</button>
-                    <button @click="moverRota(index, 1)">⬇️</button>
-                </div>
-            </div>
-            <div style="display:flex; padding:10px; gap:5px;">
-                <input class="form-input" v-model="novoLocal" placeholder="Novo Local" style="margin:0;">
-                <button class="btn-full" style="width:auto; margin:0;" @click="adicionarLocal">+</button>
-            </div>
-        </div>
+        <div class="config-group"><div class="group-title">Rota</div><div v-for="(local, index) in config.rota" :key="local" class="rota-item-clean"><span>{{ index + 1 }}. {{ local }}</span><div class="rota-controles"><button @click="moverRota(index, -1)">⬆️</button><button @click="moverRota(index, 1)">⬇️</button></div></div><div style="display:flex; padding:10px; gap:5px;"><input class="form-input" v-model="novoLocal" placeholder="Novo Local"><button class="btn-full" style="width:auto;" @click="adicionarLocal">+</button></div></div>
 
-        <div class="config-section">
-            <h3>Backup</h3>
-            <textarea class="form-input" style="height:60px; font-size:0.7rem;">{{ dadosExportacao }}</textarea>
-            <button class="btn-full" style="background:#444;" @click="importarDados">Importar</button>
-            <button class="btn-outline" @click="resetarTudo" style="margin-top:15px; color:var(--danger); border-color:var(--danger);">Resetar App</button>
-        </div>
+        <div class="config-section"><h3>Backup</h3><textarea class="form-input" style="height:60px; font-size:0.7rem;">{{ dadosExportacao }}</textarea><button class="btn-full" style="background:#444;" @click="importarDados">Importar</button><button class="btn-outline" @click="resetarTudo" style="margin-top:15px; color:var(--danger); border-color:var(--danger);">Resetar App</button></div>
     </div>
 
 </div>
