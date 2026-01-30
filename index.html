@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V15</title>
+    <title>Artigiano Smart V17</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -17,7 +17,7 @@
     <div class="header" v-if="!mostrandoPreview">
         <div>
             <h1>🍕 {{ config.nomeEmpresa }}</h1>
-            <small style="font-size:0.7rem; color:var(--text-sec);">Gestão de Estoque</small>
+            <small style="font-size:0.7rem; color:var(--text-sec);">{{ diaDaSemanaExtenso }}</small>
         </div>
         <div class="header-actions">
             <button class="header-btn" @click="toggleHistorico"><i class="fas fa-history"></i></button>
@@ -27,20 +27,24 @@
 
     <div class="progress-container" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico && produtos.length > 0">
         <div class="progress-bar-bg"><div class="progress-fill" :style="{width: percentualConcluido + '%'}"></div></div>
-        <div class="progress-text">{{ itensContados }} de {{ produtos.length }} itens</div>
+        <div class="progress-text">{{ itensContados }} de {{ produtos.length }}</div>
+    </div>
+
+    <div class="feriado-alert" v-if="!mostrandoPreview && !mostrandoConfig">
+        <div v-if="feriadoAtivo">🎉 Feriado: {{ feriadoAtivo.nome }} (+50%)</div>
+        <div v-else-if="diaDaSemana === 5">📅 Hoje é Sexta! Estoque de Sacolão triplicado (x3).</div>
+        <div v-else-if="diaDaSemana === 1">⚠️ Amanhã a loja fecha (Terça). Cuidado com perecíveis.</div>
     </div>
 
     <div class="search-bar" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
-        <input type="text" class="search-input" v-model="termoBusca" placeholder="🔍 Buscar produto...">
+        <input type="text" class="search-input" v-model="termoBusca" placeholder="🔍 Buscar item...">
     </div>
 
     <div v-if="!mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
         
         <div v-if="produtos.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
             <i class="fas fa-box-open fa-3x" style="color:var(--primary)"></i><br><br>
-            <b>Nenhum produto.</b><br>
-            Vá em <i class="fas fa-cog"></i> Configurações para cadastrar<br>
-            ou importar a lista do grupo.
+            Estoque vazio.<br>Configure na engrenagem.
         </div>
 
         <div v-for="local in rotaExibicao" :key="local">
@@ -48,17 +52,22 @@
                 <i class="fas fa-map-marker-alt"></i> {{ local }}
             </div>
 
-            <div v-for="p in produtosVisiveisPorLocal[local]" :key="p.id" class="prod-card" :class="{ ignorado: p.ignorar, pedir: calculaFalta(p) > 0 && !p.ignorar, ok: calculaFalta(p) <= 0 && !p.ignorar }">
+            <div v-for="p in produtosVisiveisPorLocal[local]" :key="p.id" class="prod-card" :class="{ ignorado: p.ignorar, pedir: calculaFalta(p).qtd > 0 && !p.ignorar, ok: calculaFalta(p).qtd <= 0 && !p.ignorar }">
                 <div class="card-top">
                     <div>
                         <div class="prod-name">
                             {{ p.nome }} 
                             <i class="fas fa-pen" @click="editarProduto(p)" style="font-size:0.7rem; color:var(--text-sec); margin-left:5px; cursor:pointer;"></i>
                         </div>
-                        <div class="prod-meta">Meta: {{ p.meta }} {{ p.unC }}</div>
+                        <div class="prod-meta">
+                            Meta: {{ p.meta }} {{ p.unC }}
+                            <span v-if="calculaFalta(p).fatorMultiplicador > 1" style="color:var(--special); font-weight:bold;">
+                                (x{{ calculaFalta(p).fatorMultiplicador }})
+                            </span>
+                        </div>
                     </div>
-                    <div v-if="p.fornecedorId" class="badge-fornecedor">
-                        {{ getNomeFornecedor(p.fornecedorId) }}
+                    <div v-if="p.destinoId" class="badge-fornecedor">
+                        {{ getNomeDestino(p.destinoId) }}
                     </div>
                 </div>
 
@@ -79,8 +88,8 @@
                 </div>
 
                 <div class="feedback-bar" v-if="!p.ignorar && p.contagem !== ''">
-                    <span v-if="calculaFalta(p) > 0" style="color:var(--danger); font-weight:bold;">
-                        PEDIR: {{ calculaFalta(p) }} {{ p.unC }}
+                    <span v-if="calculaFalta(p).qtd > 0" style="color:var(--danger); font-weight:bold;">
+                        PEDIR: {{ calculaFalta(p).qtd }} {{ p.unC }}
                     </span>
                     <span v-else style="color:var(--success); font-weight:bold;">OK</span>
                 </div>
@@ -95,14 +104,14 @@
     <div class="modal-overlay" :class="{open: mostrandoPreview}">
         <div class="modal-header"><h2>Enviar Pedidos</h2><button class="close-btn" @click="mostrandoPreview = false">X</button></div>
         
-        <div style="padding:15px; text-align:center;" v-if="Object.keys(pedidosPorFornecedor).length === 0">
+        <div style="padding:15px; text-align:center;" v-if="Object.keys(pedidosPorDestino).length === 0">
             <i class="fas fa-check-circle fa-3x" style="color:var(--secondary)"></i>
             <p>Tudo certo! Nada para pedir.</p>
         </div>
 
-        <div v-for="(itens, fornecedorId) in pedidosPorFornecedor" :key="fornecedorId" class="supplier-card">
+        <div v-for="(itens, destinoId) in pedidosPorDestino" :key="destinoId" class="supplier-card">
             <div class="supplier-header">
-                <span><i class="fas fa-truck"></i> {{ getNomeFornecedor(fornecedorId) }}</span>
+                <span><i class="fas fa-truck"></i> {{ getNomeDestino(destinoId) }}</span>
                 <span class="badge-count">{{ itens.length }} itens</span>
             </div>
             <div class="supplier-items">
@@ -110,7 +119,7 @@
                     {{ item.texto }}
                 </div>
             </div>
-            <button class="btn-whatsapp" @click="enviarWhatsApp(fornecedorId, itens)">
+            <button class="btn-whatsapp" @click="enviarWhatsApp(destinoId, itens)">
                 <i class="fab fa-whatsapp"></i> Enviar WhatsApp
             </button>
         </div>
@@ -129,7 +138,7 @@
                 <span>{{ h.data }}</span>
                 <i class="fas fa-trash" @click="apagarHistorico(index)"></i>
             </div>
-            <div style="font-size:0.9rem; margin-top:5px; font-weight:bold;">Para: {{ h.fornecedor }}</div>
+            <div style="font-size:0.9rem; margin-top:5px; font-weight:bold;">Para: {{ h.destino }}</div>
             <div style="font-size:0.8rem; color:var(--text); white-space: pre-wrap;">{{ h.resumo }}</div>
         </div>
     </div>
@@ -138,17 +147,35 @@
         <div class="modal-header"><h2>Configurações</h2><button class="close-btn" @click="mostrandoConfig = false">X</button></div>
 
         <div class="config-group">
-            <div class="group-title"><i class="fas fa-truck"></i> Fornecedores (Contatos)</div>
+            <div class="group-title"><i class="fas fa-truck"></i> Para quem vai o pedido?</div>
             <div style="padding:10px;">
-                <div v-for="(f, idx) in config.fornecedores" :key="f.id" class="rota-item-clean">
-                    <span>{{ f.nome }}</span>
-                    <i class="fas fa-trash" style="color:var(--danger)" @click="removerFornecedor(idx)"></i>
+                <div v-for="(d, idx) in config.destinos" :key="d.id" style="background:var(--bg); padding:10px; margin-bottom:5px; border-radius:8px; border:1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                        {{ d.nome }}
+                        <i class="fas fa-trash" style="color:var(--danger)" @click="removerDestino(idx)"></i>
+                    </div>
+                    <div style="font-size:0.7rem; color:var(--text-sec);">{{ d.telefone }}</div>
+                    <div style="font-size:0.7rem; color:var(--text-sec); margin-top:3px;">
+                        <i class="fas fa-calendar-check" v-if="d.triplicarSexta" style="color:var(--special)"></i> 
+                        {{ d.triplicarSexta ? 'Triplica meta na Sexta' : 'Meta Normal' }}
+                    </div>
                 </div>
-                <div style="display:flex; gap:5px; margin-top:10px;">
-                    <input class="form-input" v-model="novoFornecedor.nome" placeholder="Nome (Ex: Turra)" style="flex:1; margin:0;">
-                    <input class="form-input" v-model="novoFornecedor.telefone" placeholder="WhatsApp" style="flex:1; margin:0;">
+                
+                <div style="margin-top:10px; border-top:1px dashed var(--border); padding-top:10px;">
+                    <label style="font-size:0.75rem;">Novo Destino:</label>
+                    <div style="display:flex; gap:5px;">
+                        <input class="form-input" v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)" style="flex:1; margin:0;">
+                        <input class="form-input" v-model="novoDestino.telefone" placeholder="WhatsApp" style="flex:1; margin:0;">
+                    </div>
+                    <input class="form-input" v-model="novoDestino.msgPersonalizada" placeholder="Msg Saudação (Ex: Olá Turra...)" style="margin-top:5px;">
+                    
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+                        <input type="checkbox" v-model="novoDestino.triplicarSexta" id="checkSexta" style="width:20px; height:20px;">
+                        <label for="checkSexta" style="font-size:0.8rem;">Triplicar pedido na Sexta? (Fim de semana)</label>
+                    </div>
+
+                    <button class="btn-full" style="margin-top:10px; padding:10px;" @click="adicionarDestino">Salvar Destino</button>
                 </div>
-                <button class="btn-full" style="margin-top:10px; padding:10px;" @click="adicionarFornecedor">Salvar Fornecedor</button>
             </div>
         </div>
 
@@ -162,9 +189,9 @@
                         <option value="" disabled selected>Local</option>
                         <option v-for="l in config.rota" :value="l">{{ l }}</option>
                     </select>
-                    <select class="form-input" v-model="novoProd.fornecedorId">
-                        <option value="" disabled selected>Fornecedor</option>
-                        <option v-for="f in config.fornecedores" :value="f.id">{{ f.nome }}</option>
+                    <select class="form-input" v-model="novoProd.destinoId">
+                        <option value="" disabled selected>Destino</option>
+                        <option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option>
                     </select>
                 </div>
 
@@ -181,17 +208,33 @@
                         </div>
                     </div>
                     <div style="margin-top:10px;">
-                        <label style="font-size:0.7rem; color:var(--primary);">Quantos vêm na embalagem de compra?</label>
-                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 6 (se vem 6 na caixa)">
+                        <label style="font-size:0.7rem; color:var(--primary);">Qtd na embalagem de compra?</label>
+                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 20 (Presunto)">
                     </div>
                 </div>
 
-                <label style="font-size:0.7rem;">Estoque Mínimo (Meta)</label>
+                <label style="font-size:0.7rem;">Meta Mínima (em {{ novoProd.unC || 'Unidade de Compra' }})</label>
                 <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2">
 
                 <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar Alteração</button>
                 <button v-else class="btn-full" @click="adicionarProduto">Cadastrar Produto</button>
                 <button v-if="editandoId" class="btn-outline" @click="cancelarEdicao" style="margin-top:10px; width:100%;">Cancelar</button>
+            </div>
+        </div>
+
+        <div class="config-group">
+            <div class="group-title"><i class="fas fa-calendar-star"></i> Dias Especiais (+50%)</div>
+            <div style="padding:10px;">
+                <div v-for="(f, idx) in config.feriados" :key="idx" class="rota-item-clean">
+                    <span>{{ f.dia }}/{{ f.mes }} - {{ f.nome }}</span>
+                    <i class="fas fa-trash" style="color:var(--danger)" @click="removerFeriado(idx)"></i>
+                </div>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <input class="form-input" v-model="novoFeriado.nome" placeholder="Nome (Ex: Natal)" style="flex:2; margin:0;">
+                    <input type="number" class="form-input" v-model.number="novoFeriado.dia" placeholder="Dia" style="flex:1; margin:0;">
+                    <input type="number" class="form-input" v-model.number="novoFeriado.mes" placeholder="Mês" style="flex:1; margin:0;">
+                </div>
+                <button class="btn-full" style="width:auto; margin-top:5px;" @click="adicionarFeriado">+</button>
             </div>
         </div>
 
@@ -211,11 +254,10 @@
         </div>
 
         <div class="config-section">
-            <h3>Sincronização (Backup)</h3>
-            <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:5px;">Copie este código e envie no WhatsApp para os outros pizzaiolos terem os mesmos produtos.</p>
+            <h3>Backup</h3>
             <textarea class="form-input" style="height:60px; font-size:0.7rem;">{{ dadosExportacao }}</textarea>
-            <button class="btn-full" style="background:#444;" @click="importarDados">Importar Dados do Grupo</button>
-            <button class="btn-outline" @click="resetarTudo" style="margin-top:15px; color:var(--danger); border-color:var(--danger);">Resetar App (Apaga Tudo)</button>
+            <button class="btn-full" style="background:#444;" @click="importarDados">Importar</button>
+            <button class="btn-outline" @click="resetarTudo" style="margin-top:15px; color:var(--danger); border-color:var(--danger);">Resetar App</button>
         </div>
     </div>
 
