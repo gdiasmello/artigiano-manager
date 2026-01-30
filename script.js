@@ -1,22 +1,17 @@
 const { createApp } = Vue
 
-createApp({
+const app = createApp({
     data() {
         return {
             // UI
-            mostrandoConfig: false, mostrandoPreview: false, mostrandoAssistente: false, mostrandoHistorico: false,
-            temaEscuro: false, termoBusca: '', observacaoExtra: '', textoComando: '',
-            mensagensChat: [{tipo:'bot', texto:'Olá! Sou a Arti 🤖. Digite "Novo" ou "Buscar".'}],
+            mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            temaEscuro: false, termoBusca: '', observacaoExtra: '',
             
-            // USUÁRIO
-            usuarioAtual: null,
-            
-            // DADOS (Valores Padrão de Segurança)
+            // DADOS (Valores Padrão)
             config: { 
                 nomeEmpresa: 'Artigiano', 
                 telefone: '',
                 rota: ['Geladeira', 'Estoque Seco', 'Freezer'],
-                usuariosLista: ['Pizzaiolo'], 
                 fornecedores: []
             },
             produtos: [],
@@ -25,15 +20,13 @@ createApp({
             // TEMPS
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, fornecedorId: '' },
             novoFornecedor: { nome: '', telefone: '' },
-            novoUsuarioNome: '',
             editandoId: null,
             novoLocal: ''
         }
     },
     computed: {
         rotaExibicao() { 
-            // Proteção contra rota nula
-            const rotas = this.config.rota || [];
+            const rotas = (this.config && Array.isArray(this.config.rota)) ? this.config.rota : ['Geral'];
             const setoresUsados = [...new Set(this.produtos.map(p => p.setor))];
             const orfaos = setoresUsados.filter(s => !rotas.includes(s));
             return [...rotas, ...orfaos];
@@ -43,7 +36,7 @@ createApp({
             const termo = this.termoBusca ? this.termoBusca.toLowerCase() : '';
             this.produtos.forEach(p => {
                 if(termo && !p.nome.toLowerCase().includes(termo)) return;
-                const setor = p.setor || 'Outros'; // Proteção contra setor nulo
+                const setor = p.setor || 'Geral';
                 if(!grupos[setor]) grupos[setor] = [];
                 grupos[setor].push(p);
             });
@@ -59,41 +52,40 @@ createApp({
                 if (!p.ignorar && p.contagem !== '' && qtdFalta > 0) {
                     const fId = p.fornecedorId || 'geral';
                     if (!grupos[fId]) grupos[fId] = [];
-                    let linha = `- ${qtdFalta} ${p.unC} de ${p.nome}`;
-                    if(p.obs && p.obs.trim() !== '') linha += ` (${p.obs})`;
+                    
+                    let linha = `- ${qtdFalta} ${p.unC || 'un'} de ${p.nome}`;
+                    if(p.obs) linha += ` (${p.obs})`;
+                    
                     grupos[fId].push({ texto: linha, produto: p });
                 }
             });
             return grupos;
         },
         
-        dadosExportacao() { return JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico }); }
+        dadosExportacao() { return JSON.stringify({ produtos: this.produtos, config: this.config }); }
     },
     methods: {
-        // --- LOGIN ---
-        fazerLogin(u) { this.usuarioAtual = u; },
-        adicionarUsuario() {
-            if(this.novoUsuarioNome) {
-                // Garante que o array existe antes de dar push
-                if(!Array.isArray(this.config.usuariosLista)) this.config.usuariosLista = [];
-                this.config.usuariosLista.push(this.novoUsuarioNome);
-                this.novoUsuarioNome = '';
-                this.salvar();
+        // --- UX ---
+        toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; },
+        toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
+        abrirPreview() { this.mostrandoPreview = true; },
+        alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_tema', this.temaEscuro); },
+        
+        resetarTudo() {
+            if(confirm("ATENÇÃO: Isso vai apagar todos os produtos e configurações para corrigir erros. Continuar?")) {
+                localStorage.clear();
+                window.location.reload();
             }
-        },
-        removerUsuario(idx) {
-            this.config.usuariosLista.splice(idx, 1);
-            this.salvar();
         },
 
         // --- FORNECEDORES ---
         getNomeFornecedor(id) {
-            if(id === 'geral' || !Array.isArray(this.config.fornecedores)) return 'Geral';
+            if(id === 'geral' || !this.config.fornecedores) return 'Geral';
             const f = this.config.fornecedores.find(x => x.id === id);
             return f ? f.nome : 'Geral';
         },
         getTelefoneFornecedor(id) {
-            if(!Array.isArray(this.config.fornecedores)) return '';
+            if(!this.config.fornecedores) return '';
             const f = this.config.fornecedores.find(x => x.id === id);
             return f ? f.telefone : '';
         },
@@ -115,18 +107,19 @@ createApp({
         // --- CORE ---
         calculaFalta(p) {
             if (p.ignorar || p.contagem === '') return 0;
-            const fator = p.fator && p.fator > 0 ? p.fator : 1;
+            const fator = (p.fator && !isNaN(p.fator) && p.fator > 0) ? Number(p.fator) : 1;
             let estoqueConvertido = 0;
+            const contagem = Number(p.contagem) || 0;
             
-            // Lógica inteligente: Se Unidade contada != Unidade compra e fator > 1, divide
             if (p.unQ && p.unC && p.unQ !== p.unC && fator > 1) {
-                 estoqueConvertido = p.contagem / fator;
+                 estoqueConvertido = contagem / fator;
             } else {
-                 estoqueConvertido = p.contagem * fator;
+                 estoqueConvertido = contagem * fator;
             }
-            const falta = p.meta - estoqueConvertido;
+            const falta = (Number(p.meta) || 0) - estoqueConvertido;
             return falta > 0 ? parseFloat(falta.toFixed(2)) : 0;
         },
+        
         adicionarProduto() { 
             if(!this.novoProd.nome || !this.novoProd.setor) return alert('Preencha Nome e Local');
             this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false, obs: '' }); 
@@ -161,15 +154,14 @@ createApp({
             const nomeForn = this.getNomeFornecedor(fornecedorId);
             const telForn = this.getTelefoneFornecedor(fornecedorId);
             
-            let msg = `*PEDIDO ${this.config.nomeEmpresa.toUpperCase()} (${nomeForn})*\n`;
-            msg += `📅 ${new Date().toLocaleDateString('pt-BR')} - Por: ${this.usuarioAtual}\n`;
+            let msg = `*PEDIDO ${this.config.nomeEmpresa} (${nomeForn})*\n`;
+            msg += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
             msg += `----------------\n`;
             itens.forEach(i => msg += i.texto + '\n');
-            if(this.observacaoExtra) msg += `\n📝 *OBS:* ${this.observacaoExtra}`;
+            if(this.observacaoExtra) msg += `\nOBS: ${this.observacaoExtra}`;
 
             this.historico.unshift({
                 data: new Date().toLocaleString('pt-BR'),
-                usuario: this.usuarioAtual,
                 fornecedor: nomeForn,
                 resumo: `${itens.length} itens.`
             });
@@ -188,89 +180,62 @@ createApp({
 
         // --- UX ---
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) { p.contagem = ''; p.obs = ''; } this.salvar(); },
-        focarInput(id) { setTimeout(() => document.getElementById('input-'+id).focus(), 100); },
-        abrirPreview() { this.mostrandoPreview = true; },
-        toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; this.editandoId = null; },
-        toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
-        toggleAssistente() { this.mostrandoAssistente = !this.mostrandoAssistente; },
-        alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_tema', this.temaEscuro); },
-        
+        focarInput(id) { setTimeout(() => { const el = document.getElementById('input-'+id); if(el) el.focus(); }, 100); },
         moverRota(index, direcao) {
-            if(!this.config.rota) this.config.rota = [];
             const novaRota = [...this.config.rota];
             if (direcao === -1 && index > 0) [novaRota[index], novaRota[index - 1]] = [novaRota[index - 1], novaRota[index]];
             else if (direcao === 1 && index < novaRota.length - 1) [novaRota[index], novaRota[index + 1]] = [novaRota[index + 1], novaRota[index]];
             this.config.rota = novaRota;
             this.salvar();
         },
-        adicionarLocal() { 
-            if(!this.config.rota) this.config.rota = [];
-            if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ 
-                this.config.rota.push(this.novoLocal); 
-                this.novoLocal=''; 
-                this.salvar(); 
-            } 
-        },
-        
-        // --- SYSTEM ---
-        enviarComando(txt) { this.textoComando = txt; this.processarComando(); },
-        processarComando() {
-            const cmd = this.textoComando.toLowerCase();
-            this.mensagensChat.push({tipo:'user', texto: this.textoComando});
-            this.textoComando = '';
-            setTimeout(() => {
-                if(cmd.includes('novo') || cmd.includes('cadastrar')) {
-                    this.mostrandoAssistente = false; this.mostrandoConfig = true;
-                    this.mensagensChat.push({tipo:'bot', texto: 'Configurações abertas.'});
-                } else if(cmd.includes('limpar')) {
-                    if(confirm("Zerar?")) {
-                        this.produtos.forEach(p => { p.contagem = ''; p.ignorar = false; });
-                        this.salvar();
-                        this.mensagensChat.push({tipo:'bot', texto: 'Zerado.'});
-                    }
-                } else { this.mensagensChat.push({tipo:'bot', texto: 'Não entendi.'}); }
-            }, 300);
-        },
+        adicionarLocal() { if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvar(); } },
 
+        // --- PERSISTÊNCIA SEGURA ---
         salvar() { 
-            // Salva na chave nova para evitar conflito
-            localStorage.setItem('artigiano_v14_fix', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); 
+            try {
+                localStorage.setItem('artigiano_v15_nolock', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); 
+            } catch(e) { console.error("Erro ao salvar", e); }
         },
         carregar() {
-            // Tenta carregar a versão nova
-            let s = localStorage.getItem('artigiano_v14_fix');
-            
-            // Se não existir, tenta migrar das antigas
-            if (!s) s = localStorage.getItem('artigiano_v14') || localStorage.getItem('artigiano_v13') || localStorage.getItem('artigiano_v12');
+            try {
+                // Tenta carregar a versão sem login
+                let s = localStorage.getItem('artigiano_v15_nolock');
+                
+                // Se não tem, tenta as antigas
+                if (!s) s = localStorage.getItem('artigiano_v14_fix') || localStorage.getItem('artigiano_v14') || localStorage.getItem('artigiano_v13');
 
-            if (s) {
-                try {
+                if (s) {
                     const d = JSON.parse(s);
                     this.produtos = Array.isArray(d.produtos) ? d.produtos : [];
                     this.historico = Array.isArray(d.historico) ? d.historico : [];
-                    
-                    // --- CORREÇÃO DE CRASH DE DADOS (CRUCIAL) ---
                     const cfg = d.config || {};
                     
                     this.config = {
                         nomeEmpresa: cfg.nomeEmpresa || 'Artigiano',
                         telefone: cfg.telefone || '',
-                        rota: Array.isArray(cfg.rota) ? cfg.rota : ['Estoque'],
-                        // Se não existir ou não for array, cria padrão
-                        usuariosLista: (Array.isArray(cfg.usuariosLista) && cfg.usuariosLista.length > 0) ? cfg.usuariosLista : ['Pizzaiolo'],
+                        rota: (Array.isArray(cfg.rota) && cfg.rota.length > 0) ? cfg.rota : ['Geral'],
                         fornecedores: Array.isArray(cfg.fornecedores) ? cfg.fornecedores : []
                     };
-                } catch(e) {
-                    console.error("Erro fatal nos dados:", e);
-                    // Se der erro grave, reseta para não dar tela branca
-                    this.config = { 
-                        nomeEmpresa: 'Artigiano', 
-                        rota: ['Estoque'], 
-                        usuariosLista: ['Pizzaiolo'], 
-                        fornecedores: [] 
-                    };
                 }
+                this.temaEscuro = localStorage.getItem('artigiano_tema') === 'true';
+            } catch(e) {
+                console.error("Erro ao carregar, resetando...", e);
             }
-            this.temaEscuro = localStorage.getItem('artigiano_tema') === 'true';
         },
-        importarDados() {
+        importarDados() { 
+            try { 
+                localStorage.setItem('artigiano_v15_nolock', document.querySelector('textarea').value); 
+                this.carregar(); 
+                alert('Importado!'); this.mostrandoConfig = false; 
+            } catch(e){ alert('Erro.'); } 
+        }
+    },
+    mounted() { this.carregar(); }
+});
+
+app.config.errorHandler = (err) => {
+    console.error("Erro Vue:", err);
+    // Recuperação silenciosa para não travar
+};
+
+app.mount('#app');

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano Pro V14.1</title>
+    <title>Artigiano V15</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -14,30 +14,10 @@
 
 <div id="app" :data-theme="temaEscuro ? 'dark' : 'light'">
 
-    <div class="login-screen" v-if="!usuarioAtual">
-        <div class="login-box">
-            <i class="fas fa-user-circle fa-4x" style="color:var(--primary); margin-bottom:20px;"></i>
-            <h2>Quem é você?</h2>
-            <p style="color:var(--text-sec); margin-bottom:20px;">Selecione seu perfil para iniciar a contagem.</p>
-            
-            <div class="user-grid">
-                <button v-for="u in config.usuariosLista" :key="u" class="user-btn" @click="fazerLogin(u)">
-                    {{ u }}
-                </button>
-            </div>
-            
-            <div style="margin-top:20px; font-size:0.8rem; color:var(--text-sec);">
-                <button class="btn-outline" @click="fazerLogin('Admin')" style="margin-top:10px;">Entrar como Admin</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="header" v-if="usuarioAtual && !mostrandoPreview">
+    <div class="header" v-if="!mostrandoPreview">
         <div>
-            <h1>🍕 {{ config.nomeEmpresa || 'Artigiano' }}</h1>
-            <div @click="usuarioAtual = null" style="font-size: 0.75rem; color: var(--text-sec); cursor:pointer;">
-                <i class="fas fa-user"></i> {{ usuarioAtual }} (Sair)
-            </div>
+            <h1>🍕 {{ config.nomeEmpresa }}</h1>
+            <small style="font-size:0.7rem; color:var(--text-sec);">Gestão de Estoque</small>
         </div>
         <div class="header-actions">
             <button class="header-btn" @click="toggleHistorico"><i class="fas fa-history"></i></button>
@@ -45,20 +25,22 @@
         </div>
     </div>
 
-    <div class="progress-container" v-if="usuarioAtual && !mostrandoPreview && !mostrandoConfig && !mostrandoHistorico && produtos.length > 0">
+    <div class="progress-container" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico && produtos.length > 0">
         <div class="progress-bar-bg"><div class="progress-fill" :style="{width: percentualConcluido + '%'}"></div></div>
-        <div class="progress-text">{{ itensContados }} de {{ produtos.length }} itens verificados</div>
+        <div class="progress-text">{{ itensContados }} de {{ produtos.length }} itens</div>
     </div>
 
-    <div class="search-bar" v-if="usuarioAtual && !mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
+    <div class="search-bar" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
         <input type="text" class="search-input" v-model="termoBusca" placeholder="🔍 Buscar produto...">
     </div>
 
-    <div v-if="usuarioAtual && !mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
+    <div v-if="!mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
         
         <div v-if="produtos.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
-            <i class="fas fa-boxes fa-3x" style="color:var(--primary)"></i><br><br>
-            Estoque vazio.<br>Vá em ⚙️ > Produtos para cadastrar.
+            <i class="fas fa-box-open fa-3x" style="color:var(--primary)"></i><br><br>
+            <b>Nenhum produto.</b><br>
+            Vá em <i class="fas fa-cog"></i> Configurações para cadastrar<br>
+            ou importar a lista do grupo.
         </div>
 
         <div v-for="local in rotaExibicao" :key="local">
@@ -75,7 +57,7 @@
                         </div>
                         <div class="prod-meta">Meta: {{ p.meta }} {{ p.unC }}</div>
                     </div>
-                    <div v-if="p.fornecedorId" style="font-size:0.65rem; background:var(--input-bg); padding:2px 6px; border-radius:4px; height:fit-content; border:1px solid var(--border);">
+                    <div v-if="p.fornecedorId" class="badge-fornecedor">
                         {{ getNomeFornecedor(p.fornecedorId) }}
                     </div>
                 </div>
@@ -97,16 +79,16 @@
                 </div>
 
                 <div class="feedback-bar" v-if="!p.ignorar && p.contagem !== ''">
-                    <span v-if="calculaFalta(p) > 0" style="color:var(--danger);">
+                    <span v-if="calculaFalta(p) > 0" style="color:var(--danger); font-weight:bold;">
                         PEDIR: {{ calculaFalta(p) }} {{ p.unC }}
                     </span>
-                    <span v-else style="color:var(--success);">ESTOQUE OK</span>
+                    <span v-else style="color:var(--success); font-weight:bold;">OK</span>
                 </div>
             </div>
         </div>
 
         <div v-if="produtos.length > 0" class="finalizar-card" @click="abrirPreview">
-            <h2>FINALIZAR PEDIDOS <i class="fas fa-check-double"></i></h2>
+            <h2>FINALIZAR <i class="fas fa-check-double"></i></h2>
         </div>
     </div>
 
@@ -115,7 +97,7 @@
         
         <div style="padding:15px; text-align:center;" v-if="Object.keys(pedidosPorFornecedor).length === 0">
             <i class="fas fa-check-circle fa-3x" style="color:var(--secondary)"></i>
-            <p>Tudo certo! Nada para pedir hoje.</p>
+            <p>Tudo certo! Nada para pedir.</p>
         </div>
 
         <div v-for="(itens, fornecedorId) in pedidosPorFornecedor" :key="fornecedorId" class="supplier-card">
@@ -129,13 +111,13 @@
                 </div>
             </div>
             <button class="btn-whatsapp" @click="enviarWhatsApp(fornecedorId, itens)">
-                <i class="fab fa-whatsapp"></i> Enviar para {{ getNomeFornecedor(fornecedorId) }}
+                <i class="fab fa-whatsapp"></i> Enviar WhatsApp
             </button>
         </div>
         
         <div class="extras-area" style="margin-top:20px;">
             <h4 style="margin:0 0 10px 0; color:var(--text);">Observação Geral:</h4>
-            <textarea class="extra-input" v-model="observacaoExtra" rows="2" placeholder="Ex: Entregar na porta lateral..."></textarea>
+            <textarea class="extra-input" v-model="observacaoExtra" rows="2" placeholder="Ex: Entregar na lateral..."></textarea>
         </div>
     </div>
 
@@ -144,7 +126,7 @@
         <div v-if="historico.length === 0" style="text-align:center; padding:20px;">Vazio.</div>
         <div v-for="(h, index) in historico" :key="index" style="background:var(--input-bg); padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid var(--border);">
             <div style="font-weight:bold; color:var(--primary); font-size:0.8rem; display:flex; justify-content:space-between;">
-                <span>{{ h.data }} - Por {{ h.usuario }}</span>
+                <span>{{ h.data }}</span>
                 <i class="fas fa-trash" @click="apagarHistorico(index)"></i>
             </div>
             <div style="font-size:0.9rem; margin-top:5px; font-weight:bold;">Para: {{ h.fornecedor }}</div>
@@ -156,7 +138,7 @@
         <div class="modal-header"><h2>Configurações</h2><button class="close-btn" @click="mostrandoConfig = false">X</button></div>
 
         <div class="config-group">
-            <div class="group-title"><i class="fas fa-truck"></i> Fornecedores</div>
+            <div class="group-title"><i class="fas fa-truck"></i> Fornecedores (Contatos)</div>
             <div style="padding:10px;">
                 <div v-for="(f, idx) in config.fornecedores" :key="f.id" class="rota-item-clean">
                     <span>{{ f.nome }}</span>
@@ -166,27 +148,12 @@
                     <input class="form-input" v-model="novoFornecedor.nome" placeholder="Nome (Ex: Turra)" style="flex:1; margin:0;">
                     <input class="form-input" v-model="novoFornecedor.telefone" placeholder="WhatsApp" style="flex:1; margin:0;">
                 </div>
-                <button class="btn-full" style="margin-top:10px; padding:10px;" @click="adicionarFornecedor">Adicionar Contato</button>
+                <button class="btn-full" style="margin-top:10px; padding:10px;" @click="adicionarFornecedor">Salvar Fornecedor</button>
             </div>
         </div>
 
         <div class="config-group">
-            <div class="group-title"><i class="fas fa-users"></i> Equipe (Pizzaiolos)</div>
-            <div style="padding:10px;">
-                <div class="chips">
-                    <div class="chip" v-for="(u, idx) in config.usuariosLista" :key="idx">
-                        {{ u }} <span @click="removerUsuario(idx)" style="margin-left:5px; color:var(--danger); font-weight:bold;">x</span>
-                    </div>
-                </div>
-                <div style="display:flex; gap:5px; margin-top:10px;">
-                    <input class="form-input" v-model="novoUsuarioNome" placeholder="Nome" style="margin:0;">
-                    <button class="btn-full" style="width:auto; margin:0;" @click="adicionarUsuario">+</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="config-group">
-            <div class="group-title"><i class="fas fa-box"></i> Cadastro de Produto</div>
+            <div class="group-title"><i class="fas fa-box"></i> Produto</div>
             <div style="padding:15px;">
                 <input class="form-input" v-model="novoProd.nome" placeholder="Nome do Produto">
                 
@@ -214,16 +181,16 @@
                         </div>
                     </div>
                     <div style="margin-top:10px;">
-                        <label style="font-size:0.7rem; color:var(--primary);">Quantas {{ novoProd.unQ || 'Unidades' }} vêm na {{ novoProd.unC || 'Caixa' }}?</label>
-                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 6">
+                        <label style="font-size:0.7rem; color:var(--primary);">Quantos vêm na embalagem de compra?</label>
+                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 6 (se vem 6 na caixa)">
                     </div>
                 </div>
 
-                <label style="font-size:0.7rem;">Estoque Mínimo (em {{ novoProd.unC || 'Unidade de Compra' }})</label>
+                <label style="font-size:0.7rem;">Estoque Mínimo (Meta)</label>
                 <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2">
 
-                <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar</button>
-                <button v-else class="btn-full" @click="adicionarProduto">Cadastrar</button>
+                <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar Alteração</button>
+                <button v-else class="btn-full" @click="adicionarProduto">Cadastrar Produto</button>
                 <button v-if="editandoId" class="btn-outline" @click="cancelarEdicao" style="margin-top:10px; width:100%;">Cancelar</button>
             </div>
         </div>
@@ -244,9 +211,11 @@
         </div>
 
         <div class="config-section">
-            <h3>Backup</h3>
-            <textarea class="form-input" style="height:50px; font-size:0.7rem;">{{ dadosExportacao }}</textarea>
-            <button class="btn-full" style="background:#444;" @click="importarDados">Importar Dados</button>
+            <h3>Sincronização (Backup)</h3>
+            <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:5px;">Copie este código e envie no WhatsApp para os outros pizzaiolos terem os mesmos produtos.</p>
+            <textarea class="form-input" style="height:60px; font-size:0.7rem;">{{ dadosExportacao }}</textarea>
+            <button class="btn-full" style="background:#444;" @click="importarDados">Importar Dados do Grupo</button>
+            <button class="btn-outline" @click="resetarTudo" style="margin-top:15px; color:var(--danger); border-color:var(--danger);">Resetar App (Apaga Tudo)</button>
         </div>
     </div>
 
