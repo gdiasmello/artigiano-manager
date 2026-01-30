@@ -1,4 +1,4 @@
-// --- CONFIGURAÇÃO DO FIREBASE (JÁ PREENCHIDA) ---
+// --- SUA CHAVE FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4",
     authDomain: "artigiano-app.firebaseapp.com",
@@ -9,24 +9,18 @@ const firebaseConfig = {
     appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
 };
 
-// Inicializa o Banco
 let db;
 try {
-    // Verifica se o Firebase foi carregado
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         db = firebase.database();
-        console.log("Firebase Conectado!");
-    } else {
-        console.error("Erro: Biblioteca Firebase não carregou.");
+        console.log("Firebase OK");
     }
-} catch (e) {
-    console.error("Erro Firebase:", e);
-}
+} catch (e) { console.error(e); }
 
 const { createApp } = Vue
 
-const app = createApp({
+createApp({
     data() {
         return {
             conectado: false,
@@ -36,17 +30,17 @@ const app = createApp({
             erroLogin: '',
             usuarios: [], 
             
-            // UI
+            // APP
             modoSelecionado: null,
-            mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false, modalAjudaAberta: false, textoAjuda: '',
-            temaEscuro: false, termoBusca: '', observacaoExtra: '',
+            mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            termoBusca: '', observacaoExtra: '',
             
             // DADOS
             config: { nomeEmpresa: 'Artigiano', rota: ['Geral'], destinos: [], feriados: [], lembretes: [] },
             produtos: [],
             historico: [],
             
-            // TEMPS
+            // FORM
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false },
             novoUsuarioNome: '', novoUsuarioPin: '',
@@ -55,6 +49,7 @@ const app = createApp({
         }
     },
     computed: {
+        dataHoje() { return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); },
         produtosFiltrados() {
             let lista = this.produtos.filter(p => {
                 if(this.termoBusca && !p.nome.toLowerCase().includes(this.termoBusca.toLowerCase())) return false;
@@ -83,7 +78,6 @@ const app = createApp({
         itensContados() { return this.produtosFiltrados.filter(p => p.contagem !== '' || p.ignorar).length; },
         percentualConcluido() { return this.produtosFiltrados.length === 0 ? 0 : (this.itensContados / this.produtosFiltrados.length) * 100; },
         diaDaSemana() { return new Date().getDay(); },
-        
         feriadoAtivo() {
             if(!this.config.feriados) return null;
             const hoje = new Date(); const limite = new Date(); limite.setDate(hoje.getDate()+3);
@@ -114,47 +108,49 @@ const app = createApp({
     },
     methods: {
         // LOGIN
-        addPin(n) { if(this.pinDigitado.length < 4) this.pinDigitado += n; },
-        limparPin() { this.pinDigitado = ''; },
+        addPin(n) { 
+            if(this.pinDigitado.length < 4) {
+                this.pinDigitado += n;
+                if(this.pinDigitado.length === 4) this.tentarLogin();
+            }
+        },
+        limparPin() { this.pinDigitado = this.pinDigitado.slice(0, -1); },
         tentarLogin() {
-            // BACKDOOR: Se não tiver ninguém cadastrado, Admin 1234 entra
+            // BACKDOOR TEMPORÁRIO (Se banco vazio)
             if ((!this.usuarios || this.usuarios.length === 0) && this.pinDigitado === '1234') {
-                this.usuarioLogado = { nome: 'Admin Inicial', pin: '1234' };
-                this.pinDigitado = '';
+                this.usuarioLogado = { nome: 'Gabriel (Temp)', admin: true };
                 return;
             }
-            
             const user = this.usuarios.find(u => u.pin == this.pinDigitado);
             if(user) {
                 this.usuarioLogado = user;
                 this.pinDigitado = '';
-                this.erroLogin = '';
             } else {
-                this.erroLogin = 'PIN Incorreto!';
-                setTimeout(() => this.erroLogin = '', 2000);
-                this.pinDigitado = '';
+                this.erroLogin = 'PIN Incorreto';
+                setTimeout(() => { this.erroLogin = ''; this.pinDigitado = ''; }, 1000);
             }
         },
         criarPrimeiroAdmin() {
             if(this.novoUsuarioNome && this.novoUsuarioPin) {
-                const u = { nome: this.novoUsuarioNome, pin: this.novoUsuarioPin };
+                // PRIMEIRO USUÁRIO É SEMPRE ADMIN
+                const u = { nome: this.novoUsuarioNome, pin: this.novoUsuarioPin, admin: true };
                 if(!this.usuarios) this.usuarios = [];
                 this.usuarios.push(u);
                 this.salvarUsuarios();
                 this.usuarioLogado = u;
             }
         },
-        logout() { this.usuarioLogado = null; this.modoSelecionado = null; },
+        logout() { this.usuarioLogado = null; this.modoSelecionado = null; this.pinDigitado = ''; },
         
         adicionarUsuario() {
             if(this.novoUsuarioNome && this.novoUsuarioPin) {
                 if(!this.usuarios) this.usuarios = [];
-                this.usuarios.push({ nome: this.novoUsuarioNome, pin: this.novoUsuarioPin });
+                this.usuarios.push({ nome: this.novoUsuarioNome, pin: this.novoUsuarioPin, admin: false });
                 this.novoUsuarioNome = ''; this.novoUsuarioPin = '';
                 this.salvarUsuarios();
             }
         },
-        removerUsuario(idx) { if(confirm('Remover usuário?')) { this.usuarios.splice(idx, 1); this.salvarUsuarios(); } },
+        removerUsuario(idx) { if(confirm('Remover?')) { this.usuarios.splice(idx, 1); this.salvarUsuarios(); } },
         salvarUsuarios() { if(db) db.ref('usuarios').set(this.usuarios); },
 
         // UX
@@ -162,14 +158,6 @@ const app = createApp({
         toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; },
         toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
         abrirPreview() { this.mostrandoPreview = true; },
-        
-        abrirAjuda(contexto) {
-            this.modalAjudaAberta = true;
-            if(contexto === 'inicio') this.textoAjuda = "<b>Modos:</b><br>🥕 <b>Sacolão:</b> Só hortifruti.<br>📦 <b>Geral:</b> Secos e Insumos.<br>🍕 <b>Tudo:</b> Lista completa.";
-            if(contexto === 'lista') this.textoAjuda = "<b>Contagem:</b><br>1. Digite a quantidade.<br>2. Use 🚫 se não precisar contar.<br>3. O sistema arredonda pra cima.";
-            if(contexto === 'envio') this.textoAjuda = "<b>Enviar:</b><br>O app gera o texto pronto para o WhatsApp do fornecedor.";
-            if(contexto === 'config') this.textoAjuda = "<b>Config:</b><br>Gerencie Usuários, Produtos e Lembretes aqui.";
-        },
 
         // SYNC
         sincronizarAlteracao() { if(db && this.conectado) db.ref('produtos').set(this.produtos); },
@@ -188,12 +176,7 @@ const app = createApp({
                         this.historico = d.historico || [];
                         this.usuarios = d.usuarios || [];
                         this.conectado = true;
-                    } else { 
-                        this.conectado = true; 
-                    }
-                }, (error) => {
-                    console.error("Erro Conexão:", error);
-                    this.conectado = false;
+                    } else { this.conectado = true; }
                 });
             }
         },
@@ -274,11 +257,9 @@ const app = createApp({
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
         apagarHistorico(idx) { if(confirm('Apagar?')) { this.historico.splice(idx, 1); this.salvarGeral(); } },
-        
         resetarTudo() { if(confirm('⚠️ Apagar TUDO do Banco?')) { if(db){ db.ref('/').remove(); } window.location.reload(); } },
     },
     mounted() { this.carregarDados(); }
 });
 
-app.config.errorHandler = (err) => { console.error("Erro Vue:", err); };
 app.mount('#app');

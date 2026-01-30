@@ -2,16 +2,16 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V24</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Artigiano iOS</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#C0392B">
+    <meta name="theme-color" content="#F2F2F7">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=24"> 
+    <link rel="stylesheet" href="styles.css?v=25">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -20,132 +20,239 @@
 </head>
 <body>
 
-<div id="app" :data-theme="temaEscuro ? 'dark' : 'light'" v-cloak>
+<div id="app" v-cloak>
 
-    <div v-if="false" style="padding:20px; text-align:center; color:red;">
-        <h1>Erro de Carregamento</h1>
-        <p>Se você está vendo isso, atualize a página.</p>
-    </div>
-
-    <div class="login-overlay" v-if="!usuarioLogado">
-        <div class="login-box">
-            <i class="fas fa-user-lock fa-3x" style="color:var(--primary); margin-bottom:15px;"></i>
-            <h2>Identifique-se</h2>
-            <p style="color:var(--text-sec); font-size:0.9rem;">Digite seu PIN de acesso</p>
-            
-            <div class="pin-display">
-                <span v-for="n in pinDigitado.length" :key="n">●</span>
+    <div class="ios-login" v-if="!usuarioLogado">
+        <div class="ios-login-content">
+            <div style="margin-bottom: 30px;">
+                <i class="fas fa-pizza-slice fa-3x" style="color:#FF3B30;"></i>
+                <h2 style="margin-top:10px;">Artigiano</h2>
+                <p style="color:#8E8E93;">Digite o PIN</p>
             </div>
 
-            <div class="numpad">
+            <div class="pin-dots">
+                <div class="dot" :class="{active: pinDigitado.length >= 1}"></div>
+                <div class="dot" :class="{active: pinDigitado.length >= 2}"></div>
+                <div class="dot" :class="{active: pinDigitado.length >= 3}"></div>
+                <div class="dot" :class="{active: pinDigitado.length >= 4}"></div>
+            </div>
+
+            <p v-if="erroLogin" style="color:#FF3B30; font-weight:600; min-height:20px;">{{ erroLogin }}</p>
+            <p v-else style="min-height:20px;"></p>
+
+            <div class="ios-numpad">
                 <button v-for="n in 9" :key="n" @click="addPin(n)">{{ n }}</button>
-                <button @click="limparPin" style="background:#e74c3c; color:white;"><i class="fas fa-times"></i></button>
-                <button @click="addPin(0)">0</button>
-                <button @click="tentarLogin" style="background:#27ae60; color:white;"><i class="fas fa-arrow-right"></i></button>
+                <div style="opacity:0"></div> <button @click="addPin(0)">0</button>
+                <button @click="limparPin" style="background:none; box-shadow:none; color:#333;"><i class="fas fa-backspace"></i></button>
             </div>
-            
-            <p v-if="erroLogin" style="color:red; margin-top:10px; font-size:0.8rem;">{{ erroLogin }}</p>
-            
-            <div v-if="usuarios.length === 0" style="margin-top:20px; border-top:1px solid #ddd; padding-top:10px;">
-                <p style="font-size:0.8rem;">Primeiro acesso? Crie o Admin:</p>
-                <input v-model="novoUsuarioNome" placeholder="Seu Nome" class="form-input" style="text-align:center;">
-                <input v-model="novoUsuarioPin" placeholder="Crie um PIN (Ex: 1234)" type="number" class="form-input" style="text-align:center; margin-top:5px;">
-                <button class="btn-full" @click="criarPrimeiroAdmin" style="margin-top:5px;">Criar Admin</button>
+
+            <div v-if="usuarios.length === 0" class="admin-setup">
+                <h3>Bem-vindo, Chefe!</h3>
+                <p>Crie o acesso Admin:</p>
+                <input v-model="novoUsuarioNome" placeholder="Seu Nome" class="ios-input">
+                <input v-model="novoUsuarioPin" type="tel" placeholder="Crie um PIN (4 dígitos)" class="ios-input" maxlength="4">
+                <button class="ios-btn-primary" @click="criarPrimeiroAdmin">Criar Sistema</button>
             </div>
         </div>
     </div>
 
-    <div v-if="usuarioLogado">
-        <div class="start-screen" v-if="!modoSelecionado">
-            <div class="header-actions" style="position:absolute; top:20px; right:20px;">
-                <button class="header-btn" @click="abrirAjuda('inicio')"><i class="fas fa-question-circle"></i></button>
-                <button class="header-btn" @click="logout"><i class="fas fa-sign-out-alt"></i></button>
+    <div v-else class="app-layout">
+        
+        <div class="status-bar" :class="{offline: !conectado}">
+            {{ conectado ? 'Sincronizado' : 'Offline' }}
+        </div>
+
+        <div class="ios-header">
+            <div class="left">
+                <button v-if="modoSelecionado" @click="modoSelecionado = null" class="btn-text">
+                    <i class="fas fa-chevron-left"></i> Voltar
+                </button>
             </div>
-            <div class="start-content">
-                <div style="margin-bottom:30px;">
+            <div class="center">
+                <span v-if="!modoSelecionado">Início</span>
+                <span v-else>{{ modoSelecionado === 'sacolao' ? 'Sacolão' : 'Geral' }}</span>
+            </div>
+            <div class="right">
+                <button @click="logout" class="btn-icon"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+
+        <div class="ios-content">
+            
+            <div v-if="!modoSelecionado" class="menu-grid">
+                <div class="welcome-card">
                     <h1>Olá, {{ usuarioLogado.nome }}!</h1>
-                    <p>O que vamos contar hoje?</p>
+                    <p>{{ dataHoje }}</p>
                 </div>
-                <button class="mode-btn btn-sacolao" @click="selecionarModo('sacolao')"><i class="fas fa-carrot fa-2x"></i><br>SACOLÃO</button>
-                <button class="mode-btn btn-geral" @click="selecionarModo('geral')"><i class="fas fa-boxes fa-2x"></i><br>GERAL</button>
-                <button class="btn-outline" @click="selecionarModo('todos')" style="margin-top:20px; width:100%;">Ver Tudo</button>
-            </div>
-        </div>
 
-        <div class="header" v-if="modoSelecionado && !mostrandoPreview">
-            <div>
-                <div @click="modoSelecionado = null" style="font-size:0.7rem; color:var(--text-sec); cursor:pointer;"><i class="fas fa-arrow-left"></i> Voltar</div>
-                <h1>{{ modoSelecionado === 'sacolao' ? '🥬 Sacolão' : (modoSelecionado === 'geral' ? '📦 Geral' : '🍕 Tudo') }}</h1>
-            </div>
-            <div class="header-actions">
-                <button class="header-btn" @click="abrirAjuda('lista')"><i class="fas fa-question-circle"></i></button>
-                <button class="header-btn" @click="toggleHistorico"><i class="fas fa-history"></i></button>
-                <button class="header-btn" @click="toggleConfig"><i class="fas fa-cog"></i></button>
-            </div>
-        </div>
+                <button class="menu-card green" @click="selecionarModo('sacolao')">
+                    <i class="fas fa-carrot"></i>
+                    <span>Sacolão</span>
+                </button>
+                <button class="menu-card orange" @click="selecionarModo('geral')">
+                    <i class="fas fa-box-open"></i>
+                    <span>Geral</span>
+                </button>
+                <button class="menu-card blue" @click="selecionarModo('todos')">
+                    <i class="fas fa-list"></i>
+                    <span>Ver Tudo</span>
+                </button>
 
-        <div class="progress-container" v-if="modoSelecionado && !mostrandoPreview && !mostrandoConfig && !mostrandoHistorico && produtosFiltrados.length > 0">
-            <div class="progress-bar-bg"><div class="progress-fill" :style="{width: percentualConcluido + '%'}"></div></div>
-            <div class="progress-text">{{ itensContados }} de {{ produtosFiltrados.length }}</div>
-        </div>
-
-        <div class="feriado-alert" v-if="modoSelecionado && !mostrandoPreview && !mostrandoConfig">
-            <div v-if="lembreteDoDia" style="background:#e67e22; color:white; padding:5px; border-radius:5px; margin-bottom:5px;">🔔 Lembrete: {{ lembreteDoDia.texto }}</div>
-            <div v-if="feriadoAtivo">🎉 Feriado: {{ feriadoAtivo.nome }} (+50%)</div>
-            <div v-else-if="diaDaSemana === 5 && modoSelecionado !== 'geral'">📅 Hoje é Sexta! Sacolão x3.</div>
-        </div>
-
-        <div class="search-bar" v-if="modoSelecionado && !mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
-            <input type="text" class="search-input" v-model="termoBusca" placeholder="🔍 Buscar...">
-        </div>
-
-        <div v-if="modoSelecionado && !mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
-            <div v-if="produtosFiltrados.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
-                <i class="fas fa-check-circle fa-3x"></i><br>Nenhum produto.
+                <div class="quick-actions">
+                    <button @click="toggleHistorico"><i class="fas fa-history"></i> Histórico</button>
+                    <button @click="toggleConfig"><i class="fas fa-cog"></i> Ajustes</button>
+                </div>
             </div>
 
-            <div v-for="local in rotaExibicao" :key="local">
-                <div v-if="produtosDoLocal(local).length > 0" class="local-header"><i class="fas fa-map-marker-alt"></i> {{ local }}</div>
-                <div v-for="p in produtosDoLocal(local)" :key="p.id" class="prod-card" :class="{ ignorado: p.ignorar, pedir: calculaFalta(p).qtd > 0 && !p.ignorar, ok: calculaFalta(p).qtd <= 0 && !p.ignorar }">
-                    <div class="card-top">
-                        <div><div class="prod-name">{{ p.nome }} <i class="fas fa-pen" @click="editarProduto(p)" style="font-size:0.7rem; color:var(--text-sec);"></i></div><div class="prod-meta">Meta: {{ p.meta }} {{ p.unC }}</div></div>
-                        <div v-if="p.destinoId" class="badge-fornecedor">{{ getNomeDestino(p.destinoId) }}</div>
-                    </div>
-                    <div class="action-area">
-                        <button class="ignore-btn" :class="{active: p.ignorar}" @click="toggleIgnorar(p)"><i class="fas fa-ban" v-if="p.ignorar"></i><i class="far fa-thumbs-up" v-else></i></button>
-                        <div class="qty-box" :class="{focused: p.focado}" @click="focarInput(p.id)">
-                            <label>Contar ({{ p.unQ }})</label>
-                            <input :id="'input-'+p.id" type="number" v-model.number="p.contagem" @input="sincronizarAlteracao" placeholder="-" :disabled="p.ignorar" @focus="p.focado=true" @blur="p.focado=false" inputmode="decimal">
+            <div v-else>
+                <div v-if="lembreteDoDia" class="ios-alert orange">🔔 {{ lembreteDoDia.texto }}</div>
+                <div v-if="feriadoAtivo" class="ios-alert purple">🎉 Feriado: {{ feriadoAtivo.nome }} (+50%)</div>
+                <div v-if="diaDaSemana === 5 && modoSelecionado === 'sacolao'" class="ios-alert green">📅 Sexta-feira: Meta x3</div>
+
+                <div class="ios-search">
+                    <i class="fas fa-search"></i>
+                    <input v-model="termoBusca" placeholder="Buscar produto...">
+                </div>
+
+                <div v-if="produtosFiltrados.length === 0" class="empty-state">
+                    <p>Nenhum item encontrado.</p>
+                </div>
+
+                <div v-for="local in rotaExibicao" :key="local" class="section-group">
+                    <div v-if="produtosDoLocal(local).length > 0" class="section-title">{{ local }}</div>
+                    
+                    <div v-for="p in produtosDoLocal(local)" :key="p.id" class="ios-list-item" :class="{checked: calculaFalta(p).qtd <= 0 && !p.ignorar}">
+                        <div class="item-info">
+                            <div class="item-name">{{ p.nome }}</div>
+                            <div class="item-meta">Meta: {{ p.meta }} {{ p.unC }}</div>
+                        </div>
+                        <div class="item-actions">
+                            <input 
+                                type="tel" 
+                                v-model.number="p.contagem" 
+                                :placeholder="p.unQ" 
+                                class="qty-input"
+                                :disabled="p.ignorar"
+                                @input="sincronizarAlteracao"
+                            >
+                            <button class="action-btn" @click="toggleIgnorar(p)" :class="{ignored: p.ignorar}">
+                                <i class="fas fa-ban" v-if="p.ignorar"></i>
+                                <i class="fas fa-check" v-else></i>
+                            </button>
+                        </div>
+                        <div class="item-status" v-if="!p.ignorar && p.contagem !== ''">
+                            <span v-if="calculaFalta(p).qtd > 0" style="color:#FF3B30;">PEDIR {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
+                            <span v-else style="color:#34C759;">OK</span>
                         </div>
                     </div>
-                    <div class="item-obs"><i class="fas fa-pen"></i><input type="text" v-model="p.obs" @change="sincronizarAlteracao" placeholder="Obs..."></div>
-                    <div class="feedback-bar" v-if="!p.ignorar && p.contagem !== ''">
-                        <span v-if="calculaFalta(p).qtd > 0" style="color:var(--danger);">PEDIR: {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
-                        <span v-else style="color:var(--success);">OK</span>
-                    </div>
+                </div>
+
+                <div class="floating-fab" @click="abrirPreview" v-if="produtosFiltrados.length > 0">
+                    <i class="fas fa-paper-plane"></i> Finalizar
                 </div>
             </div>
-            <div v-if="produtosFiltrados.length > 0" class="finalizar-card" @click="abrirPreview"><h2>FINALIZAR</h2></div>
         </div>
+    </div>
 
-        <div class="modal-overlay" :class="{open: mostrandoPreview}"><div class="modal-header"><h2>Enviar</h2><button class="close-btn" @click="mostrandoPreview = false">X</button></div><button class="header-btn" @click="abrirAjuda('envio')" style="position: absolute; top:20px; right:60px;"><i class="fas fa-question-circle"></i></button><div v-for="(itens, destinoId) in pedidosPorDestino" :key="destinoId" class="supplier-card"><div class="supplier-header"><span>{{ getNomeDestino(destinoId) }}</span><span>{{ itens.length }} itens</span></div><div class="supplier-items"><div v-for="item in itens" style="border-bottom:1px solid #eee;">{{ item.texto }}</div></div><button class="btn-whatsapp" @click="enviarWhatsApp(destinoId, itens)">Enviar WhatsApp</button></div></div>
+    <div class="ios-modal-overlay" v-if="mostrandoConfig">
+        <div class="ios-modal">
+            <div class="modal-header">
+                <h3>Configurações</h3>
+                <button @click="mostrandoConfig = false">Fechar</button>
+            </div>
+            <div class="modal-body">
+                
+                <div v-if="usuarioLogado.admin" class="config-section">
+                    <h4>👥 Equipe (Apenas Admin)</h4>
+                    <div v-for="(u, idx) in usuarios" :key="idx" class="list-row">
+                        <span>{{ u.nome }} <small v-if="u.admin">(Admin)</small></span>
+                        <i class="fas fa-trash text-red" @click="removerUsuario(idx)" v-if="!u.admin"></i>
+                    </div>
+                    <div class="add-row">
+                        <input v-model="novoUsuarioNome" placeholder="Nome">
+                        <input v-model="novoUsuarioPin" placeholder="PIN" type="tel" style="width:60px">
+                        <button @click="adicionarUsuario">Add</button>
+                    </div>
+                </div>
+                <div v-else class="config-section">
+                    <p style="text-align:center; color:#8E8E93;">Só o Gabriel (Admin) pode gerenciar usuários.</p>
+                </div>
 
-        <div class="modal-overlay" :class="{open: mostrandoHistorico}"><div class="modal-header"><h2>Histórico</h2><button class="close-btn" @click="mostrandoHistorico = false">X</button></div><div v-for="(h, index) in historico" :key="index" style="background:var(--card); padding:15px; margin-bottom:10px; border:1px solid var(--border); border-radius:10px;"><div style="font-weight:bold; font-size:0.8rem; border-bottom:1px solid #eee; padding-bottom:5px;">{{ h.data }} - <span style="color:var(--primary);">{{ h.usuario }}</span><i class="fas fa-trash" @click="apagarHistorico(index)" style="float:right; color:#999;"></i></div><div style="font-size:0.9rem; font-weight:800; margin-top:5px;">{{ h.destino }}</div><div style="font-size:0.85rem; margin-top:5px; white-space: pre-wrap; background:var(--input-bg); padding:5px;">{{ h.detalhes }}</div></div></div>
+                <div class="config-section">
+                    <h4>🔔 Lembretes</h4>
+                    <div v-for="(l, idx) in config.lembretes" :key="idx" class="list-row">
+                        <span><b>{{ nomeDia(l.dia) }}</b>: {{ l.texto }}</span>
+                        <i class="fas fa-trash text-red" @click="removerLembrete(idx)"></i>
+                    </div>
+                    <div class="add-row">
+                        <select v-model="novoLembrete.dia"><option value="1">Seg</option><option value="5">Sex</option></select>
+                        <input v-model="novoLembrete.texto" placeholder="Ex: Gás">
+                        <button @click="adicionarLembrete">Add</button>
+                    </div>
+                </div>
 
-        <div class="modal-overlay" :class="{open: mostrandoConfig}"><div class="modal-header"><h2>Configurações</h2><button class="close-btn" @click="mostrandoConfig = false">X</button></div><button class="header-btn" @click="abrirAjuda('config')" style="position: absolute; top:20px; right:60px;"><i class="fas fa-question-circle"></i></button>
-            <div class="config-group"><div class="group-title"><i class="fas fa-users"></i> Equipe (Login)</div><div style="padding:10px;"><div v-for="(u, idx) in usuarios" :key="idx" style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px;"><span>{{ u.nome }} (PIN: ****)</span><i class="fas fa-trash" @click="removerUsuario(idx)" style="color:red;"></i></div><div style="display:flex; gap:5px; margin-top:10px;"><input class="form-input" v-model="novoUsuarioNome" placeholder="Nome"><input class="form-input" type="number" v-model="novoUsuarioPin" placeholder="PIN (4 núm)"></div><button class="btn-full" @click="adicionarUsuario" style="margin-top:5px; padding:8px;">Adicionar Usuário</button></div></div>
-            <div class="config-group"><div class="group-title"><i class="fas fa-bell"></i> Lembretes</div><div style="padding:10px;"><div v-for="(l, idx) in config.lembretes" :key="idx" style="border-bottom:1px solid #eee; padding:5px;"><span style="font-weight:bold;">{{ nomeDia(l.dia) }}:</span> {{ l.texto }}<i class="fas fa-trash" @click="removerLembrete(idx)" style="float:right; color:red;"></i></div><div style="display:flex; gap:5px; margin-top:10px;"><select class="form-input" v-model="novoLembrete.dia"><option value="1">Seg</option><option value="2">Ter</option><option value="3">Qua</option><option value="4">Qui</option><option value="5">Sex</option><option value="6">Sáb</option><option value="0">Dom</option></select><input class="form-input" v-model="novoLembrete.texto" placeholder="Ex: Pedir Gás"></div><button class="btn-full" @click="adicionarLembrete" style="margin-top:5px; padding:8px;">Salvar Lembrete</button></div></div>
-            <div class="config-group"><div class="group-title">Novo Produto</div><div style="padding:15px;"><input class="form-input" v-model="novoProd.nome" placeholder="Nome"><div style="display:flex; gap:5px;"><select class="form-input" v-model="novoProd.setor"><option value="" disabled>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select><select class="form-input" v-model="novoProd.destinoId"><option value="" disabled>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select></div><div style="display:flex; gap:5px;"><input class="form-input" v-model="novoProd.unQ" placeholder="Conta Un"><input class="form-input" v-model="novoProd.unC" placeholder="Pede Cx"></div><input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Qtd na Cx"><input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Meta"><button class="btn-full" @click="salvarEdicao" v-if="editandoId">Salvar</button><button class="btn-full" @click="adicionarProduto" v-else>Cadastrar</button></div></div>
-            <div class="config-group"><div class="group-title">Destinos</div><div style="padding:10px;"><div v-for="(d, idx) in config.destinos" :key="d.id">{{ d.nome }} <i class="fas fa-trash" @click="removerDestino(idx)"></i></div><div style="margin-top:5px; display:flex; gap:5px;"><input class="form-input" v-model="novoDestino.nome" placeholder="Nome"><input class="form-input" v-model="novoDestino.telefone" placeholder="Zap"></div><button class="btn-full" @click="adicionarDestino" style="margin-top:5px;">Add</button></div></div>
-            <div class="config-section"><button class="btn-outline" @click="resetarTudo" style="color:red; border-color:red;">Resetar Tudo</button></div>
+                <div class="config-section">
+                    <h4>📦 Produtos</h4>
+                    <div class="add-column">
+                        <input v-model="novoProd.nome" placeholder="Nome do Produto">
+                        <div class="row">
+                            <select v-model="novoProd.setor"><option value="" disabled>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
+                            <select v-model="novoProd.destinoId"><option value="" disabled>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
+                        </div>
+                        <div class="row">
+                            <input v-model="novoProd.unQ" placeholder="Conta (Un)">
+                            <input v-model="novoProd.unC" placeholder="Pede (Cx)">
+                        </div>
+                        <div class="row">
+                            <input v-model.number="novoProd.fator" placeholder="Qtd na Cx" type="number">
+                            <input v-model.number="novoProd.meta" placeholder="Meta Mínima" type="number">
+                        </div>
+                        <button class="ios-btn-primary" @click="adicionarProduto">Cadastrar Produto</button>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <button class="ios-btn-danger" @click="resetarTudo">Resetar App</button>
+                </div>
+            </div>
         </div>
+    </div>
 
-        <div class="modal-overlay" :class="{open: modalAjudaAberta}"><div class="modal-header"><h2>Ajuda</h2><button class="close-btn" @click="modalAjudaAberta = false">X</button></div><div class="modal-content" style="background:var(--bg); padding:20px;"><div v-html="textoAjuda"></div><button class="btn-full" @click="modalAjudaAberta = false" style="margin-top:20px;">Entendi</button></div></div>
+    <div class="ios-modal-overlay" v-if="mostrandoPreview">
+        <div class="ios-modal">
+            <div class="modal-header"><h3>Enviar Pedido</h3><button @click="mostrandoPreview = false">Fechar</button></div>
+            <div class="modal-body">
+                <div v-for="(itens, destinoId) in pedidosPorDestino" :key="destinoId" class="preview-card">
+                    <h4>{{ getNomeDestino(destinoId) }} <span class="badge">{{ itens.length }}</span></h4>
+                    <ul><li v-for="item in itens">{{ item.texto }}</li></ul>
+                    <button class="ios-btn-success" @click="enviarWhatsApp(destinoId, itens)"><i class="fab fa-whatsapp"></i> Enviar</button>
+                </div>
+                <div style="margin-top:20px;">
+                    <label>Observação Geral</label>
+                    <textarea v-model="observacaoExtra" class="ios-textarea" placeholder="Ex: Entregar na lateral..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ios-modal-overlay" v-if="mostrandoHistorico">
+        <div class="ios-modal">
+            <div class="modal-header"><h3>Histórico</h3><button @click="mostrandoHistorico = false">Fechar</button></div>
+            <div class="modal-body">
+                <div v-for="(h, index) in historico" :key="index" class="history-card">
+                    <div class="hist-header">
+                        <span class="hist-date">{{ h.data }}</span>
+                        <span class="hist-user">{{ h.usuario }}</span>
+                    </div>
+                    <div class="hist-dest">{{ h.destino }}</div>
+                    <div class="hist-body">{{ h.detalhes }}</div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
 
-<script src="script.js?v=24" defer></script>
-
+<script src="script.js?v=25"></script>
 </body>
 </html>
