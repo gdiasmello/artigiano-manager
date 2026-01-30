@@ -6,17 +6,15 @@ const app = createApp({
             mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
             temaEscuro: false, termoBusca: '', observacaoExtra: '',
             
-            // DADOS
             config: { 
                 nomeEmpresa: 'Artigiano', 
                 rota: ['Geladeira', 'Estoque Seco', 'Freezer'],
-                destinos: [], // [{id:1, nome:'Sacolão', triplicarSexta: true}]
+                destinos: [], 
                 feriados: []
             },
             produtos: [],
             historico: [],
             
-            // TEMPS
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false },
             novoFeriado: { nome: '', dia: '', mes: '' },
@@ -45,14 +43,9 @@ const app = createApp({
         itensContados() { return this.produtos.filter(p => p.contagem !== '' || p.ignorar).length; },
         percentualConcluido() { return this.produtos.length === 0 ? 0 : (this.itensContados / this.produtos.length) * 100; },
         
-        // --- DATA E HORA ---
-        diaDaSemana() { return new Date().getDay(); }, // 0=Dom, 1=Seg, 5=Sex
-        diaDaSemanaExtenso() {
-            const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-            return dias[this.diaDaSemana];
-        },
+        diaDaSemana() { return new Date().getDay(); }, 
+        diaDaSemanaExtenso() { const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']; return dias[this.diaDaSemana]; },
         
-        // --- INTELIGÊNCIA DE CALENDÁRIO ---
         feriadoAtivo() {
             if(!this.config.feriados) return null;
             const hoje = new Date();
@@ -74,7 +67,7 @@ const app = createApp({
                     
                     let linha = `- ${calculo.qtd} ${p.unC || 'un'} de ${p.nome}`;
                     if(p.obs) linha += ` (${p.obs})`;
-                    if(calculo.fatorMultiplicador > 1) linha += ` (Aumentado x${calculo.fatorMultiplicador})`;
+                    if(calculo.fatorMultiplicador > 1) linha += ` (x${calculo.fatorMultiplicador})`;
                     
                     grupos[dId].push({ texto: linha, produto: p });
                 }
@@ -85,30 +78,23 @@ const app = createApp({
         dadosExportacao() { return JSON.stringify({ produtos: this.produtos, config: this.config }); }
     },
     methods: {
-        // --- CORE: CÁLCULO INTELIGENTE V17 ---
         calculaFalta(p) {
             if (p.ignorar || p.contagem === '') return { qtd: 0, fatorMultiplicador: 1 };
             
-            // 1. Definição do Fator de Conversão
             const fatorConversao = (p.fator && !isNaN(p.fator) && p.fator > 0) ? Number(p.fator) : 1;
-            
-            // 2. Converter Contagem para Unidade de Compra
             let estoqueEmCompra = 0;
             const contagem = Number(p.contagem) || 0;
             
             if (p.unQ && p.unC && p.unQ !== p.unC && fatorConversao > 1) {
-                 // Ex: Conto em Unidade, Peço em Caixa (Vem 20). Tenho 10 un -> 0.5 cx.
                  estoqueEmCompra = contagem / fatorConversao;
             } else {
                  estoqueEmCompra = contagem * fatorConversao;
             }
 
-            // 3. Definir a META DO DIA (Aqui entra a inteligência)
             let metaDoDia = Number(p.meta) || 0;
             let fatorMultiplicador = 1;
 
-            // Regra A: Sexta-Feira no Sacolão (ou destino marcado)
-            if (this.diaDaSemana === 5 && p.destinoId) { // 5 = Sexta
+            if (this.diaDaSemana === 5 && p.destinoId) { 
                 const destino = this.config.destinos.find(d => d.id === p.destinoId);
                 if (destino && destino.triplicarSexta) {
                     metaDoDia = metaDoDia * 3;
@@ -116,22 +102,17 @@ const app = createApp({
                 }
             }
 
-            // Regra B: Feriado Próximo (+50%)
             if (this.feriadoAtivo) {
                 metaDoDia = metaDoDia * 1.5;
-                fatorMultiplicador = (fatorMultiplicador === 1) ? 1.5 : 3.5; // Aproximação
+                fatorMultiplicador = (fatorMultiplicador === 1) ? 1.5 : 3.5;
             }
 
-            // 4. Cálculo Final e Arredondamento
             let falta = metaDoDia - estoqueEmCompra;
-            
             if (falta <= 0) return { qtd: 0, fatorMultiplicador };
             
-            // ARREDONDAMENTO PARA CIMA (Ceil)
             return { qtd: Math.ceil(falta), fatorMultiplicador }; 
         },
 
-        // --- DESTINOS ---
         getNomeDestino(id) {
             if(id === 'geral' || !Array.isArray(this.config.destinos)) return 'Geral';
             const d = this.config.destinos.find(x => x.id === id);
@@ -145,20 +126,14 @@ const app = createApp({
                     nome: this.novoDestino.nome, 
                     telefone: this.novoDestino.telefone,
                     msgPersonalizada: this.novoDestino.msgPersonalizada,
-                    triplicarSexta: this.novoDestino.triplicarSexta // Salva a regra
+                    triplicarSexta: this.novoDestino.triplicarSexta 
                 });
                 this.novoDestino = { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false };
                 this.salvar();
             }
         },
-        removerDestino(idx) {
-            if(confirm("Remover destino?")) {
-                this.config.destinos.splice(idx, 1);
-                this.salvar();
-            }
-        },
+        removerDestino(idx) { if(confirm("Remover?")) { this.config.destinos.splice(idx, 1); this.salvar(); } },
 
-        // --- FERIADOS ---
         adicionarFeriado() {
             if(this.novoFeriado.nome) {
                 if(!Array.isArray(this.config.feriados)) this.config.feriados = [];
@@ -167,12 +142,8 @@ const app = createApp({
                 this.salvar();
             }
         },
-        removerFeriado(idx) {
-            this.config.feriados.splice(idx, 1);
-            this.salvar();
-        },
+        removerFeriado(idx) { this.config.feriados.splice(idx, 1); this.salvar(); },
 
-        // --- PRODUTOS ---
         adicionarProduto() { 
             if(!this.novoProd.nome || !this.novoProd.setor) return alert('Preencha Nome e Local');
             this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false, obs: '' }); 
@@ -182,11 +153,7 @@ const app = createApp({
             this.salvar(); 
             alert('Salvo!'); 
         },
-        editarProduto(p) {
-            this.novoProd = { ...p };
-            this.editandoId = p.id;
-            this.mostrandoConfig = true;
-        },
+        editarProduto(p) { this.novoProd = { ...p }; this.editandoId = p.id; this.mostrandoConfig = true; },
         salvarEdicao() {
             const index = this.produtos.findIndex(p => p.id === this.editandoId);
             if(index !== -1) {
@@ -197,12 +164,8 @@ const app = createApp({
                 alert('Atualizado!');
             }
         },
-        cancelarEdicao() {
-            this.editandoId = null;
-            this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0}; 
-        },
+        cancelarEdicao() { this.editandoId = null; this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0}; },
 
-        // --- WHATSAPP ---
         enviarWhatsApp(destinoId, itens) {
             const nomeDest = this.getNomeDestino(destinoId);
             let telDest = '';
@@ -219,39 +182,39 @@ const app = createApp({
             let msg = msgHeader;
             msg += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
             msg += `----------------\n`;
-            itens.forEach(i => msg += i.texto + '\n');
-            if(this.observacaoExtra) msg += `\nOBS: ${this.observacaoExtra}`;
+            
+            // CRIAÇÃO DO RESUMO DETALHADO PARA O HISTÓRICO
+            let textoHistorico = "";
+            itens.forEach(i => {
+                msg += i.texto + '\n';
+                textoHistorico += i.texto.replace('- ', '') + '\n';
+            });
+            
+            if(this.observacaoExtra) {
+                msg += `\nOBS: ${this.observacaoExtra}`;
+                textoHistorico += `\nOBS: ${this.observacaoExtra}`;
+            }
 
+            // SALVA DETALHES AGORA!
             this.historico.unshift({
                 data: new Date().toLocaleString('pt-BR'),
                 destino: nomeDest,
-                resumo: `${itens.length} itens.`
+                detalhes: textoHistorico // Novo campo
             });
             if(this.historico.length > 50) this.historico.pop();
             this.salvar();
 
             window.open(`https://wa.me/${telDest}?text=${encodeURIComponent(msg)}`, '_blank');
         },
-        apagarHistorico(index) {
-            if(confirm("Apagar?")) {
-                this.historico.splice(index, 1);
-                this.salvar();
-            }
-        },
 
-        // --- UX/SISTEMA ---
-        resetarTudo() {
-            if(confirm("ATENÇÃO: Apagar tudo e começar do zero?")) {
-                localStorage.clear();
-                window.location.reload();
-            }
-        },
+        resetarTudo() { if(confirm("Apagar tudo?")) { localStorage.clear(); window.location.reload(); } },
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) { p.contagem = ''; p.obs = ''; } this.salvar(); },
         focarInput(id) { setTimeout(() => { const el = document.getElementById('input-'+id); if(el) el.focus(); }, 100); },
         abrirPreview() { this.mostrandoPreview = true; },
         toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; this.editandoId = null; },
         toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_tema', this.temaEscuro); },
+        apagarHistorico(index) { if(confirm("Apagar?")) { this.historico.splice(index, 1); this.salvar(); } },
         moverRota(index, direcao) {
             const novaRota = [...this.config.rota];
             if (direcao === -1 && index > 0) [novaRota[index], novaRota[index - 1]] = [novaRota[index - 1], novaRota[index]];
@@ -261,21 +224,18 @@ const app = createApp({
         },
         adicionarLocal() { if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvar(); } },
 
-        // --- PERSISTÊNCIA ---
         salvar() { 
-            try { localStorage.setItem('artigiano_v17_smart', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); } catch(e) {}
+            try { localStorage.setItem('artigiano_v18_final', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); } catch(e) {}
         },
         carregar() {
             try {
-                let s = localStorage.getItem('artigiano_v17_smart');
-                // Tenta migrar dados antigos
-                if (!s) s = localStorage.getItem('artigiano_v16') || localStorage.getItem('artigiano_v15_nolock');
+                let s = localStorage.getItem('artigiano_v18_final');
+                if (!s) s = localStorage.getItem('artigiano_v17_smart') || localStorage.getItem('artigiano_v16_smart') || localStorage.getItem('artigiano_v15_nolock');
 
                 if (s) {
                     const d = JSON.parse(s);
                     this.produtos = Array.isArray(d.produtos) ? d.produtos : [];
                     this.historico = Array.isArray(d.historico) ? d.historico : [];
-                    
                     const cfg = d.config || {};
                     this.config = {
                         nomeEmpresa: cfg.nomeEmpresa || 'Artigiano',
@@ -289,7 +249,7 @@ const app = createApp({
         },
         importarDados() { 
             try { 
-                localStorage.setItem('artigiano_v17_smart', document.querySelector('textarea').value); 
+                localStorage.setItem('artigiano_v18_final', document.querySelector('textarea').value); 
                 this.carregar(); alert('Importado!'); this.mostrandoConfig = false; 
             } catch(e){ alert('Erro.'); } 
         }

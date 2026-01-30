@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano Smart V17</title>
+    <title>Artigiano V18</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -33,7 +33,7 @@
     <div class="feriado-alert" v-if="!mostrandoPreview && !mostrandoConfig">
         <div v-if="feriadoAtivo">🎉 Feriado: {{ feriadoAtivo.nome }} (+50%)</div>
         <div v-else-if="diaDaSemana === 5">📅 Hoje é Sexta! Estoque de Sacolão triplicado (x3).</div>
-        <div v-else-if="diaDaSemana === 1">⚠️ Amanhã a loja fecha (Terça). Cuidado com perecíveis.</div>
+        <div v-else-if="diaDaSemana === 1">⚠️ Amanhã a loja fecha (Terça). Peça pouco.</div>
     </div>
 
     <div class="search-bar" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoHistorico">
@@ -43,8 +43,10 @@
     <div v-if="!mostrandoConfig && !mostrandoPreview && !mostrandoHistorico" class="cards-container">
         
         <div v-if="produtos.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
-            <i class="fas fa-box-open fa-3x" style="color:var(--primary)"></i><br><br>
-            Estoque vazio.<br>Configure na engrenagem.
+            <i class="fas fa-pizza-slice fa-3x" style="color:var(--primary)"></i><br><br>
+            <b>Bem-vindo!</b><br>
+            A tela de login foi removida.<br>
+            Configure seus produtos na engrenagem.
         </div>
 
         <div v-for="local in rotaExibicao" :key="local">
@@ -132,14 +134,17 @@
 
     <div class="modal-overlay" :class="{open: mostrandoHistorico}">
         <div class="modal-header"><h2>Histórico</h2><button class="close-btn" @click="mostrandoHistorico = false">X</button></div>
-        <div v-if="historico.length === 0" style="text-align:center; padding:20px;">Vazio.</div>
-        <div v-for="(h, index) in historico" :key="index" style="background:var(--input-bg); padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid var(--border);">
-            <div style="font-weight:bold; color:var(--primary); font-size:0.8rem; display:flex; justify-content:space-between;">
+        
+        <div v-if="historico.length === 0" style="text-align:center; padding:20px; color:var(--text-sec);">Nenhum pedido recente.</div>
+        
+        <div v-for="(h, index) in historico" :key="index" style="background:var(--card); padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid var(--border); box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+            <div style="font-weight:bold; color:var(--primary); font-size:0.85rem; display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:5px;">
                 <span>{{ h.data }}</span>
-                <i class="fas fa-trash" @click="apagarHistorico(index)"></i>
+                <i class="fas fa-trash" @click="apagarHistorico(index)" style="cursor:pointer;"></i>
             </div>
-            <div style="font-size:0.9rem; margin-top:5px; font-weight:bold;">Para: {{ h.destino }}</div>
-            <div style="font-size:0.8rem; color:var(--text); white-space: pre-wrap;">{{ h.resumo }}</div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text);">Para: {{ h.destino }}</div>
+            
+            <div style="font-size:0.85rem; color:var(--text-sec); white-space: pre-wrap; margin-top:8px; line-height:1.4; background:var(--input-bg); padding:10px; border-radius:5px;">{{ h.detalhes }}</div>
         </div>
     </div>
 
@@ -147,7 +152,7 @@
         <div class="modal-header"><h2>Configurações</h2><button class="close-btn" @click="mostrandoConfig = false">X</button></div>
 
         <div class="config-group">
-            <div class="group-title"><i class="fas fa-truck"></i> Para quem vai o pedido?</div>
+            <div class="group-title"><i class="fas fa-truck"></i> Destinos (Fornecedores)</div>
             <div style="padding:10px;">
                 <div v-for="(d, idx) in config.destinos" :key="d.id" style="background:var(--bg); padding:10px; margin-bottom:5px; border-radius:8px; border:1px solid var(--border);">
                     <div style="display:flex; justify-content:space-between; font-weight:bold;">
@@ -162,19 +167,16 @@
                 </div>
                 
                 <div style="margin-top:10px; border-top:1px dashed var(--border); padding-top:10px;">
-                    <label style="font-size:0.75rem;">Novo Destino:</label>
                     <div style="display:flex; gap:5px;">
                         <input class="form-input" v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)" style="flex:1; margin:0;">
                         <input class="form-input" v-model="novoDestino.telefone" placeholder="WhatsApp" style="flex:1; margin:0;">
                     </div>
-                    <input class="form-input" v-model="novoDestino.msgPersonalizada" placeholder="Msg Saudação (Ex: Olá Turra...)" style="margin-top:5px;">
-                    
+                    <input class="form-input" v-model="novoDestino.msgPersonalizada" placeholder="Msg Saudação" style="margin-top:5px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
                         <input type="checkbox" v-model="novoDestino.triplicarSexta" id="checkSexta" style="width:20px; height:20px;">
                         <label for="checkSexta" style="font-size:0.8rem;">Triplicar pedido na Sexta? (Fim de semana)</label>
                     </div>
-
-                    <button class="btn-full" style="margin-top:10px; padding:10px;" @click="adicionarDestino">Salvar Destino</button>
+                    <button class="btn-full" style="margin-top:5px; padding:10px;" @click="adicionarDestino">Salvar Destino</button>
                 </div>
             </div>
         </div>
@@ -183,7 +185,6 @@
             <div class="group-title"><i class="fas fa-box"></i> Produto</div>
             <div style="padding:15px;">
                 <input class="form-input" v-model="novoProd.nome" placeholder="Nome do Produto">
-                
                 <div style="display:flex; gap:10px;">
                     <select class="form-input" v-model="novoProd.setor">
                         <option value="" disabled selected>Local</option>
@@ -194,30 +195,20 @@
                         <option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option>
                     </select>
                 </div>
-
                 <div style="background:var(--bg); padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed var(--border);">
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div style="flex:1">
-                            <label style="font-size:0.65rem;">Conto em:</label>
-                            <input class="form-input" v-model="novoProd.unQ" placeholder="Ex: Unidade" style="margin:0;">
-                        </div>
-                        <i class="fas fa-arrow-right" style="color:var(--text-sec)"></i>
-                        <div style="flex:1">
-                            <label style="font-size:0.65rem;">Peço em:</label>
-                            <input class="form-input" v-model="novoProd.unC" placeholder="Ex: Caixa" style="margin:0;">
-                        </div>
+                        <div style="flex:1"><label style="font-size:0.65rem;">Conto em:</label><input class="form-input" v-model="novoProd.unQ" placeholder="Ex: Un" style="margin:0;"></div>
+                        <div style="flex:1"><label style="font-size:0.65rem;">Peço em:</label><input class="form-input" v-model="novoProd.unC" placeholder="Ex: Cx" style="margin:0;"></div>
                     </div>
                     <div style="margin-top:10px;">
                         <label style="font-size:0.7rem; color:var(--primary);">Qtd na embalagem de compra?</label>
-                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 20 (Presunto)">
+                        <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Ex: 20">
                     </div>
                 </div>
-
-                <label style="font-size:0.7rem;">Meta Mínima (em {{ novoProd.unC || 'Unidade de Compra' }})</label>
+                <label style="font-size:0.7rem;">Meta Mínima (na unidade de compra)</label>
                 <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Ex: 2">
-
                 <button v-if="editandoId" class="btn-full" @click="salvarEdicao" style="background:var(--accent);">Salvar Alteração</button>
-                <button v-else class="btn-full" @click="adicionarProduto">Cadastrar Produto</button>
+                <button v-else class="btn-full" @click="adicionarProduto">Cadastrar</button>
                 <button v-if="editandoId" class="btn-outline" @click="cancelarEdicao" style="margin-top:10px; width:100%;">Cancelar</button>
             </div>
         </div>
@@ -230,7 +221,7 @@
                     <i class="fas fa-trash" style="color:var(--danger)" @click="removerFeriado(idx)"></i>
                 </div>
                 <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input class="form-input" v-model="novoFeriado.nome" placeholder="Nome (Ex: Natal)" style="flex:2; margin:0;">
+                    <input class="form-input" v-model="novoFeriado.nome" placeholder="Nome" style="flex:2; margin:0;">
                     <input type="number" class="form-input" v-model.number="novoFeriado.dia" placeholder="Dia" style="flex:1; margin:0;">
                     <input type="number" class="form-input" v-model.number="novoFeriado.mes" placeholder="Mês" style="flex:1; margin:0;">
                 </div>
