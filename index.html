@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gestor de Estoque V12</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles.css">
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+<div id="app" :data-theme="temaEscuro ? 'dark' : 'light'">
+
+    <div class="header" v-if="!mostrandoPreview && !mostrandoSetup">
+        <div>
+            <h1>🍕 {{ config.nomeEmpresa || 'Minha Pizzaria' }}</h1>
+            <small style="font-size: 0.7rem; color: var(--text-sec);">Olá, {{ config.nomeUsuario }}</small>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
+            <button class="header-btn" @click="toggleConfig"><i class="fas fa-cog"></i></button>
+        </div>
+    </div>
+
+    <div class="progress-container" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoSetup && produtos.length > 0">
+        <div class="progress-bar-bg"><div class="progress-fill" :style="{width: percentualConcluido + '%'}"></div></div>
+        <div class="progress-text">{{ itensContados }} de {{ produtos.length }} itens verificados</div>
+    </div>
+
+    <div class="feriado-alert" v-if="feriadoProximo && !mostrandoPreview && !mostrandoConfig && !mostrandoSetup">
+        ⚠️ Semana de {{ feriadoProximo.nome }} - Atenção ao estoque!
+    </div>
+
+    <div class="search-bar" v-if="!mostrandoPreview && !mostrandoConfig && !mostrandoSetup">
+        <input type="text" class="search-input" v-model="termoBusca" placeholder="🔍 Buscar produto...">
+    </div>
+
+    <div v-if="!mostrandoConfig && !mostrandoPreview && !mostrandoSetup" class="cards-container">
+        
+        <div v-if="produtos.length === 0" style="text-align:center; padding:50px; color:var(--text-sec);">
+            <i class="fas fa-pizza-slice fa-3x" style="color:var(--primary)"></i><br><br>
+            Bem-vindo, {{ config.nomeUsuario }}!<br>Toque na engrenagem para começar.
+        </div>
+
+        <div v-for="local in rotaExibicao" :key="local">
+            <div v-if="produtosVisiveisPorLocal[local] && produtosVisiveisPorLocal[local].length > 0" class="local-header">
+                <i class="fas fa-map-marker-alt"></i> {{ local }}
+            </div>
+
+            <div v-for="p in produtosVisiveisPorLocal[local]" :key="p.id" class="prod-card" :class="{ ignorado: p.ignorar, pedir: calculaFalta(p) > 0 && !p.ignorar, ok: calculaFalta(p) <= 0 && !p.ignorar }">
+                <div class="card-top">
+                    <div>
+                        <div class="prod-name">{{ p.nome }}</div>
+                        <div class="prod-meta">Meta: {{ p.meta }} {{ p.unC }}</div>
+                    </div>
+                </div>
+
+                <div class="action-area">
+                    <button class="ignore-btn" :class="{active: p.ignorar}" @click="toggleIgnorar(p)">
+                        <i class="fas fa-ban" v-if="p.ignorar"></i>
+                        <i class="far fa-thumbs-up" v-else></i>
+                    </button>
+                    <div class="qty-box" :class="{focused: p.focado}" @click="focarInput(p.id)">
+                        <label>Contar ({{ p.unQ }})</label>
+                        <input :id="'input-'+p.id" type="number" v-model.number="p.contagem" placeholder="-" :disabled="p.ignorar" @focus="p.focado=true" @blur="p.focado=false" inputmode="decimal">
+                    </div>
+                </div>
+
+                <div class="item-obs" v-if="!p.ignorar">
+                    <i class="fas fa-pen"></i>
+                    <input type="text" v-model="p.obs" placeholder="Obs do item...">
+                </div>
+
+                <div class="feedback-bar" v-if="!p.ignorar && p.contagem !== ''">
+                    <span v-if="calculaFalta(p) > 0" style="color:var(--danger);">PEDIR {{ calculaFalta(p) }} {{ p.unC }}</span>
+                    <span v-else style="color:var(--success);">OK</span>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="produtos.length > 0" class="finalizar-card" @click="abrirPreview">
+            <h2>FINALIZAR <i class="fas fa-check"></i></h2>
+        </div>
+    </div>
+
+    <button class="assistant-fab" @click="toggleAssistente" v-if="!mostrandoSetup"><i class="fas fa-robot"></i></button>
+
+    <div class="assistant-modal" :class="{open: mostrandoAssistente}">
+        <div class="chat-header">
+            <span>Assistente IA 🤖</span>
+            <span @click="toggleAssistente" style="cursor:pointer">X</span>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div v-for="(msg, i) in mensagensChat" :key="i" class="msg" :class="msg.tipo">{{ msg.texto }}</div>
+            <div v-if="mensagensChat.length === 1" class="chips">
+                <div class="chip" @click="enviarComando('Cadastrar Produto')">Cadastrar Novo</div>
+                <div class="chip" @click="enviarComando('Ver Preview')">Ver Resumo</div>
+                <div class="chip" @click="enviarComando('Limpar contagens')">Zerar tudo</div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input class="chat-input" v-model="textoComando" @keyup.enter="processarComando" placeholder="Digite aqui...">
+            <button class="chat-send" @click="processarComando"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" :class="{open: mostrandoPreview}">
+        <div class="modal-header"><h2>Resumo do Pedido</h2><button class="close-btn" @click="mostrandoPreview = false">X</button></div>
+        <div style="background:var(--bg); color:var(--text); padding:15px; border-radius:8px; white-space: pre-wrap; font-family: monospace; font-size:0.9rem; border:1px solid var(--border); margin-bottom:20px;">{{ textoPreview }}</div>
+        <div class="extras-area">
+            <h4 style="margin:0 0 10px 0; color:var(--text);">Observação Geral:</h4>
+            <textarea class="extra-input" v-model="observacaoExtra" rows="3" placeholder="Ex: Pedir lâmpada, detergente..."></textarea>
+        </div>
+        <button class="btn-full" style="background:var(--secondary);" @click="enviarWhatsApp"><i class="fab fa-whatsapp"></i> Enviar Agora</button>
+    </div>
+
+    <div class="modal-overlay" :class="{open: mostrandoConfig}">
+        <div class="modal-header">
+            <h2>Ajustes</h2>
+            <button class="close-btn" @click="mostrandoConfig = false">X</button>
+        </div>
+
+        <div class="config-group">
+            <div class="group-title"><i class="fas fa-store"></i> Perfil & Loja</div>
+            <div class="config-row">
+                <label>Seu Nome</label>
+                <input class="config-input-clean" v-model="config.nomeUsuario" @change="salvar">
+            </div>
+            <div class="config-row">
+                <label>Nome da Pizzaria</label>
+                <input class="config-input-clean" v-model="config.nomeEmpresa" @change="salvar">
+            </div>
+            <div class="config-row">
+                <label>WhatsApp Destino</label>
+                <input class="config-input-clean" v-model="config.telefone" placeholder="5543..." @change="salvar">
+            </div>
+        </div>
+
+        <div class="config-group">
+            <div class="group-title"><i class="fas fa-box-open"></i> Novo Produto</div>
+            <div style="padding:10px;">
+                <input class="form-input" v-model="novoProd.nome" placeholder="Nome (Ex: Calabresa)">
+                <select class="form-input" v-model="novoProd.setor">
+                    <option value="" disabled selected>Local</option>
+                    <option v-for="l in config.rota" :value="l">{{ l }}</option>
+                </select>
+                <div style="display:flex; gap:10px;">
+                    <input class="form-input" v-model="novoProd.unQ" placeholder="Conta (Un)">
+                    <input class="form-input" v-model="novoProd.unC" placeholder="Compra (Kg)">
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <input type="number" class="form-input" v-model.number="novoProd.fator" placeholder="Fator">
+                    <input type="number" class="form-input" v-model.number="novoProd.meta" placeholder="Meta">
+                </div>
+                <button class="btn-full" @click="adicionarProduto" style="margin-top:10px;">Salvar Produto</button>
+            </div>
+        </div>
+
+        <div class="config-group">
+            <div class="group-title"><i class="fas fa-route"></i> Rota de Contagem</div>
+            <div v-for="(local, index) in config.rota" :key="local" class="rota-item-clean">
+                <span>{{ index + 1 }}. {{ local }}</span>
+                <div class="rota-controles">
+                    <button @click="moverRota(index, -1)">⬆️</button>
+                    <button @click="moverRota(index, 1)">⬇️</button>
+                </div>
+            </div>
+            <div style="display:flex; padding:10px; gap:5px;">
+                <input class="form-input" v-model="novoLocal" placeholder="Novo Local" style="margin:0;">
+                <button class="btn-full" style="width:auto; margin:0;" @click="adicionarLocal">+</button>
+            </div>
+        </div>
+
+        <div class="config-group">
+            <div class="group-title"><i class="fas fa-hdd"></i> Sistema</div>
+            <div style="padding:10px;">
+                <button class="btn-outline" @click="abrirTermos">📜 Termos de Uso</button>
+                <div style="margin-top:10px;">
+                    <p style="font-size:0.75rem; color:var(--text-sec); margin-bottom:5px;">Backup / Sync</p>
+                    <textarea class="form-input" style="height:50px; font-size:0.7rem;">{{ dadosExportacao }}</textarea>
+                    <button class="btn-full" style="background:#444;" @click="importarDados">Importar Dados</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" :class="{open: mostrandoSetup}" style="z-index: 300;">
+        <div class="modal-content" style="text-align: center; padding: 40px 20px;">
+            <i class="fas fa-pizza-slice fa-4x" style="color: var(--primary); margin-bottom: 20px;"></i>
+            <h2 style="color: var(--text);">Bem-vindo ao Gestor!</h2>
+            <p style="color: var(--text-sec); margin-bottom: 30px;">Vamos configurar seu sistema rapidinho.</p>
+            
+            <div style="text-align: left;">
+                <label style="font-size: 0.8rem; font-weight: bold; color: var(--text);">Seu Nome</label>
+                <input class="form-input" v-model="config.nomeUsuario" placeholder="Ex: Gabriel">
+                
+                <label style="font-size: 0.8rem; font-weight: bold; color: var(--text);">Nome da Pizzaria</label>
+                <input class="form-input" v-model="config.nomeEmpresa" placeholder="Ex: Artigiano">
+            </div>
+
+            <button class="btn-full" @click="finalizarSetup" style="margin-top: 20px;">Começar <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" :class="{open: mostrandoTermos}">
+        <div class="modal-header">
+            <h2 style="font-size: 1.1rem;">Termos de Uso</h2>
+            <button class="close-btn" @click="mostrandoTermos = false">X</button>
+        </div>
+        <div class="modal-content">
+            <div class="termos-box">
+                <p><strong>Termo de Responsabilidade - Gestão de Estoque</strong></p>
+                <h3>1. Uso Pessoal</h3>
+                <p>Este software roda localmente. Seus dados são seus.</p>
+                <h3>2. Responsabilidade de Pedido</h3>
+                <p>O usuário declara ciência de que o aplicativo apenas sugere quantidades matemáticas. A decisão final de compra é humana.</p>
+                <h3>3. Isenção</h3>
+                <p>Não nos responsabilizamos por falta de insumos ou excesso de compras.</p>
+                <p>Ao clicar abaixo, você aceita gerir seu estoque com total autonomia.</p>
+            </div>
+            <button class="btn-full" @click="mostrandoTermos = false">Li e Concordo</button>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
