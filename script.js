@@ -1,294 +1,265 @@
+// --- CONFIGURAÇÃO FIREBASE (COLE SUA CHAVE AQUI) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
+    authDomain: "artigiano-app.firebaseapp.com",
+    databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+    projectId: "artigiano-app",
+    storageBucket: "artigiano-app.firebasestorage.app",
+    messagingSenderId: "212218495726",
+    appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+};
+
+let db;
+try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error("Erro Firebase", e); }
+
 const { createApp } = Vue
 
-const app = createApp({
+createApp({
     data() {
         return {
+            conectado: false,
+            // LOGIN
+            usuarioLogado: null, // Objeto { nome: 'Gabriel', pin: '1234' }
+            pinDigitado: '',
+            erroLogin: '',
+            usuarios: [], // Lista vinda do banco
+            
             // UI
-            modoSelecionado: null, // null, 'sacolao', 'geral', 'todos'
-            mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            modoSelecionado: null,
+            mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false, modalAjudaAberta: false, textoAjuda: '',
             temaEscuro: false, termoBusca: '', observacaoExtra: '',
             
             // DADOS
-            config: { 
-                nomeEmpresa: 'Artigiano', 
-                rota: ['Geladeira', 'Estoque Seco', 'Freezer'],
-                destinos: [], 
-                feriados: []
-            },
+            config: { nomeEmpresa: 'Artigiano', rota: ['Geral'], destinos: [], feriados: [], lembretes: [] },
             produtos: [],
             historico: [],
             
             // TEMPS
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false },
-            novoFeriado: { nome: '', dia: '', mes: '' },
-            editandoId: null,
-            novoLocal: ''
+            novoUsuarioNome: '', novoUsuarioPin: '',
+            novoLembrete: { dia: 5, texto: '' },
+            editandoId: null
         }
     },
     computed: {
-        // --- FILTRO INTELIGENTE (O CORAÇÃO DA V19) ---
+        // --- FILTROS ---
         produtosFiltrados() {
-            // Primeiro filtra pela barra de busca
             let lista = this.produtos.filter(p => {
                 if(this.termoBusca && !p.nome.toLowerCase().includes(this.termoBusca.toLowerCase())) return false;
                 return true;
             });
-
-            // Depois filtra pelo Modo Selecionado
             if (this.modoSelecionado === 'sacolao') {
                 return lista.filter(p => {
-                    const nomeDestino = this.getNomeDestino(p.destinoId).toLowerCase();
-                    // Palavras-chave para Sacolão
-                    return nomeDestino.includes('sacol') || nomeDestino.includes('horti') || nomeDestino.includes('fruta') || nomeDestino.includes('legume') || nomeDestino.includes('feira');
+                    const nome = this.getNomeDestino(p.destinoId).toLowerCase();
+                    return nome.includes('sacol') || nome.includes('horti') || nome.includes('fruta') || nome.includes('legume');
                 });
             } else if (this.modoSelecionado === 'geral') {
                 return lista.filter(p => {
-                    const nomeDestino = this.getNomeDestino(p.destinoId).toLowerCase();
-                    // Tudo que NÃO é sacolão
-                    return !(nomeDestino.includes('sacol') || nomeDestino.includes('horti') || nomeDestino.includes('fruta') || nomeDestino.includes('legume'));
+                    const nome = this.getNomeDestino(p.destinoId).toLowerCase();
+                    return !(nome.includes('sacol') || nome.includes('horti') || nome.includes('fruta'));
                 });
             }
-            
-            // Se for 'todos', retorna tudo
             return lista;
         },
-
         rotaExibicao() { 
-            const rotas = (this.config && Array.isArray(this.config.rota)) ? this.config.rota : ['Geral'];
-            const setoresUsados = [...new Set(this.produtosFiltrados.map(p => p.setor))]; // Usa filtrados
+            const rotas = (this.config.rota && this.config.rota.length) ? this.config.rota : ['Geral'];
+            const setoresUsados = [...new Set(this.produtosFiltrados.map(p => p.setor))];
             const orfaos = setoresUsados.filter(s => !rotas.includes(s));
             return [...rotas, ...orfaos];
         },
+        produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.setor === local); },
         
-        // Pega produtos de um local específico, respeitando o filtro atual
-        produtosDoLocal() {
-            return (local) => {
-                return this.produtosFiltrados.filter(p => p.setor === local);
-            }
-        },
-
         itensContados() { return this.produtosFiltrados.filter(p => p.contagem !== '' || p.ignorar).length; },
         percentualConcluido() { return this.produtosFiltrados.length === 0 ? 0 : (this.itensContados / this.produtosFiltrados.length) * 100; },
         
-        diaDaSemana() { return new Date().getDay(); }, 
-        diaDaSemanaExtenso() { const dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']; return dias[this.diaDaSemana]; },
-        
+        // --- DATA ---
+        diaDaSemana() { return new Date().getDay(); },
         feriadoAtivo() {
             if(!this.config.feriados) return null;
-            const hoje = new Date();
-            const limite = new Date();
-            limite.setDate(hoje.getDate() + 3); 
+            const hoje = new Date(); const limite = new Date(); limite.setDate(hoje.getDate()+3);
             return this.config.feriados.find(f => {
-                const dataFeriado = new Date(hoje.getFullYear(), f.mes - 1, f.dia);
-                return dataFeriado >= hoje && dataFeriado <= limite;
+                const d = new Date(hoje.getFullYear(), f.mes-1, f.dia);
+                return d >= hoje && d <= limite;
             });
         },
-
+        lembreteDoDia() {
+            if(!this.config.lembretes) return null;
+            return this.config.lembretes.find(l => l.dia == this.diaDaSemana);
+        },
+        
         pedidosPorDestino() {
             const grupos = {};
-            // Usa 'produtos' (todos) para garantir que nada fique para trás se trocar de modo sem querer, 
-            // ou 'produtosFiltrados' se quiser enviar só o da sessão. 
-            // Melhor usar FILTRADOS para evitar enviar coisa errada.
             this.produtosFiltrados.forEach(p => {
-                const calculo = this.calculaFalta(p);
-                if (!p.ignorar && p.contagem !== '' && calculo.qtd > 0) {
-                    const dId = p.destinoId || 'geral';
-                    if (!grupos[dId]) grupos[dId] = [];
-                    
-                    let linha = `- ${calculo.qtd} ${p.unC || 'un'} de ${p.nome}`;
-                    if(p.obs) linha += ` (${p.obs})`;
-                    if(calculo.fatorMultiplicador > 1) linha += ` (x${calculo.fatorMultiplicador})`;
-                    
-                    grupos[dId].push({ texto: linha, produto: p });
+                const calc = this.calculaFalta(p);
+                if (!p.ignorar && p.contagem !== '' && calc.qtd > 0) {
+                    const id = p.destinoId || 'geral';
+                    if (!grupos[id]) grupos[id] = [];
+                    let txt = `- ${calc.qtd} ${p.unC} ${p.nome}`;
+                    if(p.obs) txt += ` (${p.obs})`;
+                    if(calc.fatorMultiplicador > 1) txt += ` (x${calc.fatorMultiplicador})`;
+                    grupos[id].push({ texto: txt });
                 }
             });
             return grupos;
-        },
-        
-        dadosExportacao() { return JSON.stringify({ produtos: this.produtos, config: this.config }); }
+        }
     },
     methods: {
-        selecionarModo(modo) {
-            this.modoSelecionado = modo;
+        // --- LOGIN SISTEMA ---
+        addPin(n) { if(this.pinDigitado.length < 4) this.pinDigitado += n; },
+        limparPin() { this.pinDigitado = ''; },
+        tentarLogin() {
+            const user = this.usuarios.find(u => u.pin == this.pinDigitado);
+            if(user) {
+                this.usuarioLogado = user;
+                this.pinDigitado = '';
+                this.erroLogin = '';
+            } else {
+                this.erroLogin = 'PIN Incorreto!';
+                setTimeout(() => this.erroLogin = '', 2000);
+                this.pinDigitado = '';
+            }
+        },
+        criarPrimeiroAdmin() {
+            if(this.novoUsuarioNome && this.novoUsuarioPin) {
+                const u = { nome: this.novoUsuarioNome, pin: this.novoUsuarioPin };
+                this.usuarios.push(u);
+                this.salvarUsuarios();
+                this.usuarioLogado = u;
+            }
+        },
+        logout() { this.usuarioLogado = null; this.modoSelecionado = null; },
+        
+        adicionarUsuario() {
+            if(this.novoUsuarioNome && this.novoUsuarioPin) {
+                this.usuarios.push({ nome: this.novoUsuarioNome, pin: this.novoUsuarioPin });
+                this.novoUsuarioNome = ''; this.novoUsuarioPin = '';
+                this.salvarUsuarios();
+            }
+        },
+        removerUsuario(idx) { if(confirm('Remover usuário?')) { this.usuarios.splice(idx, 1); this.salvarUsuarios(); } },
+        salvarUsuarios() { if(db) db.ref('usuarios').set(this.usuarios); },
+
+        // --- SISTEMA ---
+        selecionarModo(m) { this.modoSelecionado = m; },
+        toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; },
+        toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
+        abrirPreview() { this.mostrandoPreview = true; },
+        
+        // --- AJUDA INTELIGENTE ---
+        abrirAjuda(contexto) {
+            this.modalAjudaAberta = true;
+            if(contexto === 'inicio') this.textoAjuda = "<b>Escolha o Modo:</b><br>🥕 <b>Sacolão:</b> Filtra apenas frutas, legumes e verduras.<br>📦 <b>Geral:</b> Mostra queijos, carnes e insumos.<br>🍕 <b>Tudo:</b> Lista completa.";
+            if(contexto === 'lista') this.textoAjuda = "<b>Como contar:</b><br>1. Digite a quantidade no campo branco.<br>2. Se o item estiver OK, deixe em branco ou use 🚫 para ignorar.<br>3. Use o lápis para editar o produto.<br>4. Se precisar de uma observação (ex: 'Marca X'), use o campo Obs.";
+            if(contexto === 'envio') this.textoAjuda = "<b>Revisão:</b><br>Confira os itens. O app já separou por fornecedor.<br>Clique em 'Enviar WhatsApp' para abrir a conversa já com o texto pronto.";
+            if(contexto === 'config') this.textoAjuda = "<b>Configurações:</b><br>Aqui você cadastra produtos, usuários (PIN), fornecedores e lembretes semanais.";
         },
 
+        // --- LEMBRETES ---
+        adicionarLembrete() {
+            if(!this.config.lembretes) this.config.lembretes = [];
+            this.config.lembretes.push({ ...this.novoLembrete });
+            this.salvarGeral();
+        },
+        removerLembrete(idx) { this.config.lembretes.splice(idx, 1); this.salvarGeral(); },
+        nomeDia(d) { const dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; return dias[d]; },
+
+        // --- SINCRONIZAÇÃO NUVEM ---
+        sincronizarAlteracao() { if(db && this.conectado) db.ref('produtos').set(this.produtos); },
+        salvarGeral() {
+            if(db && this.conectado) {
+                db.ref('/').update({ config: this.config, produtos: this.produtos, historico: this.historico });
+            }
+        },
+        carregarDados() {
+            if(db) {
+                db.ref('/').on('value', (snapshot) => {
+                    const d = snapshot.val();
+                    if(d) {
+                        this.produtos = d.produtos || [];
+                        this.config = d.config || { nomeEmpresa: 'Artigiano', rota: ['Geral'], destinos: [], feriados: [], lembretes: [] };
+                        this.historico = d.historico || [];
+                        this.usuarios = d.usuarios || []; // Carrega usuários
+                        this.conectado = true;
+                    } else { this.conectado = true; }
+                });
+            }
+        },
+
+        // --- LÓGICA ---
         calculaFalta(p) {
             if (p.ignorar || p.contagem === '') return { qtd: 0, fatorMultiplicador: 1 };
-            
-            const fatorConversao = (p.fator && !isNaN(p.fator) && p.fator > 0) ? Number(p.fator) : 1;
-            let estoqueEmCompra = 0;
+            const fator = (p.fator && p.fator > 0) ? Number(p.fator) : 1;
             const contagem = Number(p.contagem) || 0;
-            
-            if (p.unQ && p.unC && p.unQ !== p.unC && fatorConversao > 1) {
-                 estoqueEmCompra = contagem / fatorConversao;
-            } else {
-                 estoqueEmCompra = contagem * fatorConversao;
+            let estqCompra = (p.unQ !== p.unC && fator > 1) ? contagem / fator : contagem * fator;
+            let meta = Number(p.meta) || 0;
+            let mult = 1;
+            if (this.diaDaSemana === 5 && p.destinoId) {
+                const dest = this.config.destinos.find(d => d.id === p.destinoId);
+                if (dest && dest.triplicarSexta) { meta *= 3; mult = 3; }
             }
-
-            let metaDoDia = Number(p.meta) || 0;
-            let fatorMultiplicador = 1;
-
-            if (this.diaDaSemana === 5 && p.destinoId) { 
-                const destino = this.config.destinos.find(d => d.id === p.destinoId);
-                if (destino && destino.triplicarSexta) {
-                    metaDoDia = metaDoDia * 3;
-                    fatorMultiplicador = 3;
-                }
-            }
-
-            if (this.feriadoAtivo) {
-                metaDoDia = metaDoDia * 1.5;
-                fatorMultiplicador = (fatorMultiplicador === 1) ? 1.5 : 3.5;
-            }
-
-            let falta = metaDoDia - estoqueEmCompra;
-            if (falta <= 0) return { qtd: 0, fatorMultiplicador };
-            
-            return { qtd: Math.ceil(falta), fatorMultiplicador }; 
+            if (this.feriadoAtivo) { meta *= 1.5; mult = (mult===1)?1.5:3.5; }
+            let falta = meta - estqCompra;
+            return { qtd: falta > 0 ? Math.ceil(falta) : 0, fatorMultiplicador: mult };
         },
-
-        getNomeDestino(id) {
-            if(id === 'geral' || !Array.isArray(this.config.destinos)) return 'Geral';
-            const d = this.config.destinos.find(x => x.id === id);
-            return d ? d.nome : 'Geral';
-        },
-        adicionarDestino() {
-            if(this.novoDestino.nome) {
-                if(!Array.isArray(this.config.destinos)) this.config.destinos = [];
-                this.config.destinos.push({ 
-                    id: Date.now(), 
-                    nome: this.novoDestino.nome, 
-                    telefone: this.novoDestino.telefone,
-                    msgPersonalizada: this.novoDestino.msgPersonalizada,
-                    triplicarSexta: this.novoDestino.triplicarSexta 
-                });
-                this.novoDestino = { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false };
-                this.salvar();
-            }
-        },
-        removerDestino(idx) { if(confirm("Remover?")) { this.config.destinos.splice(idx, 1); this.salvar(); } },
-
-        adicionarFeriado() {
-            if(this.novoFeriado.nome) {
-                if(!Array.isArray(this.config.feriados)) this.config.feriados = [];
-                this.config.feriados.push({ ...this.novoFeriado });
-                this.novoFeriado = { nome: '', dia: '', mes: '' };
-                this.salvar();
-            }
-        },
-        removerFeriado(idx) { this.config.feriados.splice(idx, 1); this.salvar(); },
-
-        adicionarProduto() { 
-            if(!this.novoProd.nome || !this.novoProd.setor) return alert('Preencha Nome e Local');
-            this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false, obs: '' }); 
-            const ultSetor = this.novoProd.setor;
-            const ultDest = this.novoProd.destinoId;
-            this.novoProd={nome:'', setor: ultSetor, unQ:'', unC:'', fator:1, meta:0, destinoId: ultDest}; 
-            this.salvar(); 
-            alert('Salvo!'); 
+        
+        adicionarProduto() {
+            this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false, obs: '' });
+            this.novoProd={nome:'', setor: this.novoProd.setor, unQ:'', unC:'', fator:1, meta:0, destinoId: this.novoProd.destinoId};
+            this.salvarGeral(); alert('Salvo!');
         },
         editarProduto(p) { this.novoProd = { ...p }; this.editandoId = p.id; this.mostrandoConfig = true; },
         salvarEdicao() {
-            const index = this.produtos.findIndex(p => p.id === this.editandoId);
-            if(index !== -1) {
-                this.produtos[index] = { ...this.produtos[index], ...this.novoProd };
-                this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0, destinoId: ''}; 
-                this.editandoId = null;
-                this.salvar();
-                alert('Atualizado!');
+            const idx = this.produtos.findIndex(p => p.id === this.editandoId);
+            if(idx !== -1) {
+                this.produtos[idx] = { ...this.produtos[idx], ...this.novoProd };
+                this.editandoId = null; this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0};
+                this.salvarGeral(); alert('Atualizado!');
             }
         },
         cancelarEdicao() { this.editandoId = null; this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0}; },
+        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) { p.contagem = ''; p.obs = ''; } this.sincronizarAlteracao(); },
+        focarInput(id) { setTimeout(() => { const el = document.getElementById('input-'+id); if(el) el.focus(); }, 100); },
 
-        enviarWhatsApp(destinoId, itens) {
-            const nomeDest = this.getNomeDestino(destinoId);
-            let telDest = '';
-            let msgHeader = `*PEDIDO ${this.config.nomeEmpresa}*\n`;
-
-            if (this.config.destinos) {
-                const d = this.config.destinos.find(x => x.id == destinoId);
-                if (d) {
-                    telDest = d.telefone;
-                    if(d.msgPersonalizada) msgHeader = `${d.msgPersonalizada}\n`;
-                }
-            }
+        // --- ENVIO & HISTÓRICO RASTREADO ---
+        enviarWhatsApp(destId, itens) {
+            const dest = this.config.destinos.find(d => d.id == destId);
+            const nomeDest = dest ? dest.nome : 'Geral';
+            const tel = dest ? dest.telefone : '';
+            let msg = `*PEDIDO ${this.config.nomeEmpresa}*\nData: ${new Date().toLocaleDateString('pt-BR')}\nResp: ${this.usuarioLogado.nome}\n---\n`;
+            let txtHist = "";
+            itens.forEach(i => { msg += i.texto + '\n'; txtHist += i.texto.replace('- ', '') + '\n'; });
+            if(this.observacaoExtra) { msg += `Obs: ${this.observacaoExtra}`; txtHist += `Obs: ${this.observacaoExtra}`; }
             
-            let msg = msgHeader;
-            msg += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
-            msg += `----------------\n`;
-            
-            let textoHistorico = "";
-            itens.forEach(i => {
-                msg += i.texto + '\n';
-                textoHistorico += i.texto.replace('- ', '') + '\n';
-            });
-            
-            if(this.observacaoExtra) {
-                msg += `\nOBS: ${this.observacaoExtra}`;
-                textoHistorico += `\nOBS: ${this.observacaoExtra}`;
-            }
-
-            this.historico.unshift({
-                data: new Date().toLocaleString('pt-BR'),
-                destino: nomeDest,
-                detalhes: textoHistorico
+            // Salva com o NOME DO USUÁRIO
+            this.historico.unshift({ 
+                data: new Date().toLocaleDateString('pt-BR'), 
+                hora: new Date().toLocaleTimeString(),
+                usuario: this.usuarioLogado.nome,
+                destino: nomeDest, 
+                detalhes: txtHist 
             });
             if(this.historico.length > 50) this.historico.pop();
-            this.salvar();
-
-            window.open(`https://wa.me/${telDest}?text=${encodeURIComponent(msg)}`, '_blank');
+            this.salvarGeral();
+            
+            window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
-
-        resetarTudo() { if(confirm("Apagar tudo?")) { localStorage.clear(); window.location.reload(); } },
-        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) { p.contagem = ''; p.obs = ''; } this.salvar(); },
-        focarInput(id) { setTimeout(() => { const el = document.getElementById('input-'+id); if(el) el.focus(); }, 100); },
-        abrirPreview() { this.mostrandoPreview = true; },
-        toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; this.editandoId = null; },
-        toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
-        alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_tema', this.temaEscuro); },
-        apagarHistorico(index) { if(confirm("Apagar?")) { this.historico.splice(index, 1); this.salvar(); } },
-        moverRota(index, direcao) {
-            const novaRota = [...this.config.rota];
-            if (direcao === -1 && index > 0) [novaRota[index], novaRota[index - 1]] = [novaRota[index - 1], novaRota[index]];
-            else if (direcao === 1 && index < novaRota.length - 1) [novaRota[index], novaRota[index + 1]] = [novaRota[index + 1], novaRota[index]];
-            this.config.rota = novaRota;
-            this.salvar();
+        apagarHistorico(idx) { if(confirm('Apagar?')) { this.historico.splice(idx, 1); this.salvarGeral(); } },
+        
+        getNomeDestino(id) { const d = this.config.destinos.find(x => x.id === id); return d ? d.nome : 'Geral'; },
+        adicionarDestino() { 
+            if(this.novoDestino.nome) {
+                this.config.destinos.push({ id: Date.now(), ...this.novoDestino });
+                this.novoDestino = {nome:'', telefone:'', msgPersonalizada:'', triplicarSexta:false};
+                this.salvarGeral();
+            }
         },
-        adicionarLocal() { if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvar(); } },
-
-        salvar() { 
-            try { localStorage.setItem('artigiano_v19_app', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); } catch(e) {}
-        },
-        carregar() {
-            try {
-                let s = localStorage.getItem('artigiano_v19_app');
-                if (!s) s = localStorage.getItem('artigiano_v18_final') || localStorage.getItem('artigiano_v17_smart');
-
-                if (s) {
-                    const d = JSON.parse(s);
-                    this.produtos = Array.isArray(d.produtos) ? d.produtos : [];
-                    this.historico = Array.isArray(d.historico) ? d.historico : [];
-                    const cfg = d.config || {};
-                    this.config = {
-                        nomeEmpresa: cfg.nomeEmpresa || 'Artigiano',
-                        rota: (Array.isArray(cfg.rota) && cfg.rota.length > 0) ? cfg.rota : ['Geral'],
-                        destinos: Array.isArray(cfg.destinos || cfg.fornecedores) ? (cfg.destinos || cfg.fornecedores) : [],
-                        feriados: Array.isArray(cfg.feriados) ? cfg.feriados : []
-                    };
-                }
-                this.temaEscuro = localStorage.getItem('artigiano_tema') === 'true';
-            } catch(e) { console.error("Erro reset:", e); }
-        },
-        importarDados() { 
-            try { 
-                localStorage.setItem('artigiano_v19_app', document.querySelector('textarea').value); 
-                this.carregar(); alert('Importado!'); this.mostrandoConfig = false; 
-            } catch(e){ alert('Erro.'); } 
-        }
+        removerDestino(idx) { if(confirm('Remover?')) { this.config.destinos.splice(idx, 1); this.salvarGeral(); } },
+        
+        resetarTudo() { if(confirm('⚠️ Apagar TUDO do Banco?')) { if(db){ db.ref('/').remove(); } window.location.reload(); } },
+        importarDados() { try { localStorage.setItem('artigiano_v19_app', document.querySelector('textarea').value); alert('Importado!'); } catch(e){ alert('Erro.'); } }
     },
-    mounted() { this.carregar(); }
+    mounted() { this.carregarDados(); }
 });
 
-app.config.errorHandler = (err) => { console.error("Erro Vue:", err); };
 app.mount('#app');
