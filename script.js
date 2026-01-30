@@ -11,11 +11,12 @@ createApp({
             // USUÁRIO
             usuarioAtual: null,
             
-            // DADOS
+            // DADOS (Valores Padrão de Segurança)
             config: { 
                 nomeEmpresa: 'Artigiano', 
+                telefone: '',
                 rota: ['Geladeira', 'Estoque Seco', 'Freezer'],
-                usuariosLista: ['Pizzaiolo'], // Garante que sempre tenha 1
+                usuariosLista: ['Pizzaiolo'], 
                 fornecedores: []
             },
             produtos: [],
@@ -30,20 +31,21 @@ createApp({
         }
     },
     computed: {
-        rotaExibicao() { return this.rotaOrdenada; },
-        rotaOrdenada() {
+        rotaExibicao() { 
+            // Proteção contra rota nula
+            const rotas = this.config.rota || [];
             const setoresUsados = [...new Set(this.produtos.map(p => p.setor))];
-            const rotaDefinida = this.config.rota || [];
-            const orfaos = setoresUsados.filter(s => !rotaDefinida.includes(s));
-            return [...rotaDefinida, ...orfaos];
+            const orfaos = setoresUsados.filter(s => !rotas.includes(s));
+            return [...rotas, ...orfaos];
         },
         produtosVisiveisPorLocal() {
             const grupos = {};
-            const termo = this.termoBusca.toLowerCase();
+            const termo = this.termoBusca ? this.termoBusca.toLowerCase() : '';
             this.produtos.forEach(p => {
-                if(termo.length > 0 && !p.nome.toLowerCase().includes(termo)) return;
-                if(!grupos[p.setor]) grupos[p.setor] = [];
-                grupos[p.setor].push(p);
+                if(termo && !p.nome.toLowerCase().includes(termo)) return;
+                const setor = p.setor || 'Outros'; // Proteção contra setor nulo
+                if(!grupos[setor]) grupos[setor] = [];
+                grupos[setor].push(p);
             });
             return grupos;
         },
@@ -72,7 +74,8 @@ createApp({
         fazerLogin(u) { this.usuarioAtual = u; },
         adicionarUsuario() {
             if(this.novoUsuarioNome) {
-                if(!this.config.usuariosLista) this.config.usuariosLista = [];
+                // Garante que o array existe antes de dar push
+                if(!Array.isArray(this.config.usuariosLista)) this.config.usuariosLista = [];
                 this.config.usuariosLista.push(this.novoUsuarioNome);
                 this.novoUsuarioNome = '';
                 this.salvar();
@@ -85,18 +88,18 @@ createApp({
 
         // --- FORNECEDORES ---
         getNomeFornecedor(id) {
-            if(id === 'geral' || !this.config.fornecedores) return 'Geral';
+            if(id === 'geral' || !Array.isArray(this.config.fornecedores)) return 'Geral';
             const f = this.config.fornecedores.find(x => x.id === id);
             return f ? f.nome : 'Geral';
         },
         getTelefoneFornecedor(id) {
-            if(!this.config.fornecedores) return '';
+            if(!Array.isArray(this.config.fornecedores)) return '';
             const f = this.config.fornecedores.find(x => x.id === id);
             return f ? f.telefone : '';
         },
         adicionarFornecedor() {
             if(this.novoFornecedor.nome) {
-                if(!this.config.fornecedores) this.config.fornecedores = [];
+                if(!Array.isArray(this.config.fornecedores)) this.config.fornecedores = [];
                 this.config.fornecedores.push({ id: Date.now(), nome: this.novoFornecedor.nome, telefone: this.novoFornecedor.telefone });
                 this.novoFornecedor = { nome: '', telefone: '' };
                 this.salvar();
@@ -115,7 +118,7 @@ createApp({
             const fator = p.fator && p.fator > 0 ? p.fator : 1;
             let estoqueConvertido = 0;
             
-            // Lógica inteligente: Se Unidade contada != Unidade compra e fator > 1, divide (ex: 6 un na caixa)
+            // Lógica inteligente: Se Unidade contada != Unidade compra e fator > 1, divide
             if (p.unQ && p.unC && p.unQ !== p.unC && fator > 1) {
                  estoqueConvertido = p.contagem / fator;
             } else {
@@ -193,13 +196,21 @@ createApp({
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_tema', this.temaEscuro); },
         
         moverRota(index, direcao) {
+            if(!this.config.rota) this.config.rota = [];
             const novaRota = [...this.config.rota];
             if (direcao === -1 && index > 0) [novaRota[index], novaRota[index - 1]] = [novaRota[index - 1], novaRota[index]];
             else if (direcao === 1 && index < novaRota.length - 1) [novaRota[index], novaRota[index + 1]] = [novaRota[index + 1], novaRota[index]];
             this.config.rota = novaRota;
             this.salvar();
         },
-        adicionarLocal() { if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvar(); } },
+        adicionarLocal() { 
+            if(!this.config.rota) this.config.rota = [];
+            if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ 
+                this.config.rota.push(this.novoLocal); 
+                this.novoLocal=''; 
+                this.salvar(); 
+            } 
+        },
         
         // --- SYSTEM ---
         enviarComando(txt) { this.textoComando = txt; this.processarComando(); },
@@ -222,48 +233,44 @@ createApp({
         },
 
         salvar() { 
-            // Salva com a chave V14
-            localStorage.setItem('artigiano_v14', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); 
+            // Salva na chave nova para evitar conflito
+            localStorage.setItem('artigiano_v14_fix', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); 
         },
         carregar() {
-            // Tenta carregar V14
-            let s = localStorage.getItem('artigiano_v14');
+            // Tenta carregar a versão nova
+            let s = localStorage.getItem('artigiano_v14_fix');
             
-            // Se não tiver V14, tenta carregar V13 ou V12 (MIGRAÇÃO)
-            if (!s) s = localStorage.getItem('artigiano_v13') || localStorage.getItem('artigiano_v12');
+            // Se não existir, tenta migrar das antigas
+            if (!s) s = localStorage.getItem('artigiano_v14') || localStorage.getItem('artigiano_v13') || localStorage.getItem('artigiano_v12');
 
             if (s) {
                 try {
                     const d = JSON.parse(s);
-                    this.produtos = d.produtos || [];
-                    this.historico = d.historico || [];
+                    this.produtos = Array.isArray(d.produtos) ? d.produtos : [];
+                    this.historico = Array.isArray(d.historico) ? d.historico : [];
                     
-                    // --- CORREÇÃO DE CRASH (AQUI ESTÁ O SEGREDO) ---
-                    // Garante que o objeto config exista e tenha os arrays novos
+                    // --- CORREÇÃO DE CRASH DE DADOS (CRUCIAL) ---
                     const cfg = d.config || {};
+                    
                     this.config = {
                         nomeEmpresa: cfg.nomeEmpresa || 'Artigiano',
                         telefone: cfg.telefone || '',
-                        rota: cfg.rota || ['Estoque'],
-                        // Se não existir lista de usuários ou fornecedores no salvo, cria vazio
-                        usuariosLista: (cfg.usuariosLista && cfg.usuariosLista.length > 0) ? cfg.usuariosLista : ['Pizzaiolo'],
-                        fornecedores: cfg.fornecedores || []
+                        rota: Array.isArray(cfg.rota) ? cfg.rota : ['Estoque'],
+                        // Se não existir ou não for array, cria padrão
+                        usuariosLista: (Array.isArray(cfg.usuariosLista) && cfg.usuariosLista.length > 0) ? cfg.usuariosLista : ['Pizzaiolo'],
+                        fornecedores: Array.isArray(cfg.fornecedores) ? cfg.fornecedores : []
                     };
                 } catch(e) {
-                    console.error("Erro ao migrar dados", e);
-                    // Se der erro fatal, reseta para evitar tela branca
-                    this.produtos = [];
+                    console.error("Erro fatal nos dados:", e);
+                    // Se der erro grave, reseta para não dar tela branca
+                    this.config = { 
+                        nomeEmpresa: 'Artigiano', 
+                        rota: ['Estoque'], 
+                        usuariosLista: ['Pizzaiolo'], 
+                        fornecedores: [] 
+                    };
                 }
             }
             this.temaEscuro = localStorage.getItem('artigiano_tema') === 'true';
         },
-        importarDados() { 
-            try { 
-                localStorage.setItem('artigiano_v14', document.querySelector('textarea').value); 
-                this.carregar(); 
-                alert('Importado!'); this.mostrandoConfig = false; 
-            } catch(e){ alert('Erro.'); } 
-        }
-    },
-    mounted() { this.carregar(); }
-}).mount('#app')
+        importarDados() {
