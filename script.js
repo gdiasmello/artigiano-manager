@@ -1,12 +1,12 @@
-// --- CHAVES ATUALIZADAS (V42) ---
+// --- FIREBASE CONFIG (Sua Chave AIza...) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", // Chave NOVA
-  authDomain: "artigiano-app.firebaseapp.com",
-  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
-  projectId: "artigiano-app",
-  storageBucket: "artigiano-app.firebasestorage.app",
-  messagingSenderId: "212218495726",
-  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+    apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", 
+    authDomain: "artigiano-app.firebaseapp.com",
+    databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+    projectId: "artigiano-app",
+    storageBucket: "artigiano-app.firebasestorage.app",
+    messagingSenderId: "212218495726",
+    appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
 };
 
 let db;
@@ -23,12 +23,11 @@ const app = createApp({
             loadingInicial: true,
             temaEscuro: false,
             // AUTH
-            authMode: 'login',
             loginUser: '', loginPass: '',
             sessaoAtiva: false,
             usuarioLogado: null,
             msgAuth: '', isError: false, loadingAuth: false,
-            novoCadastro: { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: 'Pizzaiolo' },
+            // ADMIN ADD MANUAL
             novoUserAdmin: { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' },
             editandoUsuarioId: null,
             // DADOS
@@ -84,7 +83,7 @@ const app = createApp({
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
             setTimeout(() => {
-                // LOGIN MESTRE GABRIEL (SEGURANÇA)
+                // LOGIN MESTRE (CRIA ADMIN SE NÃO EXISTIR)
                 if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
                     const masterId = 'admin_gabriel_master';
                     const admin = this.usuarios.find(u => u.id === masterId) || {
@@ -106,35 +105,27 @@ const app = createApp({
             this.usuarioLogado = user; this.sessaoAtiva = true;
             localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false;
         },
-        solicitarCadastro() {
-            if (!this.novoCadastro.nome || !this.novoCadastro.user) { this.msgAuth = "Preencha tudo."; this.isError = true; return; }
-            const novo = {
-                id: this.gerarId(), ...this.novoCadastro, aprovado: false,
-                permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
-            };
-            this.salvarUsuarioUnitario(novo);
-            this.msgAuth = "Enviado! Aguarde."; this.isError = false; this.authMode = 'login';
-            this.novoCadastro = { nome: '', user: '', pass: '', cargo: 'Pizzaiolo' };
-        },
         logout() {
             this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session');
         },
 
-        // --- SYNC ATOMICO (A SOLUÇÃO DO BANCO) ---
+        // --- SYNC ATOMICO ---
         salvarUsuarioUnitario(u) { if(db) db.ref('system/users/' + u.id).set(u); },
         salvarProdutoUnitario(p) { if(db) db.ref('store/products/' + p.id).set(p); },
         salvarHistoricoUnitario(h) { if(db) db.ref('store/history/' + h.id).set(h); },
         
-        // ADMIN USERS
+        // ADMIN USERS (AGORA CRIA APROVADO)
         adicionarUsuarioAdmin() {
-            if (!this.novoUserAdmin.nome) return alert("Preencha dados");
+            if (!this.novoUserAdmin.nome || !this.novoUserAdmin.user) return alert("Preencha dados");
             const novo = {
-                id: this.gerarId(), ...this.novoUserAdmin, aprovado: true,
+                id: this.gerarId(), 
+                ...this.novoUserAdmin, 
+                aprovado: true, // ADMIN CRIA JÁ APROVADO
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: true, limpeza: true }
             };
             this.salvarUsuarioUnitario(novo);
             this.novoUserAdmin = { nome: '', user: '', pass: '', cargo: 'Pizzaiolo' };
-            alert("Criado!");
+            alert("Criado! Login Liberado.");
         },
         prepararEdicao(u) { this.novoUserAdmin = { ...u }; this.editandoUsuarioId = u.id; },
         salvarEdicaoUsuario() {
@@ -197,7 +188,6 @@ const app = createApp({
 
         carregarDb() {
             if(db) {
-                // LISTENERS INDIVIDUAIS
                 db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); });
                 db.ref('store/products').on('value', s => { this.produtos = s.val() ? Object.values(s.val()) : []; });
                 db.ref('store/history').on('value', s => { 
