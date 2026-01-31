@@ -1,4 +1,3 @@
-// --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -33,7 +32,7 @@ const app = createApp({
             
             // DADOS SISTEMA
             usuarios: [],
-            config: { destinos: [] },
+            config: { destinos: [], rota: ['Freezer', 'Geladeira', 'Estoque Seco'] },
             produtos: [],
             
             // APP
@@ -44,6 +43,7 @@ const app = createApp({
             // FORMS
             novoProd: { nome: '', categoria: 'geral', local: 'Estoque Seco', unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msg: '' },
+            novoLocal: '',
             salvarParaSegunda: false
         }
     },
@@ -63,7 +63,12 @@ const app = createApp({
                 return matchBusca && matchModulo;
             });
         },
-        locaisDoModulo() { return [...new Set(this.produtosFiltrados.map(p => p.local))].sort(); },
+        // USA A ROTA PERSONALIZADA DA CONFIG
+        locaisDoModulo() { 
+            const rotaDefinida = this.config.rota || ['Geral'];
+            // Filtra apenas os locais que tem produtos E estão na rota, mantendo a ordem da rota
+            return rotaDefinida.filter(local => this.produtosFiltrados.some(p => p.local === local));
+        },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.local === local); },
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         pedidosAgrupados() {
@@ -83,15 +88,11 @@ const app = createApp({
             localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light');
         },
         
-        // --- LOGIN SEGURO V33 ---
+        // --- AUTH ---
         fazerLogin() {
-            this.loadingAuth = true;
-            this.msgAuth = '';
-            
+            this.loadingAuth = true; this.msgAuth = '';
             setTimeout(() => {
-                // LOGIN MESTRE (HARDCODED) - FUNCIONA SEMPRE
                 if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
-                    // Garante que o admin exista no banco
                     let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
                     if (!adminUser) {
                         adminUser = {
@@ -99,52 +100,31 @@ const app = createApp({
                             user: 'Gabriel', pass: '21gabriel', aprovado: true,
                             permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
                         };
-                        const novaLista = [...this.usuarios, adminUser];
-                        if(db) db.ref('usuarios').set(novaLista);
-                        this.usuarios.push(adminUser); // Atualiza localmente
+                        if(db) db.ref('usuarios').set([...this.usuarios, adminUser]);
+                        this.usuarios.push(adminUser);
                     }
-                    this.logar(adminUser);
-                    return;
+                    this.logar(adminUser); return;
                 }
-
-                // LOGIN NORMAL
                 const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
                 if (user) {
-                    if (user.aprovado) {
-                        this.logar(user);
-                    } else {
-                        this.msgAuth = "Aguardando aprovação do Admin."; this.isError = true; this.loadingAuth = false;
-                    }
-                } else {
-                    this.msgAuth = "Usuário ou senha incorretos."; this.isError = true; this.loadingAuth = false;
-                }
-            }, 500); // Pequeno delay para feedback visual
+                    if (user.aprovado) this.logar(user);
+                    else { this.msgAuth = "Aguardando aprovação."; this.isError = true; this.loadingAuth = false; }
+                } else { this.msgAuth = "Dados incorretos."; this.isError = true; this.loadingAuth = false; }
+            }, 500);
         },
-        
         logar(user) {
-            this.usuarioLogado = user;
-            this.sessaoAtiva = true;
-            localStorage.setItem('artigiano_session', JSON.stringify(user));
-            this.loadingAuth = false;
+            this.usuarioLogado = user; this.sessaoAtiva = true;
+            localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false;
         },
-
         solicitarCadastro() {
-            if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) {
-                this.msgAuth = "Preencha tudo."; this.isError = true; return;
-            }
+            if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) { this.msgAuth = "Preencha tudo."; this.isError = true; return; }
             const novoUser = {
-                id: Date.now(),
-                ...this.novoCadastro,
-                aprovado: false, // Precisa aprovação
+                id: Date.now(), ...this.novoCadastro, aprovado: false,
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
             };
-            if(db) {
-                const novaLista = [...this.usuarios, novoUser];
-                db.ref('usuarios').set(novaLista);
-                this.msgAuth = "Enviado! Aguarde aprovação.";
-                this.isError = false; this.authMode = 'login';
-                this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' };
-            }
+            if(db) db.ref('usuarios').set([...this.usuarios, novoUser]);
+            this.msgAuth = "Enviado! Aguarde aprovação."; this.isError = false; this.authMode = 'login';
+            this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' };
         },
         logout() {
             this.sessaoAtiva = false; this.usuarioLogado = null;
@@ -164,6 +144,29 @@ const app = createApp({
                 const index = this.usuarios.findIndex(u => u.id === id);
                 this.usuarios.splice(index, 1); this.salvarDb();
             }
+        },
+
+        // --- GESTÃO DE ROTA (NOVO) ---
+        adicionarLocal() {
+            if(this.novoLocal && !this.config.rota.includes(this.novoLocal)) {
+                this.config.rota.push(this.novoLocal);
+                this.novoLocal = '';
+                this.salvarDb();
+            }
+        },
+        removerLocal(idx) {
+            if(confirm("Remover local?")) {
+                this.config.rota.splice(idx, 1);
+                this.salvarDb();
+            }
+        },
+        moverRota(index, direction) {
+            if (direction === -1 && index > 0) {
+                [this.config.rota[index], this.config.rota[index - 1]] = [this.config.rota[index - 1], this.config.rota[index]];
+            } else if (direction === 1 && index < this.config.rota.length - 1) {
+                [this.config.rota[index], this.config.rota[index + 1]] = [this.config.rota[index + 1], this.config.rota[index]];
+            }
+            this.salvarDb();
         },
 
         calculaFalta(p) {
@@ -206,18 +209,18 @@ const app = createApp({
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
 
         salvarDb() { if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config }); },
-        
-        // --- CORREÇÃO DO TRAVAMENTO V33 ---
         carregarDb() {
             if(db) {
                 db.ref('/').on('value', snap => {
                     const d = snap.val();
                     if(d) {
-                        // CONVERTE OBJETO FIREBASE EM ARRAY (SEGURANÇA CONTRA TRAVAMENTO)
                         this.usuarios = d.usuarios ? (Array.isArray(d.usuarios) ? d.usuarios : Object.values(d.usuarios)) : [];
                         this.produtos = d.produtos ? (Array.isArray(d.produtos) ? d.produtos : Object.values(d.produtos)) : [];
+                        this.config = d.config || { destinos: [], rota: ['Geral'] };
                         
-                        this.config = d.config || { destinos: [] };
+                        // Garante que rota seja array
+                        if(!this.config.rota) this.config.rota = ['Geral'];
+
                         if(this.usuarioLogado) {
                             const u = this.usuarios.find(x => x.id === this.usuarioLogado.id);
                             if(u) this.usuarioLogado = u; else this.logout();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V33</title>
+    <title>Artigiano V34</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#B22222">
@@ -11,7 +11,7 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=33">
+    <link rel="stylesheet" href="styles.css?v=34">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -22,60 +22,34 @@
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
 
     <div class="auth-screen" v-if="!sessaoAtiva">
-        <button class="theme-toggle-login" @click="alternarTema">
-            <i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i>
-        </button>
-
+        <button class="theme-toggle-login" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
         <div class="auth-card animated-up">
             <div class="brand-header">
                 <i class="fas fa-pizza-slice logo-icon"></i>
                 <h1>Artigiano</h1>
                 <p>Gestão de Pizzaria</p>
             </div>
-
             <div v-if="authMode === 'login'" class="auth-form">
-                <input v-model="loginUser" placeholder="Usuário (ex: Gabriel)" class="italian-input">
-                <input v-model="loginPass" type="password" placeholder="Senha" class="italian-input" @keyup.enter="fazerLogin">
-                
+                <input v-model="loginUser" placeholder="Usuário" class="italian-input">
+                <input v-model="loginPass" type="password" placeholder="Senha" class="italian-input">
                 <button class="btn-italian-primary" @click="fazerLogin" :disabled="loadingAuth">
-                    <span v-if="loadingAuth"><i class="fas fa-circle-notch fa-spin"></i> Entrando...</span>
-                    <span v-else>ENTRAR</span>
+                    <span v-if="loadingAuth">Entrando...</span><span v-else>ENTRAR</span>
                 </button>
-                
-                <div class="auth-links">
-                    <a @click="authMode = 'register'">Criar Ficha de Cadastro</a>
-                    <span class="divider">|</span>
-                    <a @click="alert('Peça ao Gabriel para resetar.')">Esqueci a senha</a>
-                </div>
+                <div class="auth-links"><a @click="authMode = 'register'">Criar Cadastro</a></div>
             </div>
-
             <div v-if="authMode === 'register'" class="auth-form">
-                <h3>Ficha de Cadastro</h3>
-                <input v-model="novoCadastro.nome" placeholder="Nome Completo" class="italian-input">
+                <h3>Novo Cadastro</h3>
+                <input v-model="novoCadastro.nome" placeholder="Nome" class="italian-input">
                 <div class="row">
-                    <div class="col">
-                        <label>Nascimento</label>
-                        <input v-model="novoCadastro.nascimento" type="date" class="italian-input">
-                    </div>
-                    <div class="col">
-                        <label>Cargo</label>
-                        <select v-model="novoCadastro.cargo" class="italian-input">
-                            <option value="Pizzaiolo">Pizzaiolo</option>
-                            <option value="Gerente">Gerente</option>
-                            <option value="Atendente">Atendente</option>
-                        </select>
-                    </div>
+                    <div class="col"><label>Nascimento</label><input v-model="novoCadastro.nascimento" type="date" class="italian-input"></div>
+                    <div class="col"><label>Cargo</label><select v-model="novoCadastro.cargo" class="italian-input"><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div>
                 </div>
-                <input v-model="novoCadastro.email" type="email" placeholder="E-mail" class="italian-input">
-                <div class="separator-line"></div>
-                <p style="font-size:0.8rem; color:var(--text-sec); margin-bottom:5px;">Dados de Acesso:</p>
-                <input v-model="novoCadastro.user" placeholder="Criar Usuário" class="italian-input">
-                <input v-model="novoCadastro.pass" type="password" placeholder="Criar Senha" class="italian-input">
-                
-                <button class="btn-italian-primary" @click="solicitarCadastro">Enviar Ficha</button>
+                <input v-model="novoCadastro.email" type="email" placeholder="Email" class="italian-input">
+                <input v-model="novoCadastro.user" placeholder="Usuário" class="italian-input">
+                <input v-model="novoCadastro.pass" type="password" placeholder="Senha" class="italian-input">
+                <button class="btn-italian-primary" @click="solicitarCadastro">Enviar</button>
                 <button class="btn-text" @click="authMode = 'login'">Voltar</button>
             </div>
-
             <p v-if="msgAuth" class="auth-msg" :class="{error: isError}">{{ msgAuth }}</p>
         </div>
     </div>
@@ -84,17 +58,16 @@
         <header class="top-bar">
             <div class="user-profile" @click="mostrandoConfig = true">
                 <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
-                <div class="user-text">
-                    <span class="name">{{ usuarioLogado.nome }}</span>
-                    <span class="role">{{ usuarioLogado.cargo }}</span>
-                </div>
+                <div class="user-text"><span class="name">{{ usuarioLogado.nome }}</span><span class="role">{{ usuarioLogado.cargo }}</span></div>
             </div>
             <div class="top-actions">
                 <button class="icon-btn theme-btn" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
-                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="icon-btn" style="position:relative;">
+                
+                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="icon-btn admin-btn" :class="{pulse: pendentesCount > 0}">
                     <i class="fas fa-users-cog"></i>
                     <span class="badge" v-if="pendentesCount > 0">{{ pendentesCount }}</span>
                 </button>
+                
                 <button @click="logout" class="icon-btn logout"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
@@ -102,7 +75,7 @@
         <main class="content-area">
             <div v-if="!moduloAtivo" class="dashboard-grid">
                 <div class="dashboard-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')"><div class="card-icon"><i class="fas fa-carrot"></i></div><span>Hortifruti</span></div>
-                <div class="dashboard-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')"><div class="card-icon"><i class="fas fa-boxes"></i></div><span>Geral / Insumos</span></div>
+                <div class="dashboard-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')"><div class="card-icon"><i class="fas fa-boxes"></i></div><span>Geral</span></div>
                 <div class="dashboard-card bebidas" @click="abrirModulo('bebidas')" v-if="podeAcessar('bebidas')"><div class="card-icon"><i class="fas fa-wine-bottle"></i></div><span>Bebidas</span></div>
                 <div class="dashboard-card limpeza" @click="abrirModulo('limpeza')" v-if="podeAcessar('limpeza')"><div class="card-icon"><i class="fas fa-broom"></i></div><span>Limpeza</span></div>
             </div>
@@ -110,8 +83,10 @@
             <div v-else class="active-module animated-fade">
                 <div class="module-header"><button @click="moduloAtivo = null" class="back-btn"><i class="fas fa-arrow-left"></i> Voltar</button><h2>{{ nomeModulo }}</h2></div>
                 <div class="search-box"><i class="fas fa-search"></i><input v-model="termoBusca" placeholder="Buscar produto..."></div>
+                
                 <div class="product-list-container">
                     <div v-if="produtosFiltrados.length === 0" class="empty-state">Nenhum item encontrado.</div>
+                    
                     <div v-for="local in locaisDoModulo" :key="local">
                         <div v-if="produtosDoLocal(local).length > 0" class="location-divider">{{ local }}</div>
                         <div v-for="p in produtosDoLocal(local)" :key="p.id" class="product-row">
@@ -124,24 +99,94 @@
                         </div>
                     </div>
                 </div>
-                <button class="fab-main" @click="mostrandoPreview = true" v-if="produtosFiltrados.length > 0"><i class="fas fa-paper-plane"></i> Finalizar Pedido</button>
+                <button class="fab-main" @click="mostrandoPreview = true" v-if="produtosFiltrados.length > 0"><i class="fas fa-paper-plane"></i> Finalizar</button>
             </div>
         </main>
     </div>
 
     <div class="modal-overlay" v-if="mostrandoAdmin">
-        <div class="modal-card large"><div class="modal-header"><h3>Gestão de Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div><div class="modal-body">
-            <div v-if="usuariosPendentes.length > 0" class="admin-section warning"><h4>🔔 Aguardando Aprovação</h4><div v-for="(u, idx) in usuariosPendentes" :key="idx" class="user-row pending"><div class="user-data"><strong>{{ u.nome }}</strong> ({{ u.cargo }})<br><small>{{ u.email }}</small></div><div class="user-actions"><button class="btn-approve" @click="aprovarUsuario(u.id)">Aprovar</button><button class="btn-deny" @click="removerUsuario(u.id)">Recusar</button></div></div></div>
-            <div class="admin-section"><h4>Funcionários Ativos</h4><div v-for="u in usuariosAtivos" :key="u.id" class="user-row"><div @click="u.expandido = !u.expandido" class="user-clickable"><strong>{{ u.nome }}</strong> <span class="role-tag">{{ u.cargo }}</span> <i class="fas fa-chevron-down"></i></div><div v-if="u.expandido" class="permissions-box"><h5>Acessos:</h5><div class="checkbox-grid"><label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarDb"> Admin</label><label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarDb"> Horti</label><label><input type="checkbox" v-model="u.permissoes.geral" @change="salvarDb"> Geral</label><label><input type="checkbox" v-model="u.permissoes.bebidas" @change="salvarDb"> Bebidas</label><label><input type="checkbox" v-model="u.permissoes.limpeza" @change="salvarDb"> Limpeza</label></div><button class="btn-deny small" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id" style="width:100%; margin-top:10px;">Excluir</button></div></div></div>
-        </div></div>
+        <div class="modal-card large">
+            <div class="modal-header"><h3>Gestão de Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                
+                <div v-if="usuariosPendentes.length > 0" class="admin-section warning">
+                    <h4>🔔 Pendentes de Aprovação</h4>
+                    <div v-for="(u, idx) in usuariosPendentes" :key="idx" class="user-row pending">
+                        <div class="user-data"><strong>{{ u.nome }}</strong> ({{ u.cargo }})<br><small>{{ u.user }}</small></div>
+                        <div class="user-actions">
+                            <button class="btn-approve" @click="aprovarUsuario(u.id)">APROVAR</button>
+                            <button class="btn-deny" @click="removerUsuario(u.id)">RECUSAR</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h4>Equipe Ativa</h4>
+                    <div v-for="u in usuariosAtivos" :key="u.id" class="user-row">
+                        <div @click="u.expandido = !u.expandido" class="user-clickable"><strong>{{ u.nome }}</strong> <span class="role-tag">{{ u.cargo }}</span> <i class="fas fa-chevron-down"></i></div>
+                        <div v-if="u.expandido" class="permissions-box">
+                            <h5>Permissões:</h5>
+                            <div class="checkbox-grid">
+                                <label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarDb"> Admin</label>
+                                <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarDb"> Hortifruti</label>
+                                <label><input type="checkbox" v-model="u.permissoes.geral" @change="salvarDb"> Geral</label>
+                                <label><input type="checkbox" v-model="u.permissoes.bebidas" @change="salvarDb"> Bebidas</label>
+                                <label><input type="checkbox" v-model="u.permissoes.limpeza" @change="salvarDb"> Limpeza</label>
+                            </div>
+                            <button class="btn-deny small" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id" style="width:100%; margin-top:10px;">Excluir Usuário</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" v-if="mostrandoConfig">
-        <div class="modal-card"><div class="modal-header"><h3>Configurações</h3><button @click="mostrandoConfig = false">X</button></div><div class="modal-body">
-            <div class="config-block"><h4>📦 Novo Produto</h4><input v-model="novoProd.nome" placeholder="Nome" class="italian-input"><div class="row"><select v-model="novoProd.categoria" class="italian-input"><option value="hortifruti">Hortifruti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select><select v-model="novoProd.local" class="italian-input"><option value="Freezer">Freezer</option><option value="Geladeira">Geladeira</option><option value="Estoque Seco">Estoque Seco</option></select></div><div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)" class="italian-input"><input v-model="novoProd.unC" placeholder="Pede (Cx)" class="italian-input"></div><div class="row"><input v-model.number="novoProd.fator" type="number" placeholder="Qtd Cx" class="italian-input"><input v-model.number="novoProd.meta" type="number" placeholder="Meta" class="italian-input"></div><select v-model="novoProd.destinoId" class="italian-input"><option value="" disabled selected>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select><button class="btn-italian-primary" @click="adicionarProduto">Salvar Produto</button></div>
-            <div class="config-block"><h4>📞 Contatos</h4><div v-for="(d, idx) in config.destinos" :key="idx" class="list-item"><span>{{ d.nome }}</span> <i class="fas fa-trash" @click="removerDestino(idx)"></i></div><div class="row"><input v-model="novoDestino.nome" placeholder="Nome" class="italian-input"><input v-model="novoDestino.telefone" placeholder="WhatsApp" class="italian-input"></div><button class="btn-italian-secondary" @click="adicionarDestino">Adicionar</button></div>
-            <div class="config-block" v-if="usuarioLogado.permissoes.admin"><button class="btn-deny full" @click="resetarTudo">Resetar Sistema</button></div>
-        </div></div>
+        <div class="modal-card">
+            <div class="modal-header"><h3>Configurações</h3><button @click="mostrandoConfig = false">X</button></div>
+            <div class="modal-body">
+                
+                <div class="config-block">
+                    <h4>📍 Locais de Estoque (Rota)</h4>
+                    <div v-for="(local, idx) in config.rota" :key="idx" class="list-item">
+                        <span>{{ idx + 1 }}. {{ local }}</span>
+                        <div class="list-controls">
+                            <button class="arrow-btn" @click="moverRota(idx, -1)">⬆️</button>
+                            <button class="arrow-btn" @click="moverRota(idx, 1)">⬇️</button>
+                            <i class="fas fa-trash" @click="removerLocal(idx)" style="color:var(--danger)"></i>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:10px;">
+                        <input v-model="novoLocal" placeholder="Novo Local (ex: Prateleira A)" class="italian-input" style="margin-bottom:0;">
+                        <button class="btn-italian-secondary" style="width:auto; margin-top:0;" @click="adicionarLocal">Add</button>
+                    </div>
+                </div>
+
+                <div class="config-block">
+                    <h4>📦 Novo Produto</h4>
+                    <input v-model="novoProd.nome" placeholder="Nome" class="italian-input">
+                    <div class="row">
+                        <select v-model="novoProd.categoria" class="italian-input"><option value="hortifruti">Hortifruti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select>
+                        <select v-model="novoProd.local" class="italian-input">
+                            <option v-for="l in config.rota" :value="l">{{ l }}</option>
+                        </select>
+                    </div>
+                    <div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)" class="italian-input"><input v-model="novoProd.unC" placeholder="Pede (Cx)" class="italian-input"></div>
+                    <div class="row"><input v-model.number="novoProd.fator" type="number" placeholder="Qtd Cx" class="italian-input"><input v-model.number="novoProd.meta" type="number" placeholder="Meta" class="italian-input"></div>
+                    <select v-model="novoProd.destinoId" class="italian-input"><option value="" disabled selected>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
+                    <button class="btn-italian-primary" @click="adicionarProduto">Salvar Produto</button>
+                </div>
+
+                <div class="config-block">
+                    <h4>📞 Fornecedores</h4>
+                    <div v-for="(d, idx) in config.destinos" :key="idx" class="list-item"><span>{{ d.nome }}</span> <i class="fas fa-trash" @click="removerDestino(idx)"></i></div>
+                    <div class="row"><input v-model="novoDestino.nome" placeholder="Nome" class="italian-input"><input v-model="novoDestino.telefone" placeholder="WhatsApp" class="italian-input"></div>
+                    <button class="btn-italian-secondary" @click="adicionarDestino">Adicionar</button>
+                </div>
+
+                <div class="config-block" v-if="usuarioLogado.permissoes.admin"><button class="btn-deny full" @click="resetarTudo">Resetar Sistema</button></div>
+            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" v-if="mostrandoPreview">
@@ -153,6 +198,6 @@
 
 </div>
 
-<script src="script.js?v=33"></script>
+<script src="script.js?v=34"></script>
 </body>
 </html>
