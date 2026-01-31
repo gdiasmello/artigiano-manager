@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano V29</title>
+    <title>Artigiano V30</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#F2F2F7">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=29">
+    <link rel="stylesheet" href="styles.css?v=30">
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -20,34 +19,26 @@
 </head>
 <body>
 
-<div id="crash-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:30px; text-align:center;">
-    <h2 style="color:#FF3B30; margin-top:50px;">Opa! O App travou.</h2>
-    <p style="color:#666; font-size:14px; margin-bottom:30px;">Isso acontece quando dados antigos conflitam com a nova versão.</p>
-    <p id="error-details" style="background:#eee; padding:10px; font-size:12px; font-family:monospace; color:red; margin-bottom:30px;"></p>
-    <button onclick="limparTudo()" style="background:#007AFF; color:white; border:none; padding:15px 30px; border-radius:12px; font-size:16px; font-weight:bold;">
+<div id="crash-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:30px; text-align:center; flex-direction:column; justify-content:center;">
+    <h2 style="color:#FF3B30;">Ocorreu um erro 😕</h2>
+    <p id="error-details" style="color:#666; font-family:monospace; margin:20px 0; font-size:12px;"></p>
+    <button onclick="localStorage.clear(); window.location.reload();" style="padding:15px 30px; background:#007AFF; color:white; border:none; border-radius:12px; font-weight:bold;">
         CORRIGIR AGORA (RESET)
     </button>
 </div>
 
 <script>
-    // Função de Emergência
-    function limparTudo() {
-        localStorage.clear();
-        window.location.reload();
-    }
-    // Detector de Erros
     window.onerror = function(msg, url, line) {
-        document.getElementById('crash-screen').style.display = 'block';
+        document.getElementById('crash-screen').style.display = 'flex';
         document.getElementById('error-details').innerText = msg + " (Linha " + line + ")";
-        document.getElementById('app').style.display = 'none';
+        if(document.getElementById('app')) document.getElementById('app').style.display = 'none';
     };
 </script>
 
-<div id="app">
+<div id="app" v-cloak>
 
-    <div v-if="loading" style="height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column;">
-        <i class="fas fa-pizza-slice fa-spin fa-2x" style="color:#FF3B30;"></i>
-        <p style="margin-top:10px; color:#999;">Carregando Artigiano...</p>
+    <div v-if="loading" class="loading-screen">
+        <i class="fas fa-pizza-slice fa-spin fa-3x" style="color:#FF3B30;"></i>
     </div>
 
     <div class="login-screen" v-if="!loading && !usuarioLogado">
@@ -66,7 +57,7 @@
             </div>
 
             <p class="error-text" v-if="erroLogin">{{ erroLogin }}</p>
-            <p v-else style="height:20px;"></p>
+            <p v-else style="height:24px;"></p>
 
             <div class="numpad-grid">
                 <button v-for="n in 9" :key="n" @click="addPin(n)" class="num-btn">{{ n }}</button>
@@ -76,13 +67,11 @@
             </div>
 
             <div v-if="semUsuarios" class="setup-box animated-fade">
-                <h3><i class="fas fa-crown text-primary"></i> Primeiro Acesso</h3>
-                <p>Crie o Admin:</p>
-                <input v-model="novoUsuarioNome" placeholder="Seu Nome" class="ios-input" style="text-align:center; margin-bottom:10px;">
-                <div class="pin-input-wrapper">
-                    <input v-model="novoUsuarioPin" type="tel" placeholder="PIN (4 núm)" class="ios-input pin-field" maxlength="4">
-                </div>
-                <button class="ios-btn-primary" @click="criarPrimeiroAdmin">Criar Admin</button>
+                <h3><i class="fas fa-crown text-warning"></i> Criar Admin</h3>
+                <p>Digite seu nome e crie um PIN:</p>
+                <input v-model="novoUsuarioNome" placeholder="Seu Nome" class="ios-input center-text">
+                <input v-model="novoUsuarioPin" type="tel" placeholder="Novo PIN (4 dig)" class="ios-input center-text" maxlength="4">
+                <button class="ios-btn-primary" @click="criarPrimeiroAdmin">Criar Acesso</button>
             </div>
         </div>
     </div>
@@ -116,13 +105,16 @@
 
                 <div class="menu-grid-buttons">
                     <button class="menu-btn btn-sacolao" @click="selecionarModo('sacolao')">
-                        <div class="btn-icon"><i class="fas fa-carrot"></i></div><div class="btn-label">Sacolão</div>
+                        <div class="btn-icon"><i class="fas fa-carrot"></i></div>
+                        <div class="btn-label">Sacolão</div>
                     </button>
                     <button class="menu-btn btn-geral" @click="selecionarModo('geral')">
-                        <div class="btn-icon"><i class="fas fa-boxes-stacked"></i></div><div class="btn-label">Geral</div>
+                        <div class="btn-icon"><i class="fas fa-box-open"></i></div>
+                        <div class="btn-label">Geral</div>
                     </button>
                     <button class="menu-btn btn-todos" @click="selecionarModo('todos')">
-                        <div class="btn-icon"><i class="fas fa-clipboard-list"></i></div><div class="btn-label">Ver Tudo</div>
+                        <div class="btn-icon"><i class="fas fa-clipboard-list"></i></div>
+                        <div class="btn-label">Ver Tudo</div>
                     </button>
                 </div>
 
@@ -137,7 +129,10 @@
                 <div v-if="feriadoAtivo" class="notice-banner purple"><i class="fas fa-calendar-star"></i> {{ feriadoAtivo.nome }} (+50%)</div>
 
                 <div class="search-container sticky-search">
-                    <div class="ios-search-bar"><i class="fas fa-search placeholder-icon"></i><input v-model="termoBusca" placeholder="Buscar..." type="search"></div>
+                    <div class="ios-search-bar">
+                        <i class="fas fa-search placeholder-icon"></i>
+                        <input v-model="termoBusca" placeholder="Buscar..." type="search">
+                    </div>
                 </div>
 
                 <div class="list-content">
@@ -166,7 +161,9 @@
                         </div>
                     </div>
                 </div>
-                <button class="fab-finish" @click="abrirPreview" v-if="produtosFiltrados.length > 0"><i class="fas fa-paper-plane"></i> Finalizar</button>
+                <button class="fab-finish" @click="abrirPreview" v-if="produtosFiltrados.length > 0">
+                    <i class="fas fa-paper-plane"></i> Finalizar
+                </button>
             </div>
         </div>
     </div>
@@ -208,12 +205,28 @@
                             <input v-model.number="novoProd.fator" placeholder="Qtd Cx" type="number" class="ios-input">
                             <input v-model.number="novoProd.meta" placeholder="Meta" type="number" class="ios-input">
                         </div>
-                        <button class="ios-btn-primary save-btn" @click="adicionarProduto">Salvar</button>
+                        <button class="ios-btn-primary save-btn" @click="adicionarProduto" v-if="!editandoId">Cadastrar</button>
+                        <button class="ios-btn-primary save-btn" @click="salvarEdicao" v-else>Salvar Edição</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="section-header"><i class="fas fa-truck"></i> Destinos</div>
+                    <div class="section-body list-view">
+                        <div v-for="(d, idx) in config.destinos" :key="d.id" class="list-row">
+                            <div class="row-main">{{ d.nome }}</div>
+                            <button class="delete-btn" @click="removerDestino(idx)"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                        <div class="add-form-inline">
+                            <input v-model="novoDestino.nome" placeholder="Nome" class="inline-input grow">
+                            <input v-model="novoDestino.telefone" placeholder="Zap" class="inline-input short">
+                            <button class="add-btn-inline" @click="adicionarDestino"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="settings-section danger-zone">
-                    <button class="ios-btn-danger" @click="resetarTudo"><i class="fas fa-bomb"></i> Resetar App (Correção de Erros)</button>
+                    <button class="ios-btn-danger" @click="resetarTudo"><i class="fas fa-bomb"></i> Resetar App</button>
                 </div>
                 <div style="height:50px;"></div>
             </div>
@@ -250,6 +263,6 @@
 
 </div>
 
-<script src="script.js?v=29"></script>
+<script src="script.js?v=30"></script>
 </body>
 </html>

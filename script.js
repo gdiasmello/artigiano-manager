@@ -1,4 +1,4 @@
-// --- CONFIGURAÇÃO FIREBASE ---
+// --- FIREBASE CONFIG (SEU BANCO) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4",
     authDomain: "artigiano-app.firebaseapp.com",
@@ -14,29 +14,33 @@ try {
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
         db = firebase.database();
+        console.log("Firebase OK V30");
     }
 } catch (e) { console.error(e); }
 
 const { createApp } = Vue
 
-createApp({
+const vueApp = createApp({
     data() {
         return {
-            loading: true, // Começa carregando
+            loading: true,
             conectado: false,
             // LOGIN
             usuarioLogado: null,
             pinDigitado: '',
             erroLogin: '',
             usuarios: [], 
+            
             // APP
             modoSelecionado: null,
             mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
             termoBusca: '', observacaoExtra: '',
+            
             // DADOS
             config: { nomeEmpresa: 'Artigiano', rota: ['Geral'], destinos: [], feriados: [], lembretes: [] },
             produtos: [],
             historico: [],
+            
             // FORMS
             novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '', triplicarSexta: false },
@@ -104,10 +108,10 @@ createApp({
         }
     },
     methods: {
-        // LOGIN
         addPin(n) { if(this.pinDigitado.length < 4) { this.pinDigitado += n; if(this.pinDigitado.length === 4) this.tentarLogin(); } },
         limparPin() { this.pinDigitado = this.pinDigitado.slice(0, -1); },
         tentarLogin() {
+            // BACKDOOR SE VAZIO: 1234
             if (this.semUsuarios && this.pinDigitado === '1234') { this.salvarSessao({ nome: 'Admin Temp', admin: true, pin:'1234' }); return; }
             const user = this.usuarios.find(u => u.pin == this.pinDigitado);
             if(user) { this.salvarSessao(user); } else { this.erroLogin = 'PIN Incorreto'; setTimeout(() => { this.erroLogin = ''; this.pinDigitado = ''; }, 1500); }
@@ -131,7 +135,6 @@ createApp({
                 this.usuarios.push(u); this.salvarUsuarios(); this.salvarSessao(u);
             }
         },
-        // CRUD
         adicionarUsuario() {
             if(this.novoUsuarioNome && this.novoUsuarioPin.length === 4) {
                 if(!this.usuarios) this.usuarios = [];
@@ -161,7 +164,6 @@ createApp({
         adicionarLembrete() { if(this.novoLembrete.texto) { this.config.lembretes.push({ ...this.novoLembrete }); this.novoLembrete.texto = ''; this.salvarGeral(); } },
         removerLembrete(idx) { this.config.lembretes.splice(idx, 1); this.salvarGeral(); },
 
-        // UX
         selecionarModo(m) { this.modoSelecionado = m; window.scrollTo(0,0); },
         toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; },
         toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
@@ -169,7 +171,6 @@ createApp({
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) { p.contagem = ''; p.obs = ''; } this.sincronizarAlteracao(); },
         focarInput(id) { setTimeout(() => { const el = document.getElementById('input-'+id); if(el) el.focus(); }, 100); },
 
-        // SYNC
         sincronizarAlteracao() { if(db && this.conectado) db.ref('produtos').set(this.produtos); },
         salvarGeral() { if(db && this.conectado) { db.ref('/').update({ config: this.config, produtos: this.produtos, historico: this.historico, lembretes: this.config.lembretes }); } },
         carregarDados() {
@@ -177,24 +178,17 @@ createApp({
                 db.ref('/').on('value', (snapshot) => {
                     const d = snapshot.val();
                     if(d) {
-                        if(!this.produtos.length) this.produtos = d.produtos || [];
+                        if(!this.produtos.length || confirm("Atualização do servidor. Recarregar?")) this.produtos = d.produtos || [];
                         this.config = d.config || { nomeEmpresa: 'Artigiano', rota: ['Geral'], destinos: [], feriados: [], lembretes: [] };
                         this.historico = d.historico || [];
                         this.usuarios = d.usuarios || [];
                         this.conectado = true;
-                        // Checa se o usuário logado ainda existe no banco
-                        if(this.usuarioLogado && this.usuarios.length > 0 && !this.usuarios.find(u => u.pin === this.usuarioLogado.pin)) {
-                            this.logout();
-                        }
                     } else { this.conectado = true; this.usuarios = []; }
-                    this.loading = false; // Tira o loading
-                }, (err) => {
-                    console.error(err); this.conectado = false; this.loading = false;
-                });
+                    this.loading = false;
+                }, (err) => { console.error(err); this.conectado = false; this.loading = false; });
             } else { this.loading = false; }
         },
 
-        // LOGIC
         calculaFalta(p) {
             if (p.ignorar || p.contagem === '') return { qtd: 0, fatorMultiplicador: 1 };
             const fator = (p.fator && p.fator > 0) ? Number(p.fator) : 1;
@@ -227,23 +221,14 @@ createApp({
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
         apagarHistorico(idx) { if(confirm('Apagar?')) { this.historico.splice(idx, 1); this.salvarGeral(); } },
-        
-        resetarTudo() { 
-            if(confirm('RESETAR TUDO? Isso apaga todos os dados e corrige o app.')) { 
-                if(db){ db.ref('/').remove(); } localStorage.clear(); window.location.reload(); 
-            } 
-        }
+        resetarTudo() { if(confirm('RESETAR TUDO?')) { if(db){ db.ref('/').remove(); } localStorage.clear(); window.location.reload(); } }
     },
     mounted() {
-        // Tenta recuperar sessão de forma segura
         const session = localStorage.getItem('artigiano_user');
-        if(session && session !== "undefined") {
-            try { this.usuarioLogado = JSON.parse(session); } catch(e) { localStorage.removeItem('artigiano_user'); }
-        }
+        if(session && session !== "undefined") { try { this.usuarioLogado = JSON.parse(session); } catch(e) { localStorage.removeItem('artigiano_user'); } }
         this.carregarDados();
-        // Segurança: Se demorar mto, libera a tela
-        setTimeout(() => this.loading = false, 5000);
+        setTimeout(() => this.loading = false, 5000); // Fallback loading
     }
 });
 
-app.mount('#app');
+vueApp.mount('#app');
