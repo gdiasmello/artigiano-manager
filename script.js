@@ -7,15 +7,20 @@ const { createApp } = Vue
 const app = createApp({
     data() {
         return {
-            loadingInicial: true, temaEscuro: false, mostrandoTermos: false,
-            mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
+            loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
             novoUserAdmin: { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' }, editandoUsuarioId: null,
-            feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], config: { destinos: [], rota: ['Geral'] }, produtos: [], historico: [],
+            feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
+            
+            // CONFIG AGORA COM CORES
+            config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
+            
+            produtos: [], historico: [],
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            // NOVO PRODUTO COM TIPO DE CONVERSÃO
-            novoProd: { nome: '', categoria: 'geral', local: 'Estoque Seco', unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir' },
-            novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '', salvarParaSegunda: false
+            
+            // NOVO PRODUTO COM LOCAIS ARRAY
+            novoProd: { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir' },
+            novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: ''
         }
     },
     computed: {
@@ -24,116 +29,137 @@ const app = createApp({
         pendentesCount() { return this.usuariosPendentes.length; },
         nomeModulo() { const n = { hortifruti: 'Hortifruti', geral: 'Geral', bebidas: 'Bebidas', limpeza: 'Limpeza' }; return n[this.moduloAtivo] || ''; },
         feriadosOrdenados() { return this.feriados.slice().sort((a,b) => a.data.localeCompare(b.data)).map(f => ({ ...f, dataFormatted: f.data.split('-').reverse().join('/') })); },
+        
         isSemanaFeriado() {
             const hoje = new Date(); const i = new Date(hoje); i.setDate(hoje.getDate() - hoje.getDay()); const f = new Date(hoje); f.setDate(hoje.getDate() + (6 - hoje.getDay()));
             return this.feriados.some(fer => { const d = new Date(fer.data + 'T00:00:00'); return d >= i && d <= f; });
         },
-        produtosFiltrados() { if (!this.moduloAtivo) return []; return this.produtos.filter(p => (this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true) && p.categoria === this.moduloAtivo); },
-        locaisDoModulo() { const r = this.config.rota || ['Geral']; return r.filter(l => this.produtosFiltrados.some(p => p.local === l)); },
-        produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.local === local); },
+        
+        produtosFiltrados() {
+            if (!this.moduloAtivo) return [];
+            return this.produtos.filter(p => {
+                const matchBusca = this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true;
+                return matchBusca && p.categoria === this.moduloAtivo;
+            });
+        },
+        
+        // LOCAIS AGORA FILTRAM SE O PRODUTO TEM O LOCAL EM SEU ARRAY
+        locaisDoModulo() { 
+            const r = this.config.rota || ['Geral']; 
+            return r.filter(local => this.produtosFiltrados.some(p => p.locais && p.locais.includes(local))); 
+        },
+        
+        produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.locais && p.locais.includes(local)); },
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
+        
         pedidosAgrupados() {
             const grupos = {};
+            // Cria um Set para não processar o mesmo produto 2x (já que ele aparece em varios locais)
+            const processados = new Set();
+            
             this.itensParaPedir.forEach(p => {
+                if(processados.has(p.id)) return;
+                processados.add(p.id);
+                
                 const calc = this.calculaFalta(p);
                 const dId = p.destinoId || 'geral';
                 if (!grupos[dId]) grupos[dId] = [];
-                // LÓGICA DO ALERTA DE HISTÓRICO
-                let obs = "";
-                if(this.analisarHistorico(p)) obs = " (⚠️ Acabou rápido!)";
+                let obs = this.analisarHistorico(p) ? " (⚠️ Acabou rápido!)" : "";
                 grupos[dId].push({ texto: `- ${calc.qtd} ${p.unC} ${p.nome}${obs}` });
             });
             return grupos;
         }
     },
     methods: {
-        // --- CÁLCULO INTELIGENTE V49 ---
+        // --- CORES & SUGESTÃO ---
+        getCorCategoria(cat) { return this.config.cores ? (this.config.cores[cat] || '#ccc') : '#ccc'; },
+        
+        sugestaoDia(mod) {
+            const dia = new Date().getDay(); // 0=Dom, 1=Seg...
+            if(dia === 1) return mod === 'geral' || mod === 'limpeza'; // Segunda
+            return mod === 'hortifruti'; // Outros dias
+        },
+
+        // --- CÁLCULO V50 (TOTALIZADO) ---
+        getContagemTotal(p) {
+            if(!p.contagem || typeof p.contagem !== 'object') return 0;
+            let total = 0;
+            // Soma todos os valores do objeto contagem
+            Object.values(p.contagem).forEach(val => total += (parseFloat(val) || 0));
+            // Adiciona 0.5 se tem aberto
+            if(p.temAberto) total += 0.5;
+            return total;
+        },
+
         calculaFalta(p) {
-            if (!p.contagem && p.contagem !== 0 && !p.temAberto) return { qtd: 0 };
-            
-            // 1. Calcula Estoque Real na Unidade de COMPRA
+            const total = this.getContagemTotal(p);
+            if (total === 0 && !p.temAberto) return { qtd: 0 }; // Nada contado
+
             let estoqueReal = 0;
-            const contagemPura = parseFloat(p.contagem || 0);
-            
-            // Adiciona 0.5 se tiver item aberto
-            const contagemTotal = p.temAberto ? contagemPura + 0.5 : contagemPura;
+            if (p.tipoConversao === 'multiplicar') estoqueReal = total * (p.fator || 1);
+            else estoqueReal = total / (p.fator || 1);
 
-            if (p.tipoConversao === 'multiplicar') {
-                // Ex: Calabresa. Conto 3 Peças. Fator 0.5kg. Estoque = 1.5kg
-                estoqueReal = contagemTotal * (p.fator || 1);
-            } else {
-                // Ex: Presunto. Conto 10 Un. Fator 20 (Cx). Estoque = 0.5 Cx
-                // Padrão 'dividir'
-                estoqueReal = contagemTotal / (p.fator || 1);
-            }
-
-            // 2. Aplica Meta (+20% se feriado)
             let metaAjustada = parseFloat(p.meta);
             if (this.isSemanaFeriado) metaAjustada = metaAjustada * 1.2;
 
-            // 3. Define Compra
             const falta = metaAjustada - estoqueReal;
-            return { qtd: Math.max(0, Math.ceil(falta * 10) / 10) }; // Arredonda 1 casa decimal (ex: 2.5 Kg)
+            return { qtd: Math.max(0, Math.ceil(falta * 10) / 10) };
         },
 
-        // --- HISTÓRICO INTELIGENTE ---
-        analisarHistorico(p) {
-            // Procura o último pedido deste item nos últimos 5 dias
-            const cincoDiasAtras = new Date();
-            cincoDiasAtras.setDate(cincoDiasAtras.getDate() - 5);
-            
-            // Procura nos históricos recentes se o item estava lá
-            const pedidoRecente = this.historico.find(h => {
-                const dataH = new Date(h.data.split('/').reverse().join('-')); // Converte DD/MM/YYYY p/ Date
-                return dataH >= cincoDiasAtras && h.itens.includes(p.nome);
-            });
-
-            // Se pediu recentemente E agora está pedindo de novo (estoque baixo), alerta!
-            return !!pedidoRecente;
+        statusItem(p) { 
+            if(p.ignorar) return 'ignored'; 
+            // Se não tem nenhuma contagem em lugar nenhum
+            if(this.getContagemTotal(p) === 0 && !p.temAberto) return 'pending'; 
+            return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok'; 
         },
 
-        toggleAberto(p) { p.temAberto = !p.temAberto; this.salvarProdutoUnitario(p); },
-
-        // --- ZAP FORMATADO V49 ---
-        enviarZap(destId, itens, isSegunda) {
-            const dest = this.config.destinos.find(d => d.id == destId);
-            const tel = dest ? dest.telefone : '';
-            let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, pedido:";
-            let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : "";
+        // --- CRUD V50 ---
+        adicionarProduto() {
+            if(!this.novoProd.nome) return alert("Nome?");
+            if(this.novoProd.locaisSelecionados.length === 0) return alert("Selecione pelo menos 1 local!");
             
-            // CABEÇALHO LIMPO
-            let msg = `${titulo}${saudacao}\n\n*Pedido de hoje:*\n----------------\n`;
-            itens.forEach(i => { msg += i.texto + '\n'; });
+            const p = { 
+                id: this.gerarId(), 
+                ...this.novoProd,
+                locais: this.novoProd.locaisSelecionados, // Salva Array
+                contagem: {}, // Objeto vazio para contagens por local
+                ignorar: false, 
+                temAberto: false 
+            };
+            delete p.locaisSelecionados; // Limpa auxiliar
             
-            // HISTÓRICO
-            let txtH = (isSegunda ? "[2ª] " : "") + itens.map(i => i.texto.replace('- ','')).join(', ');
-            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: dest ? dest.nome : 'Geral', itens: txtH };
-            this.salvarHistoricoUnitario(h);
-            
-            window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
+            this.salvarProdutoUnitario(p);
+            alert("Salvo!"); 
+            this.novoProd.nome = '';
+            this.novoProd.locaisSelecionados = [];
         },
 
-        // --- IMPORTAR CONTATO ---
-        async importarContatoDoCelular() {
-            if ('contacts' in navigator && 'ContactsManager' in window) {
-                try {
-                    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
-                    if (contacts[0]) {
-                        this.novoDestino.nome = contacts[0].name[0];
-                        let tel = contacts[0].tel[0].replace(/\D/g,'');
-                        if(tel.length >= 10 && tel.length <= 11) tel = '55' + tel;
-                        this.novoDestino.telefone = tel;
-                    }
-                } catch (ex) { alert("Erro ao importar."); }
-            } else { alert("Função não suportada neste navegador."); }
+        // MIGRAR DADOS ANTIGOS (ESSENCIAL)
+        migrarProduto(p) {
+            let mudou = false;
+            // Migra local string para array
+            if (p.local && !p.locais) { p.locais = [p.local]; mudou = true; }
+            // Migra contagem número para objeto
+            if (typeof p.contagem !== 'object' && p.locais && p.locais.length > 0) {
+                const val = p.contagem;
+                p.contagem = {};
+                if(val !== '' && val !== undefined) p.contagem[p.locais[0]] = val;
+                mudou = true;
+            }
+            // Garante cores
+            if (!this.config.cores) { this.config.cores = { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' }; this.salvarConfig(); }
+            
+            return mudou ? p : null;
         },
 
-        // --- PADRÃO ---
+        // --- RESTO DO CÓDIGO (Igual V49, só helpers) ---
         gerarId() { return 'id_' + Math.random().toString(36).substr(2, 9); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); },
         verificarTermos() { if (!localStorage.getItem('artigiano_tos_accepted')) this.mostrandoTermos = true; },
         aceitarTermos() { localStorage.setItem('artigiano_tos_accepted', 'true'); this.mostrandoTermos = false; },
-        abrirAjuda() { this.tituloAjuda = "Ajuda"; this.textoAjuda = "Configure seus produtos com o Tipo de Conversão correto.\nUse o botão '+0.5' para itens abertos."; this.mostrandoAjuda = true; },
+        abrirAjuda() { this.tituloAjuda = "Ajuda V50"; this.textoAjuda = "Agora você pode contar o mesmo produto em vários locais (ex: Freezer e Geladeira). O sistema soma tudo automaticamente."; this.mostrandoAjuda = true; },
+        
+        async importarContatoDoCelular() { if ('contacts' in navigator) { try { const c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
 
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
@@ -145,7 +171,7 @@ const app = createApp({
                 }
                 const user = this.usuarios.find(u => u.user.toLowerCase() === li && u.pass === pi);
                 if (user && user.aprovado) this.logar(user);
-                else { this.msgAuth = "Acesso negado."; this.isError = true; this.loadingAuth = false; }
+                else { this.msgAuth = "Erro acesso."; this.isError = true; this.loadingAuth = false; }
             }, 800);
         },
         logar(user) { this.usuarioLogado = user; this.sessaoAtiva = true; localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false; },
@@ -158,15 +184,29 @@ const app = createApp({
         salvarUsuarioUnitario(u) { if(db) db.ref('system/users/' + u.id).set(u); },
         salvarProdutoUnitario(p) { if(db) db.ref('store/products/' + p.id).set(p); },
         salvarHistoricoUnitario(h) { if(db) db.ref('store/history/' + h.id).set(h); },
+        salvarConfig() { if(db) db.ref('system/config').set(this.config); },
+        
         adicionarUsuarioAdmin() { if (!this.novoUserAdmin.nome) return; const novo = { id: this.gerarId(), ...this.novoUserAdmin, aprovado: true, permissoes: { admin: false, hortifruti: true, geral: true, bebidas: true, limpeza: true } }; this.salvarUsuarioUnitario(novo); this.novoUserAdmin = { nome: '', user: '', pass: '', cargo: 'Pizzaiolo' }; alert("Criado!"); },
         removerUsuario(id) { if(confirm("Remover?")) db.ref('system/users/' + id).remove(); },
+        
         abrirModulo(m) { this.moduloAtivo = m; this.termoBusca = ''; },
         podeAcessar(perm) { return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
-        statusItem(p) { if(p.ignorar) return 'ignored'; if(p.contagem==='' && !p.temAberto) return 'pending'; return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok'; },
-        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem=''; this.salvarProdutoUnitario(p); },
-        adicionarProduto() { const p = { id: this.gerarId(), ...this.novoProd, contagem: '', ignorar: false, temAberto: false }; this.salvarProdutoUnitario(p); this.novoProd.nome = ''; },
+        toggleAberto(p) { p.temAberto = !p.temAberto; this.salvarProdutoUnitario(p); },
+        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem={}; this.salvarProdutoUnitario(p); },
         
-        salvarConfig() { if(db) db.ref('system/config').set(this.config); },
+        enviarZap(destId, itens, isSegunda) {
+            const dest = this.config.destinos.find(d => d.id == destId);
+            const tel = dest ? dest.telefone : '';
+            let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, pedido:";
+            let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : "";
+            let msg = `${titulo}${saudacao}\n\n*Pedido de hoje:*\n----------------\n`;
+            itens.forEach(i => { msg += i.texto + '\n'; });
+            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: dest ? dest.nome : 'Geral', itens: itens.map(i=>i.texto.replace('- ','')).join(', ') };
+            this.salvarHistoricoUnitario(h);
+            window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
+        },
+        analisarHistorico(p) { const d = new Date(); d.setDate(d.getDate()-5); const rec = this.historico.find(h => new Date(h.data.split('/').reverse().join('-')) >= d && h.itens.includes(p.nome)); return !!rec; },
+        apagarHistorico(id) { if(confirm("Apagar?")) db.ref('store/history/' + id).remove(); },
         adicionarDestino() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:'', msgPersonalizada:''}; } },
         removerDestino(idx) { this.config.destinos.splice(idx,1); this.salvarConfig(); },
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
@@ -178,10 +218,23 @@ const app = createApp({
         carregarDb() {
             if(db) {
                 db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); });
-                db.ref('store/products').on('value', s => { this.produtos = s.val() ? Object.values(s.val()) : []; });
+                db.ref('store/products').on('value', s => { 
+                    const raw = s.val() ? Object.values(s.val()) : []; 
+                    // AUTO MIGRAÇÃO V50
+                    this.produtos = raw.map(p => {
+                        const migrado = this.migrarProduto(p);
+                        if(migrado) this.salvarProdutoUnitario(migrado);
+                        return migrado || p;
+                    });
+                });
                 db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); });
                 db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1',data:'2026-12-10',nome:'Aniv. Londrina'},{id:'2',data:'2026-06-15',nome:'Padroeiro'},{id:'3',data:'2026-12-25',nome:'Natal'},{id:'4',data:'2026-01-01',nome:'Ano Novo'}]; l.forEach(f=>db.ref('system/feriados/'+f.id).set(f)); } });
-                db.ref('system/config').on('value', s => { this.config = s.val() || { destinos: [], rota: ['Geral'] }; if(!this.config.rota) this.config.rota=['Geral']; this.loadingInicial = false; });
+                db.ref('system/config').on('value', s => { 
+                    this.config = s.val() || { destinos: [], rota: ['Geral'] }; 
+                    if(!this.config.cores) this.config.cores = { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' };
+                    if(!this.config.rota) this.config.rota=['Geral']; 
+                    this.loadingInicial = false; 
+                });
             } else { this.loadingInicial = false; }
         },
         verificarSessao() { if(this.usuarioLogado) { const u = this.usuarios.find(x => x.id === this.usuarioLogado.id); if(u) { this.usuarioLogado = u; localStorage.setItem('artigiano_session', JSON.stringify(u)); } else { this.logout(); } } }

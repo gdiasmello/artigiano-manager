@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V49</title>
+    <title>Pizzeria Master V50</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=49">
+    <link rel="stylesheet" href="styles.css?v=50">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -18,16 +18,12 @@
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
 
     <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3>Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button class="btn-primary full" @click="mostrandoAjuda = false">OK</button></div></div></div>
-    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal"><div class="modal-window large"><div class="modal-top"><h3>Termos de Uso</h3></div><div class="modal-content terms-content"><p>Uso Profissional Artigiano.</p><div class="terms-text"><h4>RESPONSABILIDADE</h4><ul><li>Conferência é humana.</li></ul></div><button class="btn-primary full" @click="aceitarTermos">CONCORDO</button></div></div></div>
+    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal"><div class="modal-window large"><div class="modal-top"><h3>Termos</h3></div><div class="modal-content terms-content"><p>Uso Profissional.</p><button class="btn-primary full" @click="aceitarTermos">CONCORDO</button></div></div></div>
 
     <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial && !mostrandoTermos">
         <button class="theme-toggle" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
         <div class="auth-box animated-up">
-            <div class="brand">
-                <div class="logo-bg"><i class="fas fa-pizza-slice"></i></div>
-                <h1>Artigiano</h1>
-                <p>Gestão Profissional</p>
-            </div>
+            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V50</p></div>
             <div class="form-group">
                 <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
                 <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin"></div>
@@ -54,46 +50,49 @@
             <div v-if="isSemanaFeriado" class="holiday-banner animated-up"><i class="fas fa-calendar-check"></i> Semana Feriado (+20%)</div>
 
             <div v-if="!moduloAtivo" class="dashboard animated-fade">
-                <div class="dash-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')"><div class="icon-circle"><i class="fas fa-carrot"></i></div><span>Hortifruti</span></div>
-                <div class="dash-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')"><div class="icon-circle"><i class="fas fa-box-open"></i></div><span>Geral</span></div>
-                <div class="dash-card bebidas" @click="abrirModulo('bebidas')" v-if="podeAcessar('bebidas')"><div class="icon-circle"><i class="fas fa-wine-bottle"></i></div><span>Bebidas</span></div>
-                <div class="dash-card limpeza" @click="abrirModulo('limpeza')" v-if="podeAcessar('limpeza')"><div class="icon-circle"><i class="fas fa-broom"></i></div><span>Limpeza</span></div>
+                <div class="dash-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')">
+                    <div class="suggest-badge" v-if="sugestaoDia('hortifruti')">Hoje!</div>
+                    <div class="icon-circle"><i class="fas fa-carrot"></i></div><span>Hortifruti</span>
+                </div>
+                <div class="dash-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')">
+                    <div class="suggest-badge" v-if="sugestaoDia('geral')">Hoje!</div>
+                    <div class="icon-circle"><i class="fas fa-box-open"></i></div><span>Geral</span>
+                </div>
+                <div class="dash-card bebidas" @click="abrirModulo('bebidas')" v-if="podeAcessar('bebidas')">
+                    <div class="icon-circle"><i class="fas fa-wine-bottle"></i></div><span>Bebidas</span>
+                </div>
+                <div class="dash-card limpeza" @click="abrirModulo('limpeza')" v-if="podeAcessar('limpeza')">
+                    <div class="suggest-badge" v-if="sugestaoDia('limpeza')">Hoje!</div>
+                    <div class="icon-circle"><i class="fas fa-broom"></i></div><span>Limpeza</span>
+                </div>
                 <div class="dash-card history" @click="mostrandoHistorico = true"><div class="icon-circle"><i class="fas fa-clock-rotate-left"></i></div><span>Histórico</span></div>
             </div>
 
             <div v-else class="module-view animated-fade">
-                <div class="view-header">
-                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button><h2>{{ nomeModulo }}</h2>
-                </div>
+                <div class="view-header"><button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button><h2>{{ nomeModulo }}</h2></div>
                 <div class="search-wrap"><i class="fas fa-search"></i><input v-model="termoBusca" placeholder="Buscar item..."></div>
+                
                 <div class="products-container">
                     <div v-for="local in locaisDoModulo" :key="local">
                         <div v-if="produtosDoLocal(local).length > 0" class="local-label">{{ local }}</div>
-                        <div v-for="p in produtosDoLocal(local)" :key="p.id" class="product-card">
+                        <div v-for="p in produtosDoLocal(local)" :key="p.id + local" class="product-card" :style="{borderLeft: '5px solid ' + getCorCategoria(p.categoria)}">
                             <div class="p-info">
+                                <div class="cat-tag" :style="{background: getCorCategoria(p.categoria)}">{{ p.categoria }}</div>
                                 <strong>{{ p.nome }}</strong>
-                                <small>Meta: {{ p.meta }} {{ p.unC }} | Conta em: {{ p.unQ }}</small>
-                            </div>
-                            <div class="p-actions-row">
-                                <button class="btn-open" :class="{active: p.temAberto}" @click="toggleAberto(p)" title="Tem item aberto?">
-                                    <i class="fas fa-box-open"></i>
-                                    <span>{{ p.temAberto ? '+0.5' : 'Aberto?' }}</span>
-                                </button>
-                                
-                                <div class="input-wrapper">
-                                    <input type="number" v-model.number="p.contagem" :placeholder="p.unQ" class="input-qty" :disabled="p.ignorar" @change="salvarProdutoUnitario(p)">
-                                </div>
-                                
-                                <button class="btn-ignore" @click="toggleIgnorar(p)" :class="{active: p.ignorar}">
-                                    <i class="fas" :class="p.ignorar ? 'fa-eye-slash' : 'fa-eye'"></i>
-                                </button>
+                                <small>Meta Global: {{ p.meta }} {{ p.unC }}</small>
                             </div>
                             
-                            <div class="p-status" v-if="!p.ignorar && p.contagem !== ''">
-                                <span v-if="calculaFalta(p).qtd > 0" class="tag-buy">
-                                    COMPRAR {{ calculaFalta(p).qtd }} {{ p.unC }}
-                                    <i v-if="analisarHistorico(p)" class="fas fa-exclamation-triangle text-alert" title="Acabou rápido!"></i>
-                                </span>
+                            <div class="p-actions-row">
+                                <button class="btn-open" :class="{active: p.temAberto}" @click="toggleAberto(p)" title="Aberto?"><i class="fas fa-box-open"></i> <span>+0.5</span></button>
+                                <div class="input-wrapper">
+                                    <input type="number" v-model.number="p.contagem[local]" :placeholder="p.unQ + ' (' + local + ')'" class="input-qty" :disabled="p.ignorar" @change="salvarProdutoUnitario(p)">
+                                </div>
+                                <button class="btn-ignore" @click="toggleIgnorar(p)" :class="{active: p.ignorar}"><i class="fas" :class="p.ignorar ? 'fa-eye-slash' : 'fa-eye'"></i></button>
+                            </div>
+                            
+                            <div class="p-status" v-if="!p.ignorar">
+                                <small style="display:block; color:#999; margin-bottom:2px;">Total contado: {{ getContagemTotal(p) }} {{ p.unQ }}</small>
+                                <span v-if="calculaFalta(p).qtd > 0" class="tag-buy">COMPRAR {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
                                 <span v-else class="tag-ok">OK</span>
                             </div>
                         </div>
@@ -108,55 +107,56 @@
         <div class="modal-window">
             <div class="modal-top"><h3>Ajustes</h3><button @click="mostrandoConfig = false"><i class="fas fa-times"></i></button></div>
             <div class="modal-content">
+                
                 <div class="config-box" v-if="usuarioLogado.permissoes.admin">
-                    <h4>📦 Cadastro Inteligente</h4>
-                    <input v-model="novoProd.nome" placeholder="Nome do Produto (ex: Calabresa)" class="full-input">
+                    <h4>🎨 Cores das Categorias</h4>
+                    <div class="color-grid">
+                        <div v-for="(cor, cat) in config.cores" :key="cat" class="color-item">
+                            <input type="color" v-model="config.cores[cat]" @change="salvarConfig">
+                            <span>{{ cat }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-box" v-if="usuarioLogado.permissoes.admin">
+                    <h4>📦 Produto Multi-Local</h4>
+                    <input v-model="novoProd.nome" placeholder="Nome" class="full-input">
                     <div class="row">
-                        <select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral/Insumos</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select>
-                        <select v-model="novoProd.local"><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
+                        <select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select>
+                        <select v-model="novoProd.tipoConversao"><option value="dividir">Un -> Cx (Dividir)</option><option value="multiplicar">Peça -> Kg (Mult)</option></select>
                     </div>
                     
-                    <div class="conversion-box">
-                        <div class="row">
-                            <div style="flex:1">
-                                <label>Conto em:</label>
-                                <input v-model="novoProd.unQ" placeholder="Ex: Peça, Un">
-                            </div>
-                            <div style="flex:1">
-                                <label>Compro em:</label>
-                                <input v-model="novoProd.unC" placeholder="Ex: Kg, Cx">
-                            </div>
+                    <div class="multi-select-box">
+                        <p>Onde fica?</p>
+                        <div class="checkbox-grid">
+                            <label v-for="l in config.rota" :key="l">
+                                <input type="checkbox" :value="l" v-model="novoProd.locaisSelecionados"> {{ l }}
+                            </label>
                         </div>
-                        <div class="row">
-                            <div style="flex:1">
-                                <label>Lógica:</label>
-                                <select v-model="novoProd.tipoConversao">
-                                    <option value="dividir">Dividir (Un -> Cx)</option>
-                                    <option value="multiplicar">Multiplicar (Peça -> Kg)</option>
-                                </select>
-                            </div>
-                            <div style="flex:1">
-                                <label>Fator/Peso:</label>
-                                <input v-model.number="novoProd.fator" placeholder="Qtd ou Peso">
-                            </div>
-                        </div>
-                        <p class="hint" v-if="novoProd.tipoConversao === 'dividir'">Ex: Conto Unidades, Compro Caixa. Fator = 20 (Vem 20 na caixa).</p>
-                        <p class="hint" v-else>Ex: Conto Peças, Compro Kg. Fator = 0.5 (Peça pesa 500g).</p>
                     </div>
 
-                    <div class="row"><input v-model.number="novoProd.meta" placeholder="META DE ESTOQUE (Na unidade de COMPRA)"></div>
+                    <div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)"><input v-model="novoProd.unC" placeholder="Pede (Cx)"></div>
+                    <div class="row"><input v-model.number="novoProd.fator" placeholder="Fator"><input v-model.number="novoProd.meta" placeholder="Meta Total"></div>
                     <select v-model="novoProd.destinoId" class="full-input"><option value="" disabled>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
-                    <button class="btn-primary full" @click="adicionarProduto">Salvar Produto</button>
+                    <button class="btn-primary full" @click="adicionarProduto">Salvar</button>
                 </div>
 
                 <div class="config-box">
                     <h4>📞 Contatos & Saudação</h4>
-                    <button class="btn-secondary full" @click="importarContatoDoCelular" style="margin-bottom:10px; background:#3B82F6; color:white;"><i class="fas fa-address-book"></i> Importar da Agenda</button>
-                    <div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row"><span>{{ d.nome }}</span><i class="fas fa-trash text-red" @click="removerDestino(idx)"></i></div>
-                    <div class="row"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap"></div>
-                    <input v-model="novoDestino.msgPersonalizada" placeholder="Saudação (Ex: Bom dia, pedido de hoje:)" class="full-input">
+                    <button class="btn-secondary full" @click="importarContatoDoCelular" style="margin-bottom:10px; background:#3B82F6; color:white;"><i class="fas fa-address-book"></i> Importar Agenda</button>
+                    <div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row"><span><strong>{{ d.nome }}</strong></span><i class="fas fa-trash text-red" @click="removerDestino(idx)"></i></div>
+                    <div class="row" style="margin-top:10px;"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap"></div>
+                    <input v-model="novoDestino.msgPersonalizada" placeholder="Saudação" class="full-input">
                     <button class="btn-primary full" @click="adicionarDestino">Adicionar</button>
                 </div>
+                
+                <div class="config-box">
+                    <h4>📍 Rota (Locais)</h4>
+                    <div v-for="(l, idx) in config.rota" :key="idx" class="rota-row"><span>{{ l }}</span><i class="fas fa-trash text-red" @click="removerLocal(idx)"></i></div>
+                    <div class="add-row"><input v-model="novoLocal" placeholder="Novo Local"><button @click="adicionarLocal">+</button></div>
+                </div>
+
+                <div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="logout">Sair</button></div>
             </div>
         </div>
     </div>
@@ -167,6 +167,6 @@
 
 </div>
 
-<script src="script.js?v=49"></script>
+<script src="script.js?v=50"></script>
 </body>
 </html>
