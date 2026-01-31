@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano V28 Premium</title>
+    <title>Artigiano V29</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#F2F2F7">
@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=28">
+    <link rel="stylesheet" href="styles.css?v=29">
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -20,9 +20,37 @@
 </head>
 <body>
 
-<div id="app" v-cloak>
+<div id="crash-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:30px; text-align:center;">
+    <h2 style="color:#FF3B30; margin-top:50px;">Opa! O App travou.</h2>
+    <p style="color:#666; font-size:14px; margin-bottom:30px;">Isso acontece quando dados antigos conflitam com a nova versão.</p>
+    <p id="error-details" style="background:#eee; padding:10px; font-size:12px; font-family:monospace; color:red; margin-bottom:30px;"></p>
+    <button onclick="limparTudo()" style="background:#007AFF; color:white; border:none; padding:15px 30px; border-radius:12px; font-size:16px; font-weight:bold;">
+        CORRIGIR AGORA (RESET)
+    </button>
+</div>
 
-    <div class="login-screen" v-if="!usuarioLogado">
+<script>
+    // Função de Emergência
+    function limparTudo() {
+        localStorage.clear();
+        window.location.reload();
+    }
+    // Detector de Erros
+    window.onerror = function(msg, url, line) {
+        document.getElementById('crash-screen').style.display = 'block';
+        document.getElementById('error-details').innerText = msg + " (Linha " + line + ")";
+        document.getElementById('app').style.display = 'none';
+    };
+</script>
+
+<div id="app">
+
+    <div v-if="loading" style="height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+        <i class="fas fa-pizza-slice fa-spin fa-2x" style="color:#FF3B30;"></i>
+        <p style="margin-top:10px; color:#999;">Carregando Artigiano...</p>
+    </div>
+
+    <div class="login-screen" v-if="!loading && !usuarioLogado">
         <div class="login-container animated-up">
             <div class="login-header">
                 <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
@@ -37,9 +65,8 @@
                 <div class="pin-dot" :class="{filled: pinDigitado.length >= 4}"></div>
             </div>
 
-            <div class="error-msg-container">
-                <p v-if="erroLogin" class="error-text shake">{{ erroLogin }}</p>
-            </div>
+            <p class="error-text" v-if="erroLogin">{{ erroLogin }}</p>
+            <p v-else style="height:20px;"></p>
 
             <div class="numpad-grid">
                 <button v-for="n in 9" :key="n" @click="addPin(n)" class="num-btn">{{ n }}</button>
@@ -49,18 +76,18 @@
             </div>
 
             <div v-if="semUsuarios" class="setup-box animated-fade">
-                <h3><i class="fas fa-crown text-primary"></i> Começar Sistema</h3>
-                <p>Crie o acesso do administrador:</p>
+                <h3><i class="fas fa-crown text-primary"></i> Primeiro Acesso</h3>
+                <p>Crie o Admin:</p>
                 <input v-model="novoUsuarioNome" placeholder="Seu Nome" class="ios-input" style="text-align:center; margin-bottom:10px;">
                 <div class="pin-input-wrapper">
-                    <input v-model="novoUsuarioPin" type="tel" placeholder="PIN (4 dígitos)" class="ios-input pin-field" maxlength="4">
+                    <input v-model="novoUsuarioPin" type="tel" placeholder="PIN (4 núm)" class="ios-input pin-field" maxlength="4">
                 </div>
-                <button class="ios-btn-primary" @click="criarPrimeiroAdmin">Criar Acesso Admin</button>
+                <button class="ios-btn-primary" @click="criarPrimeiroAdmin">Criar Admin</button>
             </div>
         </div>
     </div>
 
-    <div v-else class="app-wrapper animated-fade">
+    <div v-if="!loading && usuarioLogado" class="app-wrapper animated-fade">
         
         <div class="ios-nav-bar">
             <div class="nav-left">
@@ -78,56 +105,39 @@
         </div>
 
         <div class="app-content">
-            
             <div v-if="!modoSelecionado" class="home-menu animated-up">
                 <div class="user-greeting-card">
                     <div class="greeting-text">
                         <h1>Olá, {{ usuarioLogado.nome.split(' ')[0] }}!</h1>
                         <p>{{ dataHoje }}</p>
                     </div>
-                    <div class="user-avatar">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
+                    <div class="user-avatar"><i class="fas fa-user-circle"></i></div>
                 </div>
 
                 <div class="menu-grid-buttons">
                     <button class="menu-btn btn-sacolao" @click="selecionarModo('sacolao')">
-                        <div class="btn-icon"><i class="fas fa-carrot"></i></div>
-                        <div class="btn-label">Sacolão & Horti</div>
+                        <div class="btn-icon"><i class="fas fa-carrot"></i></div><div class="btn-label">Sacolão</div>
                     </button>
                     <button class="menu-btn btn-geral" @click="selecionarModo('geral')">
-                        <div class="btn-icon"><i class="fas fa-boxes-stacked"></i></div>
-                        <div class="btn-label">Geral & Insumos</div>
+                        <div class="btn-icon"><i class="fas fa-boxes-stacked"></i></div><div class="btn-label">Geral</div>
                     </button>
                     <button class="menu-btn btn-todos" @click="selecionarModo('todos')">
-                        <div class="btn-icon"><i class="fas fa-clipboard-list"></i></div>
-                        <div class="btn-label">Ver Tudo</div>
+                        <div class="btn-icon"><i class="fas fa-clipboard-list"></i></div><div class="btn-label">Ver Tudo</div>
                     </button>
                 </div>
 
                 <div class="secondary-actions">
-                    <button class="sec-btn" @click="toggleHistorico">
-                        <i class="fas fa-clock-rotate-left"></i> Histórico
-                    </button>
-                    <button class="sec-btn" @click="toggleConfig">
-                        <i class="fas fa-sliders"></i> Ajustes
-                    </button>
+                    <button class="sec-btn" @click="toggleHistorico"><i class="fas fa-clock-rotate-left"></i> Histórico</button>
+                    <button class="sec-btn" @click="toggleConfig"><i class="fas fa-sliders"></i> Ajustes</button>
                 </div>
             </div>
 
             <div v-else class="counting-list animated-fade">
-                <div v-if="lembreteDoDia" class="notice-banner orange">
-                    <i class="fas fa-bell"></i> {{ lembreteDoDia.texto }}
-                </div>
-                <div v-if="feriadoAtivo" class="notice-banner purple">
-                    <i class="fas fa-calendar-star"></i> Feriado: {{ feriadoAtivo.nome }} (+50%)
-                </div>
+                <div v-if="lembreteDoDia" class="notice-banner orange"><i class="fas fa-bell"></i> {{ lembreteDoDia.texto }}</div>
+                <div v-if="feriadoAtivo" class="notice-banner purple"><i class="fas fa-calendar-star"></i> {{ feriadoAtivo.nome }} (+50%)</div>
 
                 <div class="search-container sticky-search">
-                    <div class="ios-search-bar">
-                        <i class="fas fa-search placeholder-icon"></i>
-                        <input v-model="termoBusca" placeholder="Buscar produto..." type="search">
-                    </div>
+                    <div class="ios-search-bar"><i class="fas fa-search placeholder-icon"></i><input v-model="termoBusca" placeholder="Buscar..." type="search"></div>
                 </div>
 
                 <div class="list-content">
@@ -138,59 +148,39 @@
                                 <div class="prod-main">
                                     <div class="prod-info">
                                         <div class="prod-title">{{ p.nome }} <i class="fas fa-pen edit-icon" @click="editarProduto(p)"></i></div>
-                                        <div class="prod-details">Meta: {{ p.meta }} {{ p.unC }} | Contar em: {{ p.unQ }}</div>
+                                        <div class="prod-details">Meta: {{ p.meta }} {{ p.unC }}</div>
                                     </div>
                                     <div v-if="p.destinoId" class="dest-badge">{{ getNomeDestino(p.destinoId) }}</div>
                                 </div>
-                                
                                 <div class="prod-controls">
                                     <button class="toggle-btn" @click="toggleIgnorar(p)" :class="{ignored: p.ignorar}">
-                                        <i class="fas fa-ban" v-if="p.ignorar"></i>
-                                        <i class="fas fa-check" v-else></i>
+                                        <i class="fas fa-ban" v-if="p.ignorar"></i><i class="fas fa-check" v-else></i>
                                     </button>
                                     <input type="tel" v-model.number="p.contagem" :placeholder="p.unQ" class="count-input" :disabled="p.ignorar" @input="sincronizarAlteracao" inputmode="decimal">
                                 </div>
-
                                 <div class="prod-feedback" v-if="!p.ignorar && p.contagem !== ''">
-                                    <span v-if="calculaFalta(p).qtd > 0" class="status-pedir">
-                                        <i class="fas fa-cart-plus"></i> PEDIR: {{ calculaFalta(p).qtd }} {{ p.unC }}
-                                    </span>
-                                    <span v-else class="status-ok">
-                                        <i class="fas fa-check-circle"></i> Estoque OK
-                                    </span>
+                                    <span v-if="calculaFalta(p).qtd > 0" class="status-pedir">PEDIR: {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
+                                    <span v-else class="status-ok">OK</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <transition name="pop">
-                    <button class="fab-finish" @click="abrirPreview" v-if="produtosFiltrados.length > 0">
-                        <i class="fas fa-paper-plane"></i> Finalizar Contagem
-                    </button>
-                </transition>
+                <button class="fab-finish" @click="abrirPreview" v-if="produtosFiltrados.length > 0"><i class="fas fa-paper-plane"></i> Finalizar</button>
             </div>
         </div>
     </div>
 
     <div class="modal-backdrop animated-fade" v-if="mostrandoConfig" @click.self="mostrandoConfig = false">
         <div class="modal-sheet animated-up">
-            <div class="modal-header-bar">
-                <h3>Ajustes</h3>
-                <button class="close-modal-btn" @click="mostrandoConfig = false">Concluir</button>
-            </div>
+            <div class="modal-header-bar"><h3>Ajustes</h3><button class="close-modal-btn" @click="mostrandoConfig = false">Concluir</button></div>
             <div class="modal-scroll-content">
                 
                 <div class="settings-section">
-                    <div class="section-header">
-                        <i class="fas fa-users"></i> Equipe & Acesso
-                    </div>
+                    <div class="section-header"><i class="fas fa-users"></i> Equipe</div>
                     <div v-if="usuarioLogado.admin" class="section-body list-view">
                         <div v-for="(u, idx) in usuarios" :key="idx" class="list-row">
-                            <div class="row-main">
-                                <span class="row-title">{{ u.nome }}</span>
-                                <span v-if="u.admin" class="admin-tag"><i class="fas fa-crown"></i> Admin</span>
-                            </div>
+                            <div class="row-main">{{ u.nome }} <span v-if="u.admin" class="admin-tag">Admin</span></div>
                             <button v-if="!u.admin" class="delete-btn" @click="removerUsuario(idx)"><i class="fas fa-trash-alt"></i></button>
                         </div>
                         <div class="add-form-inline">
@@ -199,140 +189,60 @@
                             <button class="add-btn-inline" @click="adicionarUsuario"><i class="fas fa-plus"></i></button>
                         </div>
                     </div>
-                    <div v-else class="section-body restricted">
-                        <i class="fas fa-lock"></i> Área restrita ao administrador.
-                    </div>
+                    <div v-else class="section-body restricted">Área restrita ao administrador.</div>
                 </div>
 
                 <div class="settings-section">
-                     <div class="section-header">
-                        <i class="fas fa-boxes"></i> Gerenciar Produtos Existentes
-                    </div>
-                    <div class="section-body list-view scrollable-list" style="max-height: 200px; overflow-y:auto;">
-                        <div v-for="(p, idx) in produtos" :key="p.id" class="list-row dense">
-                            <div class="row-main truncated">{{ p.nome }} <small>({{p.setor}})</small></div>
-                             <button class="delete-btn small" @click="removerProduto(idx)"><i class="fas fa-times"></i></button>
-                        </div>
-                        <p v-if="produtos.length === 0" style="color:var(--text-sec); font-size:0.8rem; text-align:center;">Nenhum produto cadastrado.</p>
-                    </div>
-                </div>
-
-
-                <div class="settings-section">
-                    <div class="section-header">
-                        <i class="fas fa-plus-circle"></i> Cadastrar Novo Produto
-                    </div>
+                    <div class="section-header"><i class="fas fa-plus-circle"></i> Novo Produto</div>
                     <div class="section-body form-view">
-                        <input v-model="novoProd.nome" placeholder="Nome do Produto (ex: Queijo Muçarela)" class="ios-input">
+                        <input v-model="novoProd.nome" placeholder="Nome" class="ios-input">
                         <div class="form-row">
-                            <select v-model="novoProd.setor" class="ios-input"><option value="" disabled>Selecione o Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
-                        </div>
-                        <div class="form-row">
-                            <select v-model="novoProd.destinoId" class="ios-input"><option value="" disabled>Selecione o Destino (Fornecedor)</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
+                            <select v-model="novoProd.setor" class="ios-input"><option value="" disabled>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
+                            <select v-model="novoProd.destinoId" class="ios-input"><option value="" disabled>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
                         </div>
                         <div class="form-row cols-2">
-                            <input v-model="novoProd.unQ" placeholder="Un. Contagem (ex: UN)" class="ios-input">
-                            <input v-model="novoProd.unC" placeholder="Un. Pedido (ex: CX)" class="ios-input">
+                            <input v-model="novoProd.unQ" placeholder="Conta (Un)" class="ios-input">
+                            <input v-model="novoProd.unC" placeholder="Pede (Cx)" class="ios-input">
                         </div>
                         <div class="form-row cols-2">
-                            <input v-model.number="novoProd.fator" placeholder="Qtd na Caixa" type="number" class="ios-input">
-                            <input v-model.number="novoProd.meta" placeholder="Meta Mínima" type="number" class="ios-input">
+                            <input v-model.number="novoProd.fator" placeholder="Qtd Cx" type="number" class="ios-input">
+                            <input v-model.number="novoProd.meta" placeholder="Meta" type="number" class="ios-input">
                         </div>
-                        <button class="ios-btn-primary save-btn" @click="adicionarProduto">
-                            <i class="fas fa-save"></i> Salvar Produto
-                        </button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="section-header"><i class="fas fa-truck"></i> Destinos (Fornecedores)</div>
-                    <div class="section-body list-view">
-                        <div v-for="(d, idx) in config.destinos" :key="d.id" class="list-row">
-                            <div class="row-main">{{ d.nome }} <small v-if="d.telefone">({{ d.telefone }})</small></div>
-                            <button class="delete-btn" @click="removerDestino(idx)"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                        <div class="add-form-inline">
-                            <input v-model="novoDestino.nome" placeholder="Nome" class="inline-input grow">
-                            <input v-model="novoDestino.telefone" type="tel" placeholder="WhatsApp" class="inline-input grow">
-                            <button class="add-btn-inline" @click="adicionarDestino"><i class="fas fa-plus"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-                 <div class="settings-section">
-                    <div class="section-header"><i class="fas fa-bell"></i> Lembretes Semanais</div>
-                    <div class="section-body list-view">
-                        <div v-for="(l, idx) in config.lembretes" :key="idx" class="list-row">
-                            <div class="row-main"><span class="day-tag">{{ nomeDia(l.dia) }}</span> {{ l.texto }}</div>
-                            <button class="delete-btn" @click="removerLembrete(idx)"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                        <div class="add-form-inline">
-                            <select v-model="novoLembrete.dia" class="inline-input short">
-                                <option value="1">Seg</option><option value="2">Ter</option><option value="3">Qua</option>
-                                <option value="4">Qui</option><option value="5">Sex</option><option value="6">Sáb</option><option value="0">Dom</option>
-                            </select>
-                            <input v-model="novoLembrete.texto" placeholder="Ex: Conferir Gás" class="inline-input grow">
-                            <button class="add-btn-inline" @click="adicionarLembrete"><i class="fas fa-plus"></i></button>
-                        </div>
+                        <button class="ios-btn-primary save-btn" @click="adicionarProduto">Salvar</button>
                     </div>
                 </div>
 
                 <div class="settings-section danger-zone">
-                    <button class="ios-btn-danger" @click="resetarTudo">
-                        <i class="fas fa-bomb"></i> Resetar Sistema Inteiro
-                    </button>
-                    <p class="danger-text">Apaga todos os produtos, usuários e histórico.</p>
+                    <button class="ios-btn-danger" @click="resetarTudo"><i class="fas fa-bomb"></i> Resetar App (Correção de Erros)</button>
                 </div>
-                
-                <div style="height: 50px;"></div> </div>
+                <div style="height:50px;"></div>
+            </div>
         </div>
     </div>
 
     <div class="modal-backdrop animated-fade" v-if="mostrandoPreview" @click.self="mostrandoPreview = false">
         <div class="modal-sheet animated-up">
-            <div class="modal-header-bar"><h3>Enviar Pedidos</h3><button class="close-modal-btn" @click="mostrandoPreview = false">Fechar</button></div>
+            <div class="modal-header-bar"><h3>Enviar</h3><button class="close-modal-btn" @click="mostrandoPreview = false">Fechar</button></div>
             <div class="modal-scroll-content">
-                <div v-if="Object.keys(pedidosPorDestino).length === 0" class="empty-state-modal">
-                    <i class="fas fa-check-double"></i><p>Tudo em ordem! Nada para pedir hoje.</p>
-                </div>
                 <div v-for="(itens, destinoId) in pedidosPorDestino" :key="destinoId" class="preview-card">
-                    <div class="preview-header">
-                        <span class="supplier-name"><i class="fas fa-building"></i> {{ getNomeDestino(destinoId) }}</span>
-                        <span class="item-count-badge">{{ itens.length }} itens</span>
-                    </div>
+                    <div class="preview-header"><span class="supplier-name">{{ getNomeDestino(destinoId) }}</span><span class="item-count-badge">{{ itens.length }}</span></div>
                     <ul class="preview-list"><li v-for="item in itens">{{ item.texto }}</li></ul>
-                    <button class="whatsapp-btn" @click="enviarWhatsApp(destinoId, itens)">
-                        <i class="fab fa-whatsapp"></i> Enviar Pedido
-                    </button>
+                    <button class="whatsapp-btn" @click="enviarWhatsApp(destinoId, itens)"><i class="fab fa-whatsapp"></i> Enviar</button>
                 </div>
-                <div class="obs-container" v-if="Object.keys(pedidosPorDestino).length > 0">
-                    <label>Observação Geral para os pedidos:</label>
-                    <textarea v-model="observacaoExtra" class="ios-textarea" placeholder="Ex: Entregar antes das 10h..."></textarea>
-                </div>
+                <div class="obs-container"><label>Obs Geral</label><textarea v-model="observacaoExtra" class="ios-textarea"></textarea></div>
             </div>
         </div>
     </div>
 
     <div class="modal-backdrop animated-fade" v-if="mostrandoHistorico" @click.self="mostrandoHistorico = false">
-        <div class="modal-sheet animated-up style-history">
-            <div class="modal-header-bar"><h3>Histórico de Pedidos</h3><button class="close-modal-btn" @click="mostrandoHistorico = false">Fechar</button></div>
+        <div class="modal-sheet animated-up">
+            <div class="modal-header-bar"><h3>Histórico</h3><button class="close-modal-btn" @click="mostrandoHistorico = false">Fechar</button></div>
             <div class="modal-scroll-content">
-                <div v-if="historico.length === 0" class="empty-state-modal">
-                    <i class="fas fa-history"></i><p>Nenhum pedido recente.</p>
-                </div>
                 <div v-for="(h, index) in historico" :key="index" class="history-card">
-                    <div class="hist-header">
-                        <div class="hist-meta">
-                            <span class="hist-date"><i class="far fa-calendar-alt"></i> {{ h.data }}</span>
-                            <span class="hist-time"><i class="far fa-clock"></i> {{ h.hora }}</span>
-                        </div>
-                        <span class="hist-user"><i class="fas fa-user"></i> {{ h.usuario }}</span>
-                    </div>
-                    <div class="hist-dest"><i class="fas fa-truck-fast"></i> Para: {{ h.destino }}</div>
+                    <div class="hist-header"><div class="hist-meta"><span class="hist-date">{{ h.data }}</span> <span class="hist-time">{{ h.hora }}</span></div><span class="hist-user">{{ h.usuario }}</span></div>
+                    <div class="hist-dest">Para: {{ h.destino }}</div>
                     <div class="hist-body">{{ h.detalhes }}</div>
-                    <button class="delete-hist-btn" @click="apagarHistorico(index)" v-if="usuarioLogado.admin">
-                        <i class="fas fa-trash"></i> Apagar Registro
-                    </button>
+                    <button class="delete-hist-btn" @click="apagarHistorico(index)" v-if="usuarioLogado.admin"><i class="fas fa-trash"></i> Apagar</button>
                 </div>
             </div>
         </div>
@@ -340,6 +250,6 @@
 
 </div>
 
-<script src="script.js?v=28"></script>
+<script src="script.js?v=29"></script>
 </body>
 </html>
