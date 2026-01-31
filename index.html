@@ -2,13 +2,14 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano V30</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Artigiano ERP</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#F2F2F7">
+    <meta name="theme-color" content="#B22222">
     <meta name="apple-mobile-web-app-capable" content="yes">
     
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css?v=30">
 
@@ -19,243 +20,251 @@
 </head>
 <body>
 
-<div id="crash-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:30px; text-align:center; flex-direction:column; justify-content:center;">
-    <h2 style="color:#FF3B30;">Ocorreu um erro 😕</h2>
-    <p id="error-details" style="color:#666; font-family:monospace; margin:20px 0; font-size:12px;"></p>
-    <button onclick="localStorage.clear(); window.location.reload();" style="padding:15px 30px; background:#007AFF; color:white; border:none; border-radius:12px; font-weight:bold;">
-        CORRIGIR AGORA (RESET)
-    </button>
-</div>
-
-<script>
-    window.onerror = function(msg, url, line) {
-        document.getElementById('crash-screen').style.display = 'flex';
-        document.getElementById('error-details').innerText = msg + " (Linha " + line + ")";
-        if(document.getElementById('app')) document.getElementById('app').style.display = 'none';
-    };
-</script>
-
 <div id="app" v-cloak>
 
-    <div v-if="loading" class="loading-screen">
-        <i class="fas fa-pizza-slice fa-spin fa-3x" style="color:#FF3B30;"></i>
-    </div>
-
-    <div class="login-screen" v-if="!loading && !usuarioLogado">
-        <div class="login-container animated-up">
-            <div class="login-header">
-                <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
-                <h2>Artigiano</h2>
-                <p>Controle de Estoque</p>
+    <div class="auth-screen" v-if="!sessaoAtiva">
+        <div class="auth-card">
+            <div class="brand-header">
+                <i class="fas fa-pizza-slice logo-icon"></i>
+                <h1>Artigiano</h1>
+                <p>Gestão de Pizzaria</p>
             </div>
 
-            <div class="pin-feedback">
-                <div class="pin-dot" :class="{filled: pinDigitado.length >= 1}"></div>
-                <div class="pin-dot" :class="{filled: pinDigitado.length >= 2}"></div>
-                <div class="pin-dot" :class="{filled: pinDigitado.length >= 3}"></div>
-                <div class="pin-dot" :class="{filled: pinDigitado.length >= 4}"></div>
+            <div v-if="authMode === 'login'" class="auth-form animated-fade">
+                <input v-model="loginUser" placeholder="Usuário" class="italian-input">
+                <input v-model="loginPass" type="password" placeholder="Senha" class="italian-input">
+                <button class="btn-italian-primary" @click="fazerLogin">Entrar</button>
+                
+                <div class="auth-links">
+                    <a @click="authMode = 'register'">Criar nova conta</a>
+                    <span class="divider">|</span>
+                    <a @click="alert('Peça ao Admin para resetar sua senha.')">Esqueci a senha</a>
+                </div>
             </div>
 
-            <p class="error-text" v-if="erroLogin">{{ erroLogin }}</p>
-            <p v-else style="height:24px;"></p>
-
-            <div class="numpad-grid">
-                <button v-for="n in 9" :key="n" @click="addPin(n)" class="num-btn">{{ n }}</button>
-                <div class="empty-btn"></div>
-                <button @click="addPin(0)" class="num-btn">0</button>
-                <button @click="limparPin" class="backspace-btn"><i class="fas fa-backspace"></i></button>
+            <div v-if="authMode === 'register'" class="auth-form animated-fade">
+                <h3>Ficha de Cadastro</h3>
+                <input v-model="novoCadastro.nome" placeholder="Nome Completo" class="italian-input">
+                <div class="row">
+                    <input v-model="novoCadastro.nascimento" type="date" class="italian-input" title="Data de Nascimento">
+                    <select v-model="novoCadastro.cargo" class="italian-input">
+                        <option value="" disabled selected>Cargo</option>
+                        <option value="Pizzaiolo">Pizzaiolo</option>
+                        <option value="Gerente">Gerente</option>
+                        <option value="Atendente">Atendente</option>
+                    </select>
+                </div>
+                <input v-model="novoCadastro.email" type="email" placeholder="E-mail" class="italian-input">
+                <hr class="separator">
+                <input v-model="novoCadastro.user" placeholder="Criar Usuário de Acesso" class="italian-input">
+                <input v-model="novoCadastro.pass" type="password" placeholder="Criar Senha" class="italian-input">
+                
+                <button class="btn-italian-primary" @click="solicitarCadastro">Enviar Ficha</button>
+                <a @click="authMode = 'login'" class="back-link">Voltar para Login</a>
             </div>
 
-            <div v-if="semUsuarios" class="setup-box animated-fade">
-                <h3><i class="fas fa-crown text-warning"></i> Criar Admin</h3>
-                <p>Digite seu nome e crie um PIN:</p>
-                <input v-model="novoUsuarioNome" placeholder="Seu Nome" class="ios-input center-text">
-                <input v-model="novoUsuarioPin" type="tel" placeholder="Novo PIN (4 dig)" class="ios-input center-text" maxlength="4">
-                <button class="ios-btn-primary" @click="criarPrimeiroAdmin">Criar Acesso</button>
-            </div>
+            <p v-if="msgAuth" class="auth-msg" :class="{error: isError}">{{ msgAuth }}</p>
         </div>
     </div>
 
-    <div v-if="!loading && usuarioLogado" class="app-wrapper animated-fade">
+    <div v-else class="main-layout">
         
-        <div class="ios-nav-bar">
-            <div class="nav-left">
-                <button v-if="modoSelecionado" @click="modoSelecionado = null" class="nav-btn back-btn">
-                    <i class="fas fa-chevron-left"></i> Início
+        <header class="top-bar">
+            <div class="user-info" @click="mostrandoConfig = true">
+                <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
+                <div class="user-details">
+                    <span class="name">{{ usuarioLogado.nome }}</span>
+                    <span class="role">{{ usuarioLogado.cargo }}</span>
+                </div>
+            </div>
+            <div class="actions">
+                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="icon-btn" title="Painel Admin">
+                    <i class="fas fa-users-cog"></i>
+                    <span class="badge" v-if="pendentesCount > 0">{{ pendentesCount }}</span>
                 </button>
+                <button @click="logout" class="icon-btn"><i class="fas fa-sign-out-alt"></i></button>
             </div>
-            <div class="nav-title">
-                <span v-if="!modoSelecionado">Início</span>
-                <span v-else>{{ modoSelecionado === 'sacolao' ? '🥬 Sacolão' : '📦 Geral' }}</span>
-            </div>
-            <div class="nav-right">
-                <button @click="logout" class="nav-btn logout-btn"><i class="fas fa-power-off"></i></button>
-            </div>
-        </div>
+        </header>
 
-        <div class="app-content">
-            <div v-if="!modoSelecionado" class="home-menu animated-up">
-                <div class="user-greeting-card">
-                    <div class="greeting-text">
-                        <h1>Olá, {{ usuarioLogado.nome.split(' ')[0] }}!</h1>
-                        <p>{{ dataHoje }}</p>
-                    </div>
-                    <div class="user-avatar"><i class="fas fa-user-circle"></i></div>
+        <main class="content-area">
+            
+            <div v-if="!moduloAtivo" class="dashboard-grid">
+                <div class="dashboard-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')">
+                    <i class="fas fa-carrot"></i>
+                    <span>Hortifruti</span>
                 </div>
-
-                <div class="menu-grid-buttons">
-                    <button class="menu-btn btn-sacolao" @click="selecionarModo('sacolao')">
-                        <div class="btn-icon"><i class="fas fa-carrot"></i></div>
-                        <div class="btn-label">Sacolão</div>
-                    </button>
-                    <button class="menu-btn btn-geral" @click="selecionarModo('geral')">
-                        <div class="btn-icon"><i class="fas fa-box-open"></i></div>
-                        <div class="btn-label">Geral</div>
-                    </button>
-                    <button class="menu-btn btn-todos" @click="selecionarModo('todos')">
-                        <div class="btn-icon"><i class="fas fa-clipboard-list"></i></div>
-                        <div class="btn-label">Ver Tudo</div>
-                    </button>
+                <div class="dashboard-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')">
+                    <i class="fas fa-boxes"></i>
+                    <span>Geral & Insumos</span>
                 </div>
-
-                <div class="secondary-actions">
-                    <button class="sec-btn" @click="toggleHistorico"><i class="fas fa-clock-rotate-left"></i> Histórico</button>
-                    <button class="sec-btn" @click="toggleConfig"><i class="fas fa-sliders"></i> Ajustes</button>
+                <div class="dashboard-card bebidas" @click="abrirModulo('bebidas')" v-if="podeAcessar('bebidas')">
+                    <i class="fas fa-wine-bottle"></i>
+                    <span>Bebidas</span>
+                </div>
+                <div class="dashboard-card limpeza" @click="abrirModulo('limpeza')" v-if="podeAcessar('limpeza')">
+                    <i class="fas fa-broom"></i>
+                    <span>Limpeza</span>
                 </div>
             </div>
 
-            <div v-else class="counting-list animated-fade">
-                <div v-if="lembreteDoDia" class="notice-banner orange"><i class="fas fa-bell"></i> {{ lembreteDoDia.texto }}</div>
-                <div v-if="feriadoAtivo" class="notice-banner purple"><i class="fas fa-calendar-star"></i> {{ feriadoAtivo.nome }} (+50%)</div>
-
-                <div class="search-container sticky-search">
-                    <div class="ios-search-bar">
-                        <i class="fas fa-search placeholder-icon"></i>
-                        <input v-model="termoBusca" placeholder="Buscar..." type="search">
-                    </div>
+            <div v-else class="active-module">
+                <div class="module-header">
+                    <button @click="moduloAtivo = null" class="back-btn"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <h2>{{ nomeModulo }}</h2>
                 </div>
 
-                <div class="list-content">
-                    <div v-for="local in rotaExibicao" :key="local" class="location-group">
-                        <div v-if="produtosDoLocal(local).length > 0" class="group-header">{{ local }}</div>
-                        <div class="group-items">
-                            <div v-for="p in produtosDoLocal(local)" :key="p.id" class="product-item" :class="{checked: calculaFalta(p).qtd <= 0 && !p.ignorar}">
-                                <div class="prod-main">
-                                    <div class="prod-info">
-                                        <div class="prod-title">{{ p.nome }} <i class="fas fa-pen edit-icon" @click="editarProduto(p)"></i></div>
-                                        <div class="prod-details">Meta: {{ p.meta }} {{ p.unC }}</div>
-                                    </div>
-                                    <div v-if="p.destinoId" class="dest-badge">{{ getNomeDestino(p.destinoId) }}</div>
-                                </div>
-                                <div class="prod-controls">
-                                    <button class="toggle-btn" @click="toggleIgnorar(p)" :class="{ignored: p.ignorar}">
-                                        <i class="fas fa-ban" v-if="p.ignorar"></i><i class="fas fa-check" v-else></i>
-                                    </button>
-                                    <input type="tel" v-model.number="p.contagem" :placeholder="p.unQ" class="count-input" :disabled="p.ignorar" @input="sincronizarAlteracao" inputmode="decimal">
-                                </div>
-                                <div class="prod-feedback" v-if="!p.ignorar && p.contagem !== ''">
-                                    <span v-if="calculaFalta(p).qtd > 0" class="status-pedir">PEDIR: {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
-                                    <span v-else class="status-ok">OK</span>
-                                </div>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input v-model="termoBusca" placeholder="Buscar produto...">
+                </div>
+
+                <div class="product-list">
+                    <div v-if="produtosFiltrados.length === 0" class="empty-state">Nenhum item neste setor.</div>
+                    
+                    <div v-for="local in locaisDoModulo" :key="local">
+                        <div v-if="produtosDoLocal(local).length > 0" class="location-divider">{{ local }}</div>
+                        
+                        <div v-for="p in produtosDoLocal(local)" :key="p.id" class="product-row" :class="{ok: statusItem(p) === 'ok', buy: statusItem(p) === 'buy'}">
+                            <div class="prod-info">
+                                <strong>{{ p.nome }}</strong>
+                                <small>Meta: {{ p.meta }} {{ p.unC }} (Contar em {{ p.unQ }})</small>
+                            </div>
+                            <div class="prod-action">
+                                <button class="ignore-btn" @click="toggleIgnorar(p)" :class="{ignored: p.ignorar}">
+                                    <i class="fas fa-ban" v-if="p.ignorar"></i>
+                                    <i class="fas fa-check" v-else></i>
+                                </button>
+                                <input type="number" v-model.number="p.contagem" :placeholder="p.unQ" class="qty-input" :disabled="p.ignorar" @input="salvarDb">
+                            </div>
+                            <div class="prod-status" v-if="!p.ignorar && p.contagem !== ''">
+                                <span v-if="statusItem(p) === 'buy'">PEDIR {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
+                                <span v-else>OK</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <button class="fab-finish" @click="abrirPreview" v-if="produtosFiltrados.length > 0">
-                    <i class="fas fa-paper-plane"></i> Finalizar
+
+                <button class="fab-main" @click="mostrandoPreview = true" v-if="produtosFiltrados.length > 0">
+                    <i class="fas fa-paper-plane"></i> Finalizar Pedido
                 </button>
             </div>
-        </div>
+
+        </main>
     </div>
 
-    <div class="modal-backdrop animated-fade" v-if="mostrandoConfig" @click.self="mostrandoConfig = false">
-        <div class="modal-sheet animated-up">
-            <div class="modal-header-bar"><h3>Ajustes</h3><button class="close-modal-btn" @click="mostrandoConfig = false">Concluir</button></div>
-            <div class="modal-scroll-content">
+    <div class="modal-overlay" v-if="mostrandoAdmin">
+        <div class="modal-card large">
+            <div class="modal-header">
+                <h3>Gestão de Equipe</h3>
+                <button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
                 
-                <div class="settings-section">
-                    <div class="section-header"><i class="fas fa-users"></i> Equipe</div>
-                    <div v-if="usuarioLogado.admin" class="section-body list-view">
-                        <div v-for="(u, idx) in usuarios" :key="idx" class="list-row">
-                            <div class="row-main">{{ u.nome }} <span v-if="u.admin" class="admin-tag">Admin</span></div>
-                            <button v-if="!u.admin" class="delete-btn" @click="removerUsuario(idx)"><i class="fas fa-trash-alt"></i></button>
+                <div v-if="usuariosPendentes.length > 0" class="admin-section warning">
+                    <h4>🔔 Aguardando Aprovação</h4>
+                    <div v-for="(u, idx) in usuariosPendentes" :key="idx" class="user-row pending">
+                        <div>
+                            <strong>{{ u.nome }}</strong> ({{ u.cargo }})<br>
+                            <small>{{ u.email }}</small>
                         </div>
-                        <div class="add-form-inline">
-                            <input v-model="novoUsuarioNome" placeholder="Nome" class="inline-input grow">
-                            <input v-model="novoUsuarioPin" type="tel" placeholder="PIN" class="inline-input short" maxlength="4">
-                            <button class="add-btn-inline" @click="adicionarUsuario"><i class="fas fa-plus"></i></button>
-                        </div>
-                    </div>
-                    <div v-else class="section-body restricted">Área restrita ao administrador.</div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="section-header"><i class="fas fa-plus-circle"></i> Novo Produto</div>
-                    <div class="section-body form-view">
-                        <input v-model="novoProd.nome" placeholder="Nome" class="ios-input">
-                        <div class="form-row">
-                            <select v-model="novoProd.setor" class="ios-input"><option value="" disabled>Local</option><option v-for="l in config.rota" :value="l">{{ l }}</option></select>
-                            <select v-model="novoProd.destinoId" class="ios-input"><option value="" disabled>Destino</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
-                        </div>
-                        <div class="form-row cols-2">
-                            <input v-model="novoProd.unQ" placeholder="Conta (Un)" class="ios-input">
-                            <input v-model="novoProd.unC" placeholder="Pede (Cx)" class="ios-input">
-                        </div>
-                        <div class="form-row cols-2">
-                            <input v-model.number="novoProd.fator" placeholder="Qtd Cx" type="number" class="ios-input">
-                            <input v-model.number="novoProd.meta" placeholder="Meta" type="number" class="ios-input">
-                        </div>
-                        <button class="ios-btn-primary save-btn" @click="adicionarProduto" v-if="!editandoId">Cadastrar</button>
-                        <button class="ios-btn-primary save-btn" @click="salvarEdicao" v-else>Salvar Edição</button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="section-header"><i class="fas fa-truck"></i> Destinos</div>
-                    <div class="section-body list-view">
-                        <div v-for="(d, idx) in config.destinos" :key="d.id" class="list-row">
-                            <div class="row-main">{{ d.nome }}</div>
-                            <button class="delete-btn" @click="removerDestino(idx)"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                        <div class="add-form-inline">
-                            <input v-model="novoDestino.nome" placeholder="Nome" class="inline-input grow">
-                            <input v-model="novoDestino.telefone" placeholder="Zap" class="inline-input short">
-                            <button class="add-btn-inline" @click="adicionarDestino"><i class="fas fa-plus"></i></button>
+                        <div class="actions">
+                            <button class="btn-approve" @click="aprovarUsuario(u.id)">Aprovar</button>
+                            <button class="btn-deny" @click="removerUsuario(u.id)">Recusar</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="settings-section danger-zone">
-                    <button class="ios-btn-danger" @click="resetarTudo"><i class="fas fa-bomb"></i> Resetar App</button>
+                <div class="admin-section">
+                    <h4>Equipe Ativa</h4>
+                    <div v-for="u in usuariosAtivos" :key="u.id" class="user-row">
+                        <div @click="u.expandido = !u.expandido" style="cursor:pointer; flex:1;">
+                            <strong>{{ u.nome }}</strong> <span class="tag">{{ u.cargo }}</span>
+                            <i class="fas fa-chevron-down" style="font-size:0.8rem; margin-left:5px;"></i>
+                        </div>
+                        
+                        <div v-if="u.expandido" class="permissions-box">
+                            <label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarDb"> Admin Geral</label>
+                            <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarDb"> Pedir Hortifruti</label>
+                            <label><input type="checkbox" v-model="u.permissoes.geral" @change="salvarDb"> Pedir Geral</label>
+                            <label><input type="checkbox" v-model="u.permissoes.bebidas" @change="salvarDb"> Pedir Bebidas</label>
+                            <button class="btn-deny small" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id">Demitir</button>
+                        </div>
+                    </div>
                 </div>
-                <div style="height:50px;"></div>
+
             </div>
         </div>
     </div>
 
-    <div class="modal-backdrop animated-fade" v-if="mostrandoPreview" @click.self="mostrandoPreview = false">
-        <div class="modal-sheet animated-up">
-            <div class="modal-header-bar"><h3>Enviar</h3><button class="close-modal-btn" @click="mostrandoPreview = false">Fechar</button></div>
-            <div class="modal-scroll-content">
-                <div v-for="(itens, destinoId) in pedidosPorDestino" :key="destinoId" class="preview-card">
-                    <div class="preview-header"><span class="supplier-name">{{ getNomeDestino(destinoId) }}</span><span class="item-count-badge">{{ itens.length }}</span></div>
-                    <ul class="preview-list"><li v-for="item in itens">{{ item.texto }}</li></ul>
-                    <button class="whatsapp-btn" @click="enviarWhatsApp(destinoId, itens)"><i class="fab fa-whatsapp"></i> Enviar</button>
+    <div class="modal-overlay" v-if="mostrandoConfig">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Configurações</h3><button @click="mostrandoConfig = false">X</button></div>
+            <div class="modal-body">
+                
+                <div class="config-block">
+                    <h4>📦 Novo Produto</h4>
+                    <input v-model="novoProd.nome" placeholder="Nome" class="italian-input">
+                    <div class="row">
+                        <select v-model="novoProd.categoria" class="italian-input">
+                            <option value="hortifruti">Hortifruti</option>
+                            <option value="geral">Geral/Insumos</option>
+                            <option value="bebidas">Bebidas</option>
+                            <option value="limpeza">Limpeza</option>
+                        </select>
+                        <select v-model="novoProd.local" class="italian-input">
+                            <option value="Freezer">Freezer</option>
+                            <option value="Geladeira">Geladeira</option>
+                            <option value="Estoque Seco">Estoque Seco</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <input v-model="novoProd.unQ" placeholder="Conta (Un)" class="italian-input">
+                        <input v-model="novoProd.unC" placeholder="Pede (Cx)" class="italian-input">
+                    </div>
+                    <div class="row">
+                        <input v-model.number="novoProd.fator" type="number" placeholder="Qtd na Cx" class="italian-input">
+                        <input v-model.number="novoProd.meta" type="number" placeholder="Meta Mínima" class="italian-input">
+                    </div>
+                    <select v-model="novoProd.destinoId" class="italian-input">
+                        <option value="" disabled selected>Quem entrega?</option>
+                        <option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option>
+                    </select>
+                    <button class="btn-italian-primary" @click="adicionarProduto">Cadastrar</button>
                 </div>
-                <div class="obs-container"><label>Obs Geral</label><textarea v-model="observacaoExtra" class="ios-textarea"></textarea></div>
+
+                <div class="config-block">
+                    <h4>📞 Contatos / Fornecedores</h4>
+                    <div v-for="(d, idx) in config.destinos" :key="idx" class="list-item">
+                        <span>{{ d.nome }}</span> <i class="fas fa-trash" @click="removerDestino(idx)"></i>
+                    </div>
+                    <div class="row">
+                        <input v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)" class="italian-input">
+                        <input v-model="novoDestino.telefone" placeholder="WhatsApp (55...)" class="italian-input">
+                    </div>
+                    <input v-model="novoDestino.msg" placeholder="Msg Padrão (Opcional)" class="italian-input">
+                    <button class="btn-italian-secondary" @click="adicionarDestino">Adicionar Contato</button>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <div class="modal-backdrop animated-fade" v-if="mostrandoHistorico" @click.self="mostrandoHistorico = false">
-        <div class="modal-sheet animated-up">
-            <div class="modal-header-bar"><h3>Histórico</h3><button class="close-modal-btn" @click="mostrandoHistorico = false">Fechar</button></div>
-            <div class="modal-scroll-content">
-                <div v-for="(h, index) in historico" :key="index" class="history-card">
-                    <div class="hist-header"><div class="hist-meta"><span class="hist-date">{{ h.data }}</span> <span class="hist-time">{{ h.hora }}</span></div><span class="hist-user">{{ h.usuario }}</span></div>
-                    <div class="hist-dest">Para: {{ h.destino }}</div>
-                    <div class="hist-body">{{ h.detalhes }}</div>
-                    <button class="delete-hist-btn" @click="apagarHistorico(index)" v-if="usuarioLogado.admin"><i class="fas fa-trash"></i> Apagar</button>
+    <div class="modal-overlay" v-if="mostrandoPreview">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Resumo do Pedido</h3><button @click="mostrandoPreview = false">X</button></div>
+            <div class="modal-body">
+                <div v-if="itensParaPedir.length === 0" style="text-align:center; padding:20px;">Nada para pedir neste módulo.</div>
+                
+                <div v-for="(grupo, destId) in pedidosAgrupados" :key="destId" class="order-group">
+                    <h4>Para: {{ getNomeDestino(destId) }}</h4>
+                    <ul><li v-for="item in grupo">{{ item.texto }}</li></ul>
+                    <button class="btn-whatsapp" @click="enviarZap(destId, grupo)">
+                        <i class="fab fa-whatsapp"></i> Enviar Agora
+                    </button>
+                </div>
+                
+                <div class="future-order">
+                    <label><input type="checkbox" v-model="salvarParaSegunda"> Apenas salvar para pedir Segunda-feira?</label>
                 </div>
             </div>
         </div>
