@@ -1,12 +1,12 @@
-// --- CONFIGURAÇÃO FIREBASE ---
+// --- CHAVES ATUALIZADAS (V42) ---
 const firebaseConfig = {
-    apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
-    authDomain: "artigiano-app.firebaseapp.com",
-    databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
-    projectId: "artigiano-app",
-    storageBucket: "artigiano-app.firebasestorage.app",
-    messagingSenderId: "212218495726",
-    appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", // Chave NOVA
+  authDomain: "artigiano-app.firebaseapp.com",
+  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+  projectId: "artigiano-app",
+  storageBucket: "artigiano-app.firebasestorage.app",
+  messagingSenderId: "212218495726",
+  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
 };
 
 let db;
@@ -84,8 +84,8 @@ const app = createApp({
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
             setTimeout(() => {
+                // LOGIN MESTRE GABRIEL (SEGURANÇA)
                 if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
-                    // Check Master
                     const masterId = 'admin_gabriel_master';
                     const admin = this.usuarios.find(u => u.id === masterId) || {
                         id: masterId, nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true,
@@ -120,7 +120,7 @@ const app = createApp({
             this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session');
         },
 
-        // --- SYNC ATOMICO (A SOLUÇÃO) ---
+        // --- SYNC ATOMICO (A SOLUÇÃO DO BANCO) ---
         salvarUsuarioUnitario(u) { if(db) db.ref('system/users/' + u.id).set(u); },
         salvarProdutoUnitario(p) { if(db) db.ref('store/products/' + p.id).set(p); },
         salvarHistoricoUnitario(h) { if(db) db.ref('store/history/' + h.id).set(h); },
@@ -139,7 +139,6 @@ const app = createApp({
         prepararEdicao(u) { this.novoUserAdmin = { ...u }; this.editandoUsuarioId = u.id; },
         salvarEdicaoUsuario() {
             if(this.editandoUsuarioId) {
-                // Recupera o original para não perder campos que não estão no form
                 const original = this.usuarios.find(u => u.id === this.editandoUsuarioId);
                 const editado = { ...original, ...this.novoUserAdmin };
                 this.salvarUsuarioUnitario(editado);
@@ -149,7 +148,7 @@ const app = createApp({
         cancelarEdicaoUsuario() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', user: '', pass: '', cargo: 'Pizzaiolo' }; },
         aprovarUsuario(u) { u.aprovado = true; this.salvarUsuarioUnitario(u); },
         removerUsuario(id) { if(confirm("Remover?")) db.ref('system/users/' + id).remove(); },
-        atualizarPermissao(u) { this.salvarUsuarioUnitario(u); }, // Checkbox chama isso direto
+        atualizarPermissao(u) { this.salvarUsuarioUnitario(u); },
 
         // APP LOGIC
         abrirModulo(m) { this.moduloAtivo = m; this.termoBusca = ''; },
@@ -182,7 +181,7 @@ const app = createApp({
         },
         apagarHistorico(id) { if(confirm("Apagar?")) db.ref('store/history/' + id).remove(); },
 
-        // CONFIG (SALVA O BLOCO INTEIRO POIS É PEQUENO)
+        // CONFIG
         salvarConfig() { if(db) db.ref('system/config').set(this.config); },
         adicionarDestino() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:''}; } },
         removerDestino(idx) { this.config.destinos.splice(idx,1); this.salvarConfig(); },
@@ -198,12 +197,12 @@ const app = createApp({
 
         carregarDb() {
             if(db) {
-                // LISTENERS SEPARADOS (PERFORMANCE + SEGURANÇA)
+                // LISTENERS INDIVIDUAIS
                 db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); });
                 db.ref('store/products').on('value', s => { this.produtos = s.val() ? Object.values(s.val()) : []; });
                 db.ref('store/history').on('value', s => { 
                     const h = s.val() ? Object.values(s.val()) : []; 
-                    this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); // Ordena por ID (tempo)
+                    this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); 
                 });
                 db.ref('system/config').on('value', s => { 
                     this.config = s.val() || { destinos: [], rota: ['Geral'] }; 
