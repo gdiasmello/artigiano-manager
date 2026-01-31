@@ -9,26 +9,58 @@ const app = createApp({
         return {
             loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
-            // ADMIN
-            novoUserAdmin: { 
-                nome: '', cargo: '', user: '', pass: '', 
-                permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false } // PERMISSÕES EXPLÍCITAS
-            }, 
-            editandoUsuarioId: null,
-            // DADOS
+            novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false } }, editandoUsuarioId: null,
             feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
-            produtos: [], historico: [],
-            moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            produtos: [], historico: [], moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
             novoProd: { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir' },
-            novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: ''
+            novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
+            
+            // --- PRODUÇÃO ---
+            sobraMassa: '', mostrarLotes: false,
+            lotesPadrao: [
+                {qtd: 15, far: '2kg', agua: '1.247g', lev: '90g', sal: '60g'},
+                {qtd: 30, far: '4kg', agua: '2.494g', lev: '180g', sal: '120g'},
+                {qtd: 45, far: '6kg', agua: '3.742g', lev: '270g', sal: '180g'},
+                {qtd: 60, far: '8kg', agua: '4.989g', lev: '360g', sal: '240g'},
+                {qtd: 75, far: '10kg', agua: '6.237g', lev: '450g', sal: '300g'},
+                {qtd: 90, far: '12kg', agua: '7.484g', lev: '540g', sal: '360g'},
+                {qtd: 110, far: '14kg', agua: '8.732g', lev: '630g', sal: '420g'}
+            ]
         }
     },
     computed: {
+        // --- LÓGICA DE PRODUÇÃO ---
+        nomeDiaSemana() { const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; return dias[new Date().getDay()]; },
+        metaDia() {
+            const d = new Date().getDay(); // 0=Dom, 6=Sab
+            // 0 (Dom), 5 (Sex), 6 (Sab) = 100. Outros = 60
+            if (d === 0 || d === 5 || d === 6) return 100;
+            return 60;
+        },
+        qtdProduzir() {
+            const sobra = this.sobraMassa || 0;
+            const falta = this.metaDia - sobra;
+            return Math.max(0, falta);
+        },
+        receitaCalculada() {
+            const q = this.qtdProduzir;
+            const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 };
+            // Multiplica e arredonda
+            return {
+                farinha: Math.round(q * r.farinha),
+                aguaLiq: Math.round(q * r.aguaLiq),
+                gelo: Math.round(q * r.gelo),
+                aguaTotal: Math.round(q * (r.aguaLiq + r.gelo)),
+                levain: Math.round(q * r.levain),
+                sal: Math.round(q * r.sal)
+            };
+        },
+
+        // --- SISTEMA ---
         usuariosAtivos() { return this.usuarios.filter(u => u.aprovado === true); },
-        usuariosPendentes() { return this.usuarios.filter(u => u.aprovado === false); },
-        pendentesCount() { return this.usuariosPendentes.length; },
-        nomeModulo() { const n = { hortifruti: 'Hortifruti', geral: 'Geral', bebidas: 'Bebidas', limpeza: 'Limpeza' }; return n[this.moduloAtivo] || ''; },
+        pendentesCount() { return this.usuarios.filter(u => u.aprovado === false).length; },
+        nomeModulo() { const n = { hortifruti: 'Hortifruti', geral: 'Geral', bebidas: 'Bebidas', limpeza: 'Limpeza', producao: 'Produção de Massas' }; return n[this.moduloAtivo] || ''; },
         feriadosOrdenados() { return this.feriados.slice().sort((a,b) => a.data.localeCompare(b.data)).map(f => ({ ...f, dataFormatted: f.data.split('-').reverse().join('/') })); },
         isSemanaFeriado() {
             const hoje = new Date(); const i = new Date(hoje); i.setDate(hoje.getDate() - hoje.getDay()); const f = new Date(hoje); f.setDate(hoje.getDate() + (6 - hoje.getDay()));
@@ -41,10 +73,8 @@ const app = createApp({
         pedidosAgrupados() {
             const grupos = {}; const processados = new Set();
             this.itensParaPedir.forEach(p => {
-                if(processados.has(p.id)) return;
-                processados.add(p.id);
-                const calc = this.calculaFalta(p);
-                const dId = p.destinoId || 'geral';
+                if(processados.has(p.id)) return; processados.add(p.id);
+                const calc = this.calculaFalta(p); const dId = p.destinoId || 'geral';
                 if (!grupos[dId]) grupos[dId] = [];
                 let obs = this.analisarHistorico(p) ? " (⚠️ Acabou rápido!)" : "";
                 grupos[dId].push({ texto: `- ${calc.qtd} ${p.unC} ${p.nome}${obs}` });
@@ -53,90 +83,33 @@ const app = createApp({
         }
     },
     methods: {
+        formatGramas(g) { if(g >= 1000) return (g/1000).toFixed(2).replace('.', ',') + ' kg'; return g + ' g'; },
         getCorCategoria(cat) { return this.config.cores ? (this.config.cores[cat] || '#ccc') : '#ccc'; },
         sugestaoDia(mod) { const dia = new Date().getDay(); if(dia === 1) return mod === 'geral' || mod === 'limpeza'; return mod === 'hortifruti'; },
-
-        // --- CÁLCULO MESTRE V53 ---
-        getContagemTotal(p) {
-            if(!p.contagem || typeof p.contagem !== 'object') return 0;
-            let total = 0; Object.values(p.contagem).forEach(val => total += (parseFloat(val) || 0));
-            if(p.temAberto) total += 0.5; return total;
-        },
+        getContagemTotal(p) { if(!p.contagem || typeof p.contagem !== 'object') return 0; let total = 0; Object.values(p.contagem).forEach(val => total += (parseFloat(val) || 0)); if(p.temAberto) total += 0.5; return total; },
         calculaFalta(p) {
-            let total = this.getContagemTotal(p);
-            if (total === 0 && !p.temAberto) return { qtd: 0 }; 
-            let estoqueReal = 0;
-            if (p.tipoConversao === 'multiplicar') estoqueReal = total * (p.fator || 1); else estoqueReal = total / (p.fator || 1);
+            let total = this.getContagemTotal(p); if (total === 0 && !p.temAberto) return { qtd: 0 }; 
+            let estoqueReal = 0; if (p.tipoConversao === 'multiplicar') estoqueReal = total * (p.fator || 1); else estoqueReal = total / (p.fator || 1);
             let metaAjustada = parseFloat(p.meta); if (this.isSemanaFeriado) metaAjustada = metaAjustada * 1.2;
-            const falta = metaAjustada - estoqueReal;
-            return { qtd: Math.max(0, Math.ceil(falta * 10) / 10) };
+            const falta = metaAjustada - estoqueReal; return { qtd: Math.max(0, Math.ceil(falta * 10) / 10) };
         },
         statusItem(p) { if(p.ignorar) return 'ignored'; if(this.getContagemTotal(p) === 0 && !p.temAberto) return 'pending'; return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok'; },
         toggleAberto(p) { p.temAberto = !p.temAberto; this.salvarProdutoUnitario(p); },
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem={}; this.salvarProdutoUnitario(p); },
-
-        enviarZap(destId, itens, isSegunda) {
-            const dest = this.config.destinos.find(d => d.id == destId);
-            const tel = dest ? dest.telefone : '';
-            let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, pedido:";
-            let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : "";
-            let msg = `${titulo}${saudacao}\n\n*Pedido de hoje:*\n----------------\n`;
-            itens.forEach(i => { msg += i.texto + '\n'; });
-            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: dest ? dest.nome : 'Geral', itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') };
-            this.salvarHistoricoUnitario(h);
-            window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
-        },
-
+        enviarZap(destId, itens, isSegunda) { const dest = this.config.destinos.find(d => d.id == destId); const tel = dest ? dest.telefone : ''; let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, pedido:"; let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; let msg = `${titulo}${saudacao}\n\n*Pedido de hoje:*\n----------------\n`; itens.forEach(i => { msg += i.texto + '\n'; }); const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: dest ? dest.nome : 'Geral', itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; this.salvarHistoricoUnitario(h); window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); },
         async importarContatoDoCelular() { if ('contacts' in navigator) { try { const c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
-
-        // --- ADMIN PERMISSÕES ---
-        aplicarPermissoesPadrao() {
-            // DEFINE OS PADRÕES, MAS USUÁRIO PODE MUDAR DEPOIS
-            if (this.novoUserAdmin.cargo === 'Gerente') {
-                this.novoUserAdmin.permissoes = { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true };
-            } else if (this.novoUserAdmin.cargo === 'Pizzaiolo') {
-                this.novoUserAdmin.permissoes = { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: false };
-            } else {
-                this.novoUserAdmin.permissoes = { admin: false, hortifruti: false, geral: false, bebidas: true, limpeza: true };
-            }
-        },
-        adicionarUsuarioAdmin() {
-            if (!this.novoUserAdmin.nome) return alert("Nome?");
-            const novo = { id: this.gerarId(), ...this.novoUserAdmin, aprovado: true };
-            this.salvarUsuarioUnitario(novo); 
-            this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false } }; 
-            alert("Criado!");
-        },
-        prepararEdicao(u) {
-            // Clona o objeto para edição segura
-            this.novoUserAdmin = JSON.parse(JSON.stringify(u));
-            this.editandoUsuarioId = u.id;
-        },
-        salvarEdicaoUsuario() {
-            if(this.editandoUsuarioId) {
-                this.salvarUsuarioUnitario(this.novoUserAdmin);
-                this.cancelarEdicaoUsuario();
-            }
-        },
-        cancelarEdicaoUsuario() { 
-            this.editandoUsuarioId = null; 
-            this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false } }; 
-        },
-
-        // --- PADRÕES ---
-        adicionarProduto() {
-            if(!this.novoProd.nome) return alert("Nome?");
-            if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?");
-            const p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false };
-            delete p.locaisSelecionados;
-            this.salvarProdutoUnitario(p); alert("Salvo!"); this.novoProd.nome = ''; this.novoProd.locaisSelecionados = [];
-        },
+        aplicarPermissoesPadrao() { if (this.novoUserAdmin.cargo === 'Gerente') this.novoUserAdmin.permissoes = { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }; else if (this.novoUserAdmin.cargo === 'Pizzaiolo') this.novoUserAdmin.permissoes = { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: false }; else this.novoUserAdmin.permissoes = { admin: false, hortifruti: false, geral: false, bebidas: true, limpeza: true }; },
+        adicionarUsuarioAdmin() { if (!this.novoUserAdmin.nome) return alert("Nome?"); const novo = { id: this.gerarId(), ...this.novoUserAdmin, aprovado: true }; this.salvarUsuarioUnitario(novo); this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false } }; alert("Criado!"); },
+        prepararEdicao(u) { this.novoUserAdmin = JSON.parse(JSON.stringify(u)); this.editandoUsuarioId = u.id; },
+        salvarEdicaoUsuario() { if(this.editandoUsuarioId) { this.salvarUsuarioUnitario(this.novoUserAdmin); this.cancelarEdicaoUsuario(); } },
+        cancelarEdicaoUsuario() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false } }; },
+        adicionarProduto() { if(!this.novoProd.nome) return alert("Nome?"); if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?"); const p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Salvo!"); this.novoProd.nome = ''; this.novoProd.locaisSelecionados = []; },
         migrarProduto(p) { let mudou=false; if(p.local&&!p.locais){p.locais=[p.local];mudou=true;} if(typeof p.contagem!=='object'&&p.locais&&p.locais.length>0){const val=p.contagem;p.contagem={};if(val!==''&&val!==undefined)p.contagem[p.locais[0]]=val;mudou=true;} return mudou?p:null; },
         gerarId() { return 'id_' + Math.random().toString(36).substr(2, 9); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); },
         verificarTermos() { if (!localStorage.getItem('artigiano_tos_accepted')) this.mostrandoTermos = true; },
         aceitarTermos() { localStorage.setItem('artigiano_tos_accepted', 'true'); this.mostrandoTermos = false; },
-        abrirAjuda() { this.tituloAjuda = "Ajuda"; this.textoAjuda = "Para destravar a lista, tente rolar com 2 dedos ou recarregar.\nUse '+0.5' para itens abertos."; this.mostrandoAjuda = true; },
+        abrirAjuda() { if(this.moduloAtivo==='producao'){this.tituloAjuda="Produção";this.textoAjuda="Calculadora automática baseada no dia da semana. Digite a sobra e veja a receita.";}else{this.tituloAjuda = "Ajuda"; this.textoAjuda = "Use 'Importar Agenda' para contatos.\n'+0.5' para abertos.\nScroll travado? Recarregue.";} this.mostrandoAjuda = true; },
         fazerLogin() { this.loadingAuth = true; this.msgAuth = ''; setTimeout(() => { const li = this.loginUser.trim().toLowerCase(); const pi = this.loginPass.trim(); if (li === 'gabriel' && pi === '21gabriel') { const u = this.usuarios.find(x => x.user.toLowerCase() === 'gabriel') || { id: 'admin_gabriel_master', nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true, permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true } }; this.salvarUsuarioUnitario(u); this.logar(u); return; } const user = this.usuarios.find(u => u.user.toLowerCase() === li && u.pass === pi); if (user && user.aprovado) this.logar(user); else { this.msgAuth = "Acesso negado."; this.isError = true; this.loadingAuth = false; } }, 800); },
         logar(user) { this.usuarioLogado = user; this.sessaoAtiva = true; localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false; },
         logout() { this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session'); },
