@@ -1,4 +1,4 @@
-// CONFIGURAÇÃO FIREBASE (SUA CHAVE)
+// --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -20,19 +20,27 @@ const { createApp } = Vue
 const app = createApp({
     data() {
         return {
+            loadingInicial: true,
             temaEscuro: false,
+            // AUTH
             authMode: 'login',
             loginUser: '', loginPass: '',
             sessaoAtiva: false,
             usuarioLogado: null,
             msgAuth: '', isError: false, loadingAuth: false,
             novoCadastro: { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: 'Pizzaiolo' },
+            // ADMIN ADD MANUAL
+            novoUserAdmin: { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' },
+            // DADOS
             usuarios: [],
             config: { destinos: [], rota: ['Freezer', 'Geladeira', 'Estoque Seco'] },
             produtos: [],
+            historico: [],
+            // APP
             moduloAtivo: null,
             termoBusca: '',
-            mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false,
+            mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            // FORMS
             novoProd: { nome: '', categoria: 'geral', local: 'Estoque Seco', unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msg: '' },
             novoLocal: '',
@@ -77,9 +85,12 @@ const app = createApp({
             this.temaEscuro = !this.temaEscuro;
             localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light');
         },
+        
+        // --- AUTH ---
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
             setTimeout(() => {
+                // LOGIN MESTRE GABRIEL (SEGURANÇA)
                 if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
                     let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
                     if (!adminUser) {
@@ -88,20 +99,28 @@ const app = createApp({
                             user: 'Gabriel', pass: '21gabriel', aprovado: true,
                             permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
                         };
-                        if(db) db.ref('usuarios').set([...this.usuarios, adminUser]);
+                        // Salva direto no banco
+                        if(db) db.ref('usuarios').once('value', s => {
+                            const lista = s.val() || [];
+                            lista.push(adminUser);
+                            db.ref('usuarios').set(lista);
+                        });
                     }
                     this.logar(adminUser); return;
                 }
+
                 const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
                 if (user) {
                     if (user.aprovado) this.logar(user);
-                    else { this.msgAuth = "Cadastro em análise."; this.isError = true; this.loadingAuth = false; }
-                } else { this.msgAuth = "Dados inválidos."; this.isError = true; this.loadingAuth = false; }
+                    else { this.msgAuth = "Aguardando aprovação."; this.isError = true; this.loadingAuth = false; }
+                } else { this.msgAuth = "Dados incorretos."; this.isError = true; this.loadingAuth = false; }
             }, 800);
         },
         logar(user) {
-            this.usuarioLogado = user; this.sessaoAtiva = true;
-            localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false;
+            this.usuarioLogado = user; 
+            this.sessaoAtiva = true;
+            localStorage.setItem('artigiano_session', JSON.stringify(user)); 
+            this.loadingAuth = false;
         },
         solicitarCadastro() {
             if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) { this.msgAuth = "Preencha tudo."; this.isError = true; return; }
@@ -109,41 +128,67 @@ const app = createApp({
                 id: Date.now(), ...this.novoCadastro, aprovado: false,
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
             };
-            if(db) db.ref('usuarios').set([...this.usuarios, novoUser]);
+            if(db) {
+                // Adiciona atomicamente
+                db.ref('usuarios').get().then(snap => {
+                    let lista = snap.val() || [];
+                    if (!Array.isArray(lista)) lista = Object.values(lista);
+                    lista.push(novoUser);
+                    db.ref('usuarios').set(lista);
+                });
+            }
             this.msgAuth = "Enviado! Aguarde aprovação."; this.isError = false; this.authMode = 'login';
             this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: 'Pizzaiolo' };
+        },
+        // ADD USER DIRETO PELO ADMIN
+        adicionarUsuarioAdmin() {
+            if (!this.novoUserAdmin.nome || !this.novoUserAdmin.user) return alert("Preencha Nome e Usuário");
+            const novo = {
+                id: Date.now(), ...this.novoUserAdmin, aprovado: true,
+                permissoes: { admin: false, hortifruti: true, geral: true, bebidas: true, limpeza: true }
+            };
+            // Salva na lista existente local e envia
+            const novaLista = [...this.usuarios, novo];
+            if(db) db.ref('usuarios').set(novaLista);
+            this.novoUserAdmin = { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' };
+            alert("Usuário adicionado!");
         },
         logout() {
             this.sessaoAtiva = false; this.usuarioLogado = null;
             localStorage.removeItem('artigiano_session'); this.loginPass = '';
         },
+
+        // --- SISTEMA ---
         abrirModulo(mod) { this.moduloAtivo = mod; this.termoBusca = ''; },
         podeAcessar(perm) { return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
+        
+        // ADMIN CORRIGIDO: Salva a lista inteira modificada para garantir sincronia
         aprovarUsuario(id) {
-            const index = this.usuarios.findIndex(u => u.id === id);
-            if(index !== -1) { this.usuarios[index].aprovado = true; this.salvarDb(); }
+            const lista = JSON.parse(JSON.stringify(this.usuarios)); // Clone
+            const u = lista.find(x => x.id === id);
+            if(u) {
+                u.aprovado = true;
+                if(db) db.ref('usuarios').set(lista);
+            }
         },
         removerUsuario(id) {
             if(confirm("Remover usuário?")) {
-                const index = this.usuarios.findIndex(u => u.id === id);
-                this.usuarios.splice(index, 1); this.salvarDb();
+                const lista = this.usuarios.filter(x => x.id !== id);
+                if(db) db.ref('usuarios').set(lista);
             }
         },
-        adicionarLocal() {
-            if(this.novoLocal && !this.config.rota.includes(this.novoLocal)) {
-                if(!this.config.rota) this.config.rota = [];
-                this.config.rota.push(this.novoLocal); this.novoLocal = ''; this.salvarDb();
-            }
+        atualizarPermissao(user) {
+            // Quando muda checkbox, salva o estado atual dos usuários
+            if(db) db.ref('usuarios').set(this.usuarios);
         },
-        removerLocal(idx) { if(confirm("Remover local?")) { this.config.rota.splice(idx, 1); this.salvarDb(); } },
-        moverRota(index, direction) {
-            if (direction === -1 && index > 0) {
-                [this.config.rota[index], this.config.rota[index - 1]] = [this.config.rota[index - 1], this.config.rota[index]];
-            } else if (direction === 1 && index < this.config.rota.length - 1) {
-                [this.config.rota[index], this.config.rota[index + 1]] = [this.config.rota[index + 1], this.config.rota[index]];
-            }
-            this.salvarDb();
+
+        // PRODUTOS (Salvar individualmente para evitar conflito)
+        salvarProduto(p) {
+            // Acha o index no array original e atualiza só ele se possível, ou salva tudo
+            // Para simplificar e evitar bugs de concorrência simples:
+            if(db) db.ref('produtos').set(this.produtos);
         },
+
         calculaFalta(p) {
             if (!p.contagem && p.contagem !== 0) return { qtd: 0 };
             const fator = p.fator || 1;
@@ -156,30 +201,65 @@ const app = createApp({
             if (p.contagem === '' || p.contagem === undefined) return 'pending';
             return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok';
         },
-        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarDb(); },
+        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarProduto(p); },
+        
         adicionarProduto() {
             if(!this.novoProd.nome) return alert("Nome obrigatório");
             this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false });
-            this.salvarDb(); alert("Produto salvo!"); this.novoProd.nome = '';
+            if(db) db.ref('produtos').set(this.produtos);
+            alert("Produto salvo!"); this.novoProd.nome = '';
         },
+        
         enviarZap(destId, itens) {
             const dest = this.config.destinos.find(d => d.id == destId);
             const tel = dest ? dest.telefone : '';
             let msg = this.salvarParaSegunda ? "*LISTA DE SEGUNDA-FEIRA*\n" : "*PEDIDO ARTIGIANO*\n";
-            msg += `Solicitante: ${this.usuarioLogado.nome}\n---\n`;
-            itens.forEach(i => msg += i.texto + '\n');
+            msg += `Resp: ${this.usuarioLogado.nome} | Data: ${new Date().toLocaleDateString()}\n---\n`;
+            let txtHist = "";
+            itens.forEach(i => { msg += i.texto + '\n'; txtHist += i.texto.replace('- ', '') + ', '; });
+            
+            // Salvar no Histórico
+            const novoHist = {
+                data: new Date().toLocaleDateString(),
+                hora: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+                usuario: this.usuarioLogado.nome,
+                destino: dest ? dest.nome : 'Geral',
+                itens: txtHist
+            };
+            this.historico.unshift(novoHist);
+            if(this.historico.length > 50) this.historico.pop();
+            this.salvarGeral();
+
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
+        apagarHistorico(idx) {
+            if(confirm("Apagar registro?")) {
+                this.historico.splice(idx, 1);
+                this.salvarGeral();
+            }
+        },
+
+        // AUXILIARES
         adicionarDestino() {
             if(this.novoDestino.nome) {
                 if(!this.config.destinos) this.config.destinos = [];
                 this.config.destinos.push({ id: Date.now(), ...this.novoDestino });
-                this.salvarDb(); this.novoDestino = { nome: '', telefone: '', msg: '' };
+                this.salvarGeral(); this.novoDestino = { nome: '', telefone: '', msg: '' };
             }
         },
-        removerDestino(idx) { this.config.destinos.splice(idx, 1); this.salvarDb(); },
+        removerDestino(idx) { this.config.destinos.splice(idx, 1); this.salvarGeral(); },
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
-        salvarDb() { if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config }); },
+        
+        adicionarLocal() { if(this.novoLocal) { if(!this.config.rota) this.config.rota=[]; this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvarGeral(); } },
+        removerLocal(idx) { if(confirm("Remover local?")) { this.config.rota.splice(idx, 1); this.salvarGeral(); } },
+        moverRota(idx, dir) {
+            if(dir===-1 && idx>0) [this.config.rota[idx],this.config.rota[idx-1]]=[this.config.rota[idx-1],this.config.rota[idx]];
+            else if(dir===1 && idx<this.config.rota.length-1) [this.config.rota[idx],this.config.rota[idx+1]]=[this.config.rota[idx+1],this.config.rota[idx]];
+            this.salvarGeral();
+        },
+
+        salvarGeral() { if(db) db.ref('/').update({ config: this.config, historico: this.historico }); },
+        
         carregarDb() {
             if(db) {
                 db.ref('/').on('value', snap => {
@@ -188,16 +268,32 @@ const app = createApp({
                         this.usuarios = d.usuarios ? (Array.isArray(d.usuarios) ? d.usuarios : Object.values(d.usuarios)) : [];
                         this.produtos = d.produtos ? (Array.isArray(d.produtos) ? d.produtos : Object.values(d.produtos)) : [];
                         this.config = d.config || { destinos: [], rota: ['Geral'] };
+                        this.historico = d.historico || [];
+                        
                         if(!this.config.rota) this.config.rota = ['Geral'];
+
+                        // Revalidação de Sessão (Se foi demitido, desloga)
                         if(this.usuarioLogado) {
                             const u = this.usuarios.find(x => x.id === this.usuarioLogado.id);
-                            if(u) this.usuarioLogado = u; else this.logout();
+                            if(u) {
+                                this.usuarioLogado = u; // Atualiza permissões em tempo real
+                                localStorage.setItem('artigiano_session', JSON.stringify(u));
+                            } else {
+                                this.logout();
+                            }
                         }
                     }
+                    this.loadingInicial = false;
                 });
-            }
+            } else { this.loadingInicial = false; }
         },
-        resetarTudo() { if(confirm("Isso apaga TUDO. Certeza?")) { if(db) db.ref('/').remove(); localStorage.clear(); window.location.reload(); } }
+        resetarTudo() {
+            if(confirm("Isso apaga TUDO (Usuarios, Produtos, Config). Certeza?")) {
+                if(db) db.ref('/').remove();
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
     },
     mounted() {
         const session = localStorage.getItem('artigiano_session');
