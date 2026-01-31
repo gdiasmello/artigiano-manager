@@ -1,11 +1,4 @@
-// --- LIMPEZA DE VERSÃO ANTIGA (Evita tela branca) ---
-if (!localStorage.getItem('v31_installed')) {
-    localStorage.clear();
-    localStorage.setItem('v31_installed', 'true');
-    console.log("Sistema atualizado para V31 - Cache limpo.");
-}
-
-// --- CONFIGURAÇÃO FIREBASE (SEU BANCO) ---
+// --- CONFIGURAÇÃO FIREBASE (SUA CHAVE) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -27,6 +20,7 @@ const { createApp } = Vue
 const app = createApp({
     data() {
         return {
+            temaEscuro: false,
             // AUTH
             authMode: 'login',
             loginUser: '', loginPass: '',
@@ -61,8 +55,6 @@ const app = createApp({
             const nomes = { hortifruti: 'Hortifruti & Feira', geral: 'Geral & Insumos', bebidas: 'Bebidas', limpeza: 'Limpeza' };
             return nomes[this.moduloAtivo] || '';
         },
-        
-        // FILTROS
         produtosFiltrados() {
             if (!this.moduloAtivo) return [];
             return this.produtos.filter(p => {
@@ -73,8 +65,6 @@ const app = createApp({
         },
         locaisDoModulo() { return [...new Set(this.produtosFiltrados.map(p => p.local))].sort(); },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.local === local); },
-        
-        // PEDIDO
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         pedidosAgrupados() {
             const grupos = {};
@@ -88,8 +78,30 @@ const app = createApp({
         }
     },
     methods: {
-        // --- AUTH ---
+        alternarTema() {
+            this.temaEscuro = !this.temaEscuro;
+            localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light');
+        },
+        // --- AUTH & LOGIN GABRIEL ---
         fazerLogin() {
+            // LOGIN MESTRE GABRIEL (Cria usuário se não existir)
+            if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
+                let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
+                if (!adminUser) {
+                    adminUser = {
+                        id: Date.now(), nome: 'Gabriel', cargo: 'Gerente', email: 'gabriel@artigiano.com',
+                        user: 'Gabriel', pass: '21gabriel', aprovado: true,
+                        permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
+                    };
+                    const novaLista = [...this.usuarios, adminUser];
+                    if(db) db.ref('usuarios').set(novaLista);
+                }
+                this.usuarioLogado = adminUser;
+                this.sessaoAtiva = true;
+                localStorage.setItem('artigiano_session', JSON.stringify(adminUser));
+                return;
+            }
+
             const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
             if (user) {
                 if (user.aprovado) {
@@ -107,17 +119,16 @@ const app = createApp({
             if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) {
                 this.msgAuth = "Preencha tudo."; this.isError = true; return;
             }
-            const isFirst = this.usuarios.length === 0;
             const novoUser = {
                 id: Date.now(),
                 ...this.novoCadastro,
-                aprovado: isFirst, // 1º é Admin auto
-                permissoes: { admin: isFirst, hortifruti: true, geral: true, bebidas: true, limpeza: true }
+                aprovado: false, // Requer aprovação
+                permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
             };
             if(db) {
                 const novaLista = [...this.usuarios, novoUser];
                 db.ref('usuarios').set(novaLista);
-                this.msgAuth = isFirst ? "Admin criado! Entre." : "Enviado! Aguarde aprovação.";
+                this.msgAuth = "Enviado! Aguarde aprovação.";
                 this.isError = false; this.authMode = 'login';
                 this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' };
             }
@@ -142,7 +153,6 @@ const app = createApp({
             }
         },
 
-        // --- PRODUTOS ---
         calculaFalta(p) {
             if (!p.contagem && p.contagem !== 0) return { qtd: 0 };
             const fator = p.fator || 1;
@@ -152,7 +162,7 @@ const app = createApp({
         },
         statusItem(p) {
             if (p.ignorar) return 'ignored';
-            if (p.contagem === '' || p.contagem === undefined) return 'pending';
+            if (p.contagem === '') return 'pending';
             return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok';
         },
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarDb(); },
@@ -160,21 +170,18 @@ const app = createApp({
         adicionarProduto() {
             if(!this.novoProd.nome) return alert("Nome obrigatório");
             this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false });
-            this.salvarDb(); alert("Produto salvo!");
-            this.novoProd.nome = '';
+            this.salvarDb(); alert("Produto salvo!"); this.novoProd.nome = '';
         },
         
-        // --- WHATSAPP ---
         enviarZap(destId, itens) {
             const dest = this.config.destinos.find(d => d.id == destId);
             const tel = dest ? dest.telefone : '';
-            let msg = this.salvarParaSegunda ? "*LISTA DE DESEJOS (PARA SEGUNDA)*\n" : "*PEDIDO ARTIGIANO*\n";
+            let msg = this.salvarParaSegunda ? "*LISTA DE SEGUNDA-FEIRA*\n" : "*PEDIDO ARTIGIANO*\n";
             msg += `Solicitante: ${this.usuarioLogado.nome}\n---\n`;
             itens.forEach(i => msg += i.texto + '\n');
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
 
-        // --- AUXILIARES ---
         adicionarDestino() {
             if(this.novoDestino.nome) {
                 if(!this.config.destinos) this.config.destinos = [];
@@ -185,7 +192,6 @@ const app = createApp({
         removerDestino(idx) { this.config.destinos.splice(idx, 1); this.salvarDb(); },
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
 
-        // --- DATABASE ---
         salvarDb() { if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config }); },
         carregarDb() {
             if(db) {
@@ -202,13 +208,22 @@ const app = createApp({
                     }
                 });
             }
+        },
+        resetarTudo() {
+            if(confirm("ATENÇÃO: Isso apaga todo o banco de dados. Continuar?")) {
+                if(db) db.ref('/').remove();
+                localStorage.clear();
+                window.location.reload();
+            }
         }
     },
     mounted() {
         const session = localStorage.getItem('artigiano_session');
         if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
+        const theme = localStorage.getItem('artigiano_theme');
+        if(theme === 'dark') this.temaEscuro = true;
         this.carregarDb();
     }
 });
 
-app.mount('#app');
+createApp(app).mount('#app');
