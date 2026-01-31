@@ -1,4 +1,11 @@
-// --- CONFIGURAÇÃO FIREBASE (Coloque sua chave) ---
+// --- LIMPEZA DE VERSÃO ANTIGA (Evita tela branca) ---
+if (!localStorage.getItem('v31_installed')) {
+    localStorage.clear();
+    localStorage.setItem('v31_installed', 'true');
+    console.log("Sistema atualizado para V31 - Cache limpo.");
+}
+
+// --- CONFIGURAÇÃO FIREBASE (SEU BANCO) ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -17,11 +24,11 @@ try {
 
 const { createApp } = Vue
 
-createApp({
+const app = createApp({
     data() {
         return {
             // AUTH
-            authMode: 'login', // login ou register
+            authMode: 'login',
             loginUser: '', loginPass: '',
             sessaoAtiva: false,
             usuarioLogado: null,
@@ -31,12 +38,12 @@ createApp({
             novoCadastro: { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' },
             
             // DADOS SISTEMA
-            usuarios: [], // Todos do banco
+            usuarios: [],
             config: { destinos: [] },
             produtos: [],
             
             // APP
-            moduloAtivo: null, // hortifruti, geral, bebidas...
+            moduloAtivo: null,
             termoBusca: '',
             mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false,
             
@@ -55,7 +62,7 @@ createApp({
             return nomes[this.moduloAtivo] || '';
         },
         
-        // FILTROS DE PRODUTO
+        // FILTROS
         produtosFiltrados() {
             if (!this.moduloAtivo) return [];
             return this.produtos.filter(p => {
@@ -64,15 +71,11 @@ createApp({
                 return matchBusca && matchModulo;
             });
         },
-        locaisDoModulo() {
-            return [...new Set(this.produtosFiltrados.map(p => p.local))].sort();
-        },
+        locaisDoModulo() { return [...new Set(this.produtosFiltrados.map(p => p.local))].sort(); },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.local === local); },
         
-        // PREPARAÇÃO DE PEDIDO
-        itensParaPedir() {
-            return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy');
-        },
+        // PEDIDO
+        itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         pedidosAgrupados() {
             const grupos = {};
             this.itensParaPedir.forEach(p => {
@@ -94,61 +97,48 @@ createApp({
                     this.sessaoAtiva = true;
                     localStorage.setItem('artigiano_session', JSON.stringify(user));
                 } else {
-                    this.msgAuth = "Cadastro aguardando aprovação do gerente."; this.isError = true;
+                    this.msgAuth = "Aguardando aprovação do Admin."; this.isError = true;
                 }
             } else {
-                this.msgAuth = "Usuário ou senha incorretos."; this.isError = true;
+                this.msgAuth = "Dados incorretos."; this.isError = true;
             }
         },
         solicitarCadastro() {
             if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) {
-                this.msgAuth = "Preencha todos os campos."; this.isError = true; return;
+                this.msgAuth = "Preencha tudo."; this.isError = true; return;
             }
-            // Verifica se é o PRIMEIRO usuário (vira Admin auto)
             const isFirst = this.usuarios.length === 0;
             const novoUser = {
                 id: Date.now(),
                 ...this.novoCadastro,
-                aprovado: isFirst, // Primeiro aprova direto
-                permissoes: {
-                    admin: isFirst,
-                    hortifruti: true, geral: true, bebidas: true, limpeza: true
-                }
+                aprovado: isFirst, // 1º é Admin auto
+                permissoes: { admin: isFirst, hortifruti: true, geral: true, bebidas: true, limpeza: true }
             };
-            
             if(db) {
-                const userRef = [...this.usuarios, novoUser]; // Adiciona na lista local e salva
-                db.ref('usuarios').set(userRef);
-                this.msgAuth = isFirst ? "Admin criado! Faça login." : "Cadastro enviado! Aguarde aprovação.";
-                this.isError = false;
-                this.authMode = 'login';
+                const novaLista = [...this.usuarios, novoUser];
+                db.ref('usuarios').set(novaLista);
+                this.msgAuth = isFirst ? "Admin criado! Entre." : "Enviado! Aguarde aprovação.";
+                this.isError = false; this.authMode = 'login';
                 this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' };
             }
         },
         logout() {
-            this.sessaoAtiva = false;
-            this.usuarioLogado = null;
-            localStorage.removeItem('artigiano_session');
-            this.loginPass = '';
+            this.sessaoAtiva = false; this.usuarioLogado = null;
+            localStorage.removeItem('artigiano_session'); this.loginPass = '';
         },
 
         // --- SISTEMA ---
         abrirModulo(mod) { this.moduloAtivo = mod; this.termoBusca = ''; },
         podeAcessar(perm) { return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
         
-        // --- ADMIN ---
         aprovarUsuario(id) {
             const index = this.usuarios.findIndex(u => u.id === id);
-            if(index !== -1) {
-                this.usuarios[index].aprovado = true;
-                this.salvarDb();
-            }
+            if(index !== -1) { this.usuarios[index].aprovado = true; this.salvarDb(); }
         },
         removerUsuario(id) {
-            if(confirm("Tem certeza?")) {
+            if(confirm("Remover usuário?")) {
                 const index = this.usuarios.findIndex(u => u.id === id);
-                this.usuarios.splice(index, 1);
-                this.salvarDb();
+                this.usuarios.splice(index, 1); this.salvarDb();
             }
         },
 
@@ -162,7 +152,7 @@ createApp({
         },
         statusItem(p) {
             if (p.ignorar) return 'ignored';
-            if (p.contagem === '') return 'pending';
+            if (p.contagem === '' || p.contagem === undefined) return 'pending';
             return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok';
         },
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarDb(); },
@@ -170,9 +160,8 @@ createApp({
         adicionarProduto() {
             if(!this.novoProd.nome) return alert("Nome obrigatório");
             this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false });
-            this.salvarDb();
-            alert("Produto cadastrado!");
-            this.novoProd.nome = ''; // Limpa nome apenas
+            this.salvarDb(); alert("Produto salvo!");
+            this.novoProd.nome = '';
         },
         
         // --- WHATSAPP ---
@@ -190,20 +179,14 @@ createApp({
             if(this.novoDestino.nome) {
                 if(!this.config.destinos) this.config.destinos = [];
                 this.config.destinos.push({ id: Date.now(), ...this.novoDestino });
-                this.salvarDb();
-                this.novoDestino = { nome: '', telefone: '', msg: '' };
+                this.salvarDb(); this.novoDestino = { nome: '', telefone: '', msg: '' };
             }
         },
         removerDestino(idx) { this.config.destinos.splice(idx, 1); this.salvarDb(); },
-        getNomeDestino(id) {
-            const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null;
-            return d ? d.nome : 'Geral';
-        },
+        getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
 
         // --- DATABASE ---
-        salvarDb() {
-            if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config });
-        },
+        salvarDb() { if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config }); },
         carregarDb() {
             if(db) {
                 db.ref('/').on('value', snap => {
@@ -212,12 +195,9 @@ createApp({
                         this.usuarios = d.usuarios || [];
                         this.produtos = d.produtos || [];
                         this.config = d.config || { destinos: [] };
-                        
-                        // Revalida sessão
                         if(this.usuarioLogado) {
                             const u = this.usuarios.find(x => x.id === this.usuarioLogado.id);
-                            if(u) this.usuarioLogado = u; // Atualiza permissões em tempo real
-                            else this.logout(); // Foi demitido
+                            if(u) this.usuarioLogado = u; else this.logout();
                         }
                     }
                 });
@@ -226,12 +206,9 @@ createApp({
     },
     mounted() {
         const session = localStorage.getItem('artigiano_session');
-        if(session) {
-            this.usuarioLogado = JSON.parse(session);
-            this.sessaoAtiva = true;
-        }
+        if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
         this.carregarDb();
     }
 });
 
-createApp(app).mount('#app');
+app.mount('#app');

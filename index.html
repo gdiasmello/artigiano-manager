@@ -11,10 +11,10 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=30">
+    <link rel="stylesheet" href="styles.css?v=31">
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
@@ -23,44 +23,55 @@
 <div id="app" v-cloak>
 
     <div class="auth-screen" v-if="!sessaoAtiva">
-        <div class="auth-card">
+        <div class="auth-card animated-up">
             <div class="brand-header">
                 <i class="fas fa-pizza-slice logo-icon"></i>
                 <h1>Artigiano</h1>
                 <p>Gestão de Pizzaria</p>
             </div>
 
-            <div v-if="authMode === 'login'" class="auth-form animated-fade">
+            <div v-if="authMode === 'login'" class="auth-form">
                 <input v-model="loginUser" placeholder="Usuário" class="italian-input">
                 <input v-model="loginPass" type="password" placeholder="Senha" class="italian-input">
                 <button class="btn-italian-primary" @click="fazerLogin">Entrar</button>
                 
                 <div class="auth-links">
-                    <a @click="authMode = 'register'">Criar nova conta</a>
+                    <a @click="authMode = 'register'">Criar Ficha de Cadastro</a>
                     <span class="divider">|</span>
-                    <a @click="alert('Peça ao Admin para resetar sua senha.')">Esqueci a senha</a>
+                    <a @click="alert('Peça ao Gabriel (Admin) para resetar sua senha.')">Esqueci a senha</a>
                 </div>
             </div>
 
-            <div v-if="authMode === 'register'" class="auth-form animated-fade">
-                <h3>Ficha de Cadastro</h3>
+            <div v-if="authMode === 'register'" class="auth-form">
+                <h3>Ficha do Funcionário</h3>
+                
                 <input v-model="novoCadastro.nome" placeholder="Nome Completo" class="italian-input">
+                
                 <div class="row">
-                    <input v-model="novoCadastro.nascimento" type="date" class="italian-input" title="Data de Nascimento">
-                    <select v-model="novoCadastro.cargo" class="italian-input">
-                        <option value="" disabled selected>Cargo</option>
-                        <option value="Pizzaiolo">Pizzaiolo</option>
-                        <option value="Gerente">Gerente</option>
-                        <option value="Atendente">Atendente</option>
-                    </select>
+                    <div class="col">
+                        <label>Nascimento</label>
+                        <input v-model="novoCadastro.nascimento" type="date" class="italian-input">
+                    </div>
+                    <div class="col">
+                        <label>Cargo</label>
+                        <select v-model="novoCadastro.cargo" class="italian-input">
+                            <option value="Pizzaiolo">Pizzaiolo</option>
+                            <option value="Gerente">Gerente</option>
+                            <option value="Atendente">Atendente</option>
+                        </select>
+                    </div>
                 </div>
+
                 <input v-model="novoCadastro.email" type="email" placeholder="E-mail" class="italian-input">
-                <hr class="separator">
-                <input v-model="novoCadastro.user" placeholder="Criar Usuário de Acesso" class="italian-input">
+                
+                <div class="separator-line"></div>
+                <p style="font-size:0.8rem; color:#666; margin-bottom:5px;">Dados de Acesso:</p>
+                
+                <input v-model="novoCadastro.user" placeholder="Criar Usuário" class="italian-input">
                 <input v-model="novoCadastro.pass" type="password" placeholder="Criar Senha" class="italian-input">
                 
-                <button class="btn-italian-primary" @click="solicitarCadastro">Enviar Ficha</button>
-                <a @click="authMode = 'login'" class="back-link">Voltar para Login</a>
+                <button class="btn-italian-primary" @click="solicitarCadastro">Enviar para Aprovação</button>
+                <button class="btn-text" @click="authMode = 'login'">Voltar</button>
             </div>
 
             <p v-if="msgAuth" class="auth-msg" :class="{error: isError}">{{ msgAuth }}</p>
@@ -70,19 +81,19 @@
     <div v-else class="main-layout">
         
         <header class="top-bar">
-            <div class="user-info" @click="mostrandoConfig = true">
+            <div class="user-profile" @click="mostrandoConfig = true">
                 <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
-                <div class="user-details">
+                <div class="user-text">
                     <span class="name">{{ usuarioLogado.nome }}</span>
                     <span class="role">{{ usuarioLogado.cargo }}</span>
                 </div>
             </div>
-            <div class="actions">
-                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="icon-btn" title="Painel Admin">
+            <div class="top-actions">
+                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="icon-btn" style="position:relative;">
                     <i class="fas fa-users-cog"></i>
                     <span class="badge" v-if="pendentesCount > 0">{{ pendentesCount }}</span>
                 </button>
-                <button @click="logout" class="icon-btn"><i class="fas fa-sign-out-alt"></i></button>
+                <button @click="logout" class="icon-btn logout"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -90,24 +101,24 @@
             
             <div v-if="!moduloAtivo" class="dashboard-grid">
                 <div class="dashboard-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')">
-                    <i class="fas fa-carrot"></i>
+                    <div class="card-icon"><i class="fas fa-carrot"></i></div>
                     <span>Hortifruti</span>
                 </div>
                 <div class="dashboard-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')">
-                    <i class="fas fa-boxes"></i>
-                    <span>Geral & Insumos</span>
+                    <div class="card-icon"><i class="fas fa-boxes"></i></div>
+                    <span>Geral / Insumos</span>
                 </div>
                 <div class="dashboard-card bebidas" @click="abrirModulo('bebidas')" v-if="podeAcessar('bebidas')">
-                    <i class="fas fa-wine-bottle"></i>
+                    <div class="card-icon"><i class="fas fa-wine-bottle"></i></div>
                     <span>Bebidas</span>
                 </div>
                 <div class="dashboard-card limpeza" @click="abrirModulo('limpeza')" v-if="podeAcessar('limpeza')">
-                    <i class="fas fa-broom"></i>
+                    <div class="card-icon"><i class="fas fa-broom"></i></div>
                     <span>Limpeza</span>
                 </div>
             </div>
 
-            <div v-else class="active-module">
+            <div v-else class="active-module animated-fade">
                 <div class="module-header">
                     <button @click="moduloAtivo = null" class="back-btn"><i class="fas fa-arrow-left"></i> Voltar</button>
                     <h2>{{ nomeModulo }}</h2>
@@ -118,16 +129,16 @@
                     <input v-model="termoBusca" placeholder="Buscar produto...">
                 </div>
 
-                <div class="product-list">
-                    <div v-if="produtosFiltrados.length === 0" class="empty-state">Nenhum item neste setor.</div>
+                <div class="product-list-container">
+                    <div v-if="produtosFiltrados.length === 0" class="empty-state">Nenhum item encontrado.</div>
                     
                     <div v-for="local in locaisDoModulo" :key="local">
                         <div v-if="produtosDoLocal(local).length > 0" class="location-divider">{{ local }}</div>
                         
-                        <div v-for="p in produtosDoLocal(local)" :key="p.id" class="product-row" :class="{ok: statusItem(p) === 'ok', buy: statusItem(p) === 'buy'}">
+                        <div v-for="p in produtosDoLocal(local)" :key="p.id" class="product-row">
                             <div class="prod-info">
-                                <strong>{{ p.nome }}</strong>
-                                <small>Meta: {{ p.meta }} {{ p.unC }} (Contar em {{ p.unQ }})</small>
+                                <strong class="prod-name">{{ p.nome }}</strong>
+                                <small class="prod-meta">Meta: {{ p.meta }} {{ p.unC }} | Contar: {{ p.unQ }}</small>
                             </div>
                             <div class="prod-action">
                                 <button class="ignore-btn" @click="toggleIgnorar(p)" :class="{ignored: p.ignorar}">
@@ -137,8 +148,8 @@
                                 <input type="number" v-model.number="p.contagem" :placeholder="p.unQ" class="qty-input" :disabled="p.ignorar" @input="salvarDb">
                             </div>
                             <div class="prod-status" v-if="!p.ignorar && p.contagem !== ''">
-                                <span v-if="statusItem(p) === 'buy'">PEDIR {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
-                                <span v-else>OK</span>
+                                <span v-if="calculaFalta(p).qtd > 0" class="status-buy">PEDIR {{ calculaFalta(p).qtd }} {{ p.unC }}</span>
+                                <span v-else class="status-ok">OK</span>
                             </div>
                         </div>
                     </div>
@@ -163,11 +174,11 @@
                 <div v-if="usuariosPendentes.length > 0" class="admin-section warning">
                     <h4>🔔 Aguardando Aprovação</h4>
                     <div v-for="(u, idx) in usuariosPendentes" :key="idx" class="user-row pending">
-                        <div>
+                        <div class="user-data">
                             <strong>{{ u.nome }}</strong> ({{ u.cargo }})<br>
                             <small>{{ u.email }}</small>
                         </div>
-                        <div class="actions">
+                        <div class="user-actions">
                             <button class="btn-approve" @click="aprovarUsuario(u.id)">Aprovar</button>
                             <button class="btn-deny" @click="removerUsuario(u.id)">Recusar</button>
                         </div>
@@ -175,19 +186,23 @@
                 </div>
 
                 <div class="admin-section">
-                    <h4>Equipe Ativa</h4>
+                    <h4>Funcionários Ativos</h4>
                     <div v-for="u in usuariosAtivos" :key="u.id" class="user-row">
-                        <div @click="u.expandido = !u.expandido" style="cursor:pointer; flex:1;">
-                            <strong>{{ u.nome }}</strong> <span class="tag">{{ u.cargo }}</span>
-                            <i class="fas fa-chevron-down" style="font-size:0.8rem; margin-left:5px;"></i>
+                        <div @click="u.expandido = !u.expandido" class="user-clickable">
+                            <strong>{{ u.nome }}</strong> <span class="role-tag">{{ u.cargo }}</span>
+                            <i class="fas fa-chevron-down" :class="{rotated: u.expandido}"></i>
                         </div>
                         
                         <div v-if="u.expandido" class="permissions-box">
-                            <label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarDb"> Admin Geral</label>
-                            <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarDb"> Pedir Hortifruti</label>
-                            <label><input type="checkbox" v-model="u.permissoes.geral" @change="salvarDb"> Pedir Geral</label>
-                            <label><input type="checkbox" v-model="u.permissoes.bebidas" @change="salvarDb"> Pedir Bebidas</label>
-                            <button class="btn-deny small" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id">Demitir</button>
+                            <h5>Acessos Permitidos:</h5>
+                            <div class="checkbox-grid">
+                                <label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarDb"> 👑 Admin (Tudo)</label>
+                                <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarDb"> 🥕 Hortifruti</label>
+                                <label><input type="checkbox" v-model="u.permissoes.geral" @change="salvarDb"> 📦 Geral</label>
+                                <label><input type="checkbox" v-model="u.permissoes.bebidas" @change="salvarDb"> 🍷 Bebidas</label>
+                                <label><input type="checkbox" v-model="u.permissoes.limpeza" @change="salvarDb"> 🧹 Limpeza</label>
+                            </div>
+                            <button class="btn-deny small" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id" style="margin-top:10px; width:100%;">Excluir Funcionário</button>
                         </div>
                     </div>
                 </div>
@@ -202,8 +217,8 @@
             <div class="modal-body">
                 
                 <div class="config-block">
-                    <h4>📦 Novo Produto</h4>
-                    <input v-model="novoProd.nome" placeholder="Nome" class="italian-input">
+                    <h4>📦 Cadastrar Produto</h4>
+                    <input v-model="novoProd.nome" placeholder="Nome do Produto" class="italian-input">
                     <div class="row">
                         <select v-model="novoProd.categoria" class="italian-input">
                             <option value="hortifruti">Hortifruti</option>
@@ -218,18 +233,18 @@
                         </select>
                     </div>
                     <div class="row">
-                        <input v-model="novoProd.unQ" placeholder="Conta (Un)" class="italian-input">
-                        <input v-model="novoProd.unC" placeholder="Pede (Cx)" class="italian-input">
+                        <input v-model="novoProd.unQ" placeholder="Conta (ex: Un)" class="italian-input">
+                        <input v-model="novoProd.unC" placeholder="Pede (ex: Cx)" class="italian-input">
                     </div>
                     <div class="row">
-                        <input v-model.number="novoProd.fator" type="number" placeholder="Qtd na Cx" class="italian-input">
+                        <input v-model.number="novoProd.fator" type="number" placeholder="Qtd na Caixa" class="italian-input">
                         <input v-model.number="novoProd.meta" type="number" placeholder="Meta Mínima" class="italian-input">
                     </div>
+                    <label style="font-size:0.8rem;">Quem entrega?</label>
                     <select v-model="novoProd.destinoId" class="italian-input">
-                        <option value="" disabled selected>Quem entrega?</option>
                         <option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option>
                     </select>
-                    <button class="btn-italian-primary" @click="adicionarProduto">Cadastrar</button>
+                    <button class="btn-italian-primary" @click="adicionarProduto">Salvar Produto</button>
                 </div>
 
                 <div class="config-block">
@@ -238,11 +253,15 @@
                         <span>{{ d.nome }}</span> <i class="fas fa-trash" @click="removerDestino(idx)"></i>
                     </div>
                     <div class="row">
-                        <input v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)" class="italian-input">
+                        <input v-model="novoDestino.nome" placeholder="Nome" class="italian-input">
                         <input v-model="novoDestino.telefone" placeholder="WhatsApp (55...)" class="italian-input">
                     </div>
                     <input v-model="novoDestino.msg" placeholder="Msg Padrão (Opcional)" class="italian-input">
                     <button class="btn-italian-secondary" @click="adicionarDestino">Adicionar Contato</button>
+                </div>
+
+                <div class="config-block" v-if="usuarioLogado.permissoes.admin">
+                    <button class="btn-deny full" @click="resetarTudo">Resetar Sistema</button>
                 </div>
 
             </div>
@@ -256,7 +275,7 @@
                 <div v-if="itensParaPedir.length === 0" style="text-align:center; padding:20px;">Nada para pedir neste módulo.</div>
                 
                 <div v-for="(grupo, destId) in pedidosAgrupados" :key="destId" class="order-group">
-                    <h4>Para: {{ getNomeDestino(destId) }}</h4>
+                    <h4><i class="fas fa-motorcycle"></i> Para: {{ getNomeDestino(destId) }}</h4>
                     <ul><li v-for="item in grupo">{{ item.texto }}</li></ul>
                     <button class="btn-whatsapp" @click="enviarZap(destId, grupo)">
                         <i class="fab fa-whatsapp"></i> Enviar Agora
@@ -264,7 +283,11 @@
                 </div>
                 
                 <div class="future-order">
-                    <label><input type="checkbox" v-model="salvarParaSegunda"> Apenas salvar para pedir Segunda-feira?</label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" v-model="salvarParaSegunda">
+                        <span class="checkmark"></span>
+                        <span class="label-text">Apenas adicionar à lista de Segunda-feira?</span>
+                    </label>
                 </div>
             </div>
         </div>
@@ -272,6 +295,6 @@
 
 </div>
 
-<script src="script.js?v=30"></script>
+<script src="script.js?v=31"></script>
 </body>
 </html>
