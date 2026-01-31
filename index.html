@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V38</title>
+    <title>Pizzeria Master V39</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
@@ -11,7 +11,7 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=38">
+    <link rel="stylesheet" href="styles.css?v=39">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -23,13 +23,9 @@
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
 
     <div v-if="loadingInicial" class="loading-screen">
-        <div style="text-align:center">
-            <i class="fas fa-pizza-slice fa-spin" style="font-size:3rem; margin-bottom:20px; display:block;"></i>
-            <p style="font-weight:bold; color:var(--primary);">Carregando...</p>
-            <button onclick="document.getElementById('app').__vue_app__.config.globalProperties.$data.loadingInicial = false" 
-                    style="margin-top:20px; background:transparent; border:1px solid currentColor; padding:10px; border-radius:8px; cursor:pointer; font-size:0.8rem;">
-                Demorando? Clique aqui.
-            </button>
+        <div class="spinner-container">
+            <i class="fas fa-pizza-slice fa-spin"></i>
+            <p>Conectando...</p>
         </div>
     </div>
 
@@ -125,12 +121,28 @@
         <div class="modal-window">
             <div class="modal-top"><h3>Gestão de Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div>
             <div class="modal-content">
-                <div class="config-box">
-                    <h4><i class="fas fa-user-plus"></i> Adicionar Funcionário</h4>
-                    <div class="row"><input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input"><select v-model="novoUserAdmin.cargo" class="full-input"><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div>
-                    <div class="row"><input v-model="novoUserAdmin.user" placeholder="Usuário"><input v-model="novoUserAdmin.pass" placeholder="Senha"></div>
-                    <button class="btn-primary full" @click="adicionarUsuarioAdmin">Cadastrar Direto</button>
+                
+                <div class="config-box" :class="{editing: editandoUsuarioId}">
+                    <h4>
+                        <i class="fas" :class="editandoUsuarioId ? 'fa-user-edit' : 'fa-user-plus'"></i> 
+                        {{ editandoUsuarioId ? 'Editar Funcionário' : 'Novo Funcionário' }}
+                    </h4>
+                    <div class="row">
+                        <input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input">
+                        <select v-model="novoUserAdmin.cargo" class="full-input"><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select>
+                    </div>
+                    <div class="row">
+                        <input v-model="novoUserAdmin.user" placeholder="Usuário">
+                        <input v-model="novoUserAdmin.pass" placeholder="Senha">
+                    </div>
+                    
+                    <div class="row" v-if="editandoUsuarioId">
+                        <button class="btn-primary full" @click="salvarEdicaoUsuario">Salvar Alterações</button>
+                        <button class="btn-secondary full" @click="cancelarEdicaoUsuario">Cancelar</button>
+                    </div>
+                    <button v-else class="btn-primary full" @click="adicionarUsuarioAdmin">Cadastrar</button>
                 </div>
+
                 <div v-if="usuariosPendentes.length > 0" class="pending-list">
                     <h4>Pendentes</h4>
                     <div v-for="(u, idx) in usuariosPendentes" :key="idx" class="user-item pending">
@@ -138,17 +150,39 @@
                         <div class="btns"><button class="btn-ok" @click="aprovarUsuario(u.id)">✔</button><button class="btn-no" @click="removerUsuario(u.id)">✖</button></div>
                     </div>
                 </div>
-                <h4>Membros Ativos</h4>
+
+                <h4>Equipe Ativa</h4>
                 <div v-for="u in usuariosAtivos" :key="u.id" class="user-item">
-                    <div @click="u.expandido = !u.expandido" class="user-head"><strong>{{ u.nome }}</strong> <small class="role-badge">{{ u.cargo }}</small> <i class="fas fa-chevron-down"></i></div>
+                    <div class="user-head">
+                        <div @click="u.expandido = !u.expandido" style="flex:1; cursor:pointer;">
+                            <strong>{{ u.nome }}</strong> <small class="role-badge">{{ u.cargo }}</small>
+                        </div>
+                        <button class="btn-edit" @click="prepararEdicao(u)" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                        <i class="fas fa-chevron-down" @click="u.expandido = !u.expandido"></i>
+                    </div>
                     <div v-if="u.expandido" class="perm-grid">
                         <label><input type="checkbox" v-model="u.permissoes.admin" @change="atualizarPermissao(u)"> Admin</label>
                         <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="atualizarPermissao(u)"> Horti</label>
                         <label><input type="checkbox" v-model="u.permissoes.geral" @change="atualizarPermissao(u)"> Geral</label>
                         <label><input type="checkbox" v-model="u.permissoes.bebidas" @change="atualizarPermissao(u)"> Bebidas</label>
                         <label><input type="checkbox" v-model="u.permissoes.limpeza" @change="atualizarPermissao(u)"> Limpeza</label>
-                        <button class="btn-del" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id">Remover</button>
+                        <button class="btn-del" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id">Excluir</button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" v-if="mostrandoHistorico">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-content">
+                <div v-if="historico.length === 0" class="empty-msg">Vazio.</div>
+                <div v-for="(h, idx) in historico" :key="idx" class="history-card">
+                    <div class="h-header"><span>{{ h.data }} - {{ h.hora }}</span><span class="h-user">{{ h.usuario }}</span></div>
+                    <div class="h-dest">Para: {{ h.destino }}</div>
+                    <div class="h-body">{{ h.itens }}</div>
+                    <button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(idx)">Apagar</button>
                 </div>
             </div>
         </div>
@@ -183,21 +217,6 @@
         </div>
     </div>
 
-    <div class="modal-backdrop" v-if="mostrandoHistorico">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
-            <div class="modal-content">
-                <div v-if="historico.length === 0" class="empty-msg">Vazio.</div>
-                <div v-for="(h, idx) in historico" :key="idx" class="history-card">
-                    <div class="h-header"><span>{{ h.data }}</span><span class="h-user">{{ h.usuario }}</span></div>
-                    <div class="h-dest">Para: {{ h.destino }}</div>
-                    <div class="h-body">{{ h.itens }}</div>
-                    <button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(idx)">Apagar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal-backdrop" v-if="mostrandoPreview">
         <div class="modal-window">
             <div class="modal-top"><h3>Enviar</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div>
@@ -214,6 +233,6 @@
 
 </div>
 
-<script src="script.js?v=38"></script>
+<script src="script.js?v=39"></script>
 </body>
 </html>
