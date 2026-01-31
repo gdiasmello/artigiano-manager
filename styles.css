@@ -92,3 +92,22 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .btn-del-mini { font-size: 0.7rem; color: var(--primary); background: none; border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; margin-top: 5px; cursor: pointer; }
 .animated-up { animation: slideUp 0.4s ease-out; } @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .animated-fade { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* MANTER TODO O CSS ANTERIOR DA V45 E ADICIONAR ISSO NO FINAL: */
+
+.holiday-banner {
+    background: #FEF3C7;
+    color: #D97706;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-weight: 700;
+    text-align: center;
+    border: 1px solid #FCD34D;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
