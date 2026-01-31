@@ -1,4 +1,3 @@
-// FIREBASE CONFIG
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -29,7 +28,7 @@ const app = createApp({
             usuarioLogado: null,
             msgAuth: '', isError: false, loadingAuth: false,
             novoCadastro: { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: 'Pizzaiolo' },
-            // ADMIN ADD/EDIT
+            // ADMIN
             novoUserAdmin: { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' },
             editandoUsuarioId: null,
             // DADOS
@@ -41,7 +40,6 @@ const app = createApp({
             moduloAtivo: null,
             termoBusca: '',
             mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            // FORMS
             novoProd: { nome: '', categoria: 'geral', local: 'Estoque Seco', unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '' },
             novoDestino: { nome: '', telefone: '', msg: '' },
             novoLocal: '',
@@ -87,20 +85,21 @@ const app = createApp({
             localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light');
         },
         
-        // --- AUTH ---
+        // --- AUTH E LOGIN ROBUSTO ---
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
             setTimeout(() => {
-                // MESTRE GABRIEL
+                // LOGIN MESTRE (Garante existência)
                 if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
                     let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
                     if (!adminUser) {
                         adminUser = {
-                            id: Date.now(), nome: 'Gabriel', cargo: 'Gerente', email: 'admin@artigiano.com',
+                            id: 'gabriel_admin', // ID fixo para o master
+                            nome: 'Gabriel', cargo: 'Gerente', email: 'admin@artigiano.com',
                             user: 'Gabriel', pass: '21gabriel', aprovado: true,
                             permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
                         };
-                        this.salvarUnicoUsuario(adminUser);
+                        this.salvarUsuarioIndividual(adminUser);
                     }
                     this.logar(adminUser); return;
                 }
@@ -120,96 +119,96 @@ const app = createApp({
         solicitarCadastro() {
             if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) { this.msgAuth = "Preencha tudo."; this.isError = true; return; }
             const novoUser = {
-                id: Date.now(), ...this.novoCadastro, aprovado: false,
+                id: Date.now().toString(), // ID String para chave
+                ...this.novoCadastro, aprovado: false,
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
             };
-            this.salvarUnicoUsuario(novoUser);
+            this.salvarUsuarioIndividual(novoUser);
             this.msgAuth = "Enviado! Aguarde aprovação."; this.isError = false; this.authMode = 'login';
             this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: 'Pizzaiolo' };
         },
+
+        // --- GESTÃO DE USUÁRIOS (SINC V40) ---
+        // Salva SOMENTE o usuário modificado, sem quebrar a lista
+        salvarUsuarioIndividual(user) {
+            if(db) db.ref('usuarios/' + user.id).set(user);
+        },
         
-        // --- ADMIN USERS (V39 - Com Edição e Sincronia) ---
         adicionarUsuarioAdmin() {
             if (!this.novoUserAdmin.nome || !this.novoUserAdmin.user) return alert("Preencha Nome e Usuário");
             const novo = {
-                id: Date.now(), ...this.novoUserAdmin, aprovado: true,
+                id: Date.now().toString(),
+                ...this.novoUserAdmin, aprovado: true,
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: true, limpeza: true }
             };
-            this.salvarUnicoUsuario(novo); // FORÇA SYNC
+            this.salvarUsuarioIndividual(novo);
             this.novoUserAdmin = { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' };
             alert("Usuário adicionado!");
         },
         prepararEdicao(u) {
-            this.novoUserAdmin = { ...u }; // Copia dados
+            this.novoUserAdmin = { ...u };
             this.editandoUsuarioId = u.id;
         },
         salvarEdicaoUsuario() {
-            const idx = this.usuarios.findIndex(u => u.id === this.editandoUsuarioId);
-            if (idx !== -1) {
-                const userAtualizado = { ...this.usuarios[idx], ...this.novoUserAdmin };
-                // Atualiza local e Firebase
-                this.usuarios[idx] = userAtualizado;
-                if(db) db.ref('usuarios').set(this.usuarios); // Atualiza lista inteira para garantir consistência
-                
+            if (this.editandoUsuarioId) {
+                // Mantém as permissões antigas se não forem editadas aqui
+                const original = this.usuarios.find(u => u.id === this.editandoUsuarioId);
+                const atualizado = { ...original, ...this.novoUserAdmin };
+                this.salvarUsuarioIndividual(atualizado);
                 this.cancelarEdicaoUsuario();
-                alert("Alterações salvas!");
+                alert("Salvo com sucesso!");
             }
         },
         cancelarEdicaoUsuario() {
             this.editandoUsuarioId = null;
             this.novoUserAdmin = { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' };
         },
-        
-        // MÉTODO DE SEGURANÇA PARA SALVAR USUÁRIO SEM PERDER DADOS
-        salvarUnicoUsuario(user) {
-            if(db) {
-                db.ref('usuarios').once('value', snap => {
-                    let lista = snap.val() || [];
-                    if (!Array.isArray(lista)) lista = Object.values(lista);
-                    // Se for edição/update
-                    const existe = lista.findIndex(u => u.id === user.id);
-                    if (existe !== -1) lista[existe] = user;
-                    else lista.push(user);
-                    
-                    db.ref('usuarios').set(lista);
-                });
+        aprovarUsuario(u) {
+            const userAprovado = { ...u, aprovado: true };
+            this.salvarUsuarioIndividual(userAprovado);
+        },
+        removerUsuario(id) {
+            if(confirm("Remover usuário?")) {
+                if(db) db.ref('usuarios/' + id).remove();
             }
         },
 
+        // --- PRODUTOS (SYNC INDIVIDUAL) ---
+        salvarProdutoIndividual(p) {
+            if(db) db.ref('produtos/' + p.id).set(p);
+        },
+        toggleIgnorar(p) { 
+            p.ignorar = !p.ignorar; 
+            if(p.ignorar) p.contagem = ''; 
+            this.salvarProdutoIndividual(p); 
+        },
+        adicionarProduto() {
+            if(!this.novoProd.nome) return alert("Nome obrigatório");
+            const novo = { id: Date.now().toString(), ...this.novoProd, contagem: '', ignorar: false };
+            this.salvarProdutoIndividual(novo);
+            alert("Produto salvo!"); this.novoProd.nome = '';
+        },
+
+        // --- GERAL ---
         logout() {
             this.sessaoAtiva = false; this.usuarioLogado = null;
             localStorage.removeItem('artigiano_session'); this.loginPass = '';
         },
-
-        // --- SISTEMA ---
         abrirModulo(mod) { this.moduloAtivo = mod; this.termoBusca = ''; },
         podeAcessar(perm) { return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
         
-        aprovarUsuario(id) {
-            const u = this.usuarios.find(x => x.id === id);
-            if(u) { u.aprovado = true; this.salvarUnicoUsuario(u); }
+        calculaFalta(p) {
+            if (!p.contagem && p.contagem !== 0) return { qtd: 0 };
+            const fator = p.fator || 1;
+            const estoqueCompra = p.unQ !== p.unC ? p.contagem / fator : p.contagem * fator;
+            const falta = p.meta - estoqueCompra;
+            return { qtd: Math.ceil(falta) };
         },
-        removerUsuario(id) {
-            if(confirm("Remover usuário?")) {
-                const lista = this.usuarios.filter(x => x.id !== id);
-                if(db) db.ref('usuarios').set(lista);
-            }
+        statusItem(p) {
+            if (p.ignorar) return 'ignored';
+            if (p.contagem === '' || p.contagem === undefined) return 'pending';
+            return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok';
         },
-        atualizarPermissao(user) { if(db) db.ref('usuarios').set(this.usuarios); },
-        salvarProduto(p) { if(db) db.ref('produtos').set(this.produtos); },
-        
-        // ... (Calcula Falta e Status Item Iguais V38) ...
-        calculaFalta(p) { if (!p.contagem && p.contagem !== 0) return { qtd: 0 }; const fator = p.fator || 1; const estoqueCompra = p.unQ !== p.unC ? p.contagem / fator : p.contagem * fator; const falta = p.meta - estoqueCompra; return { qtd: Math.ceil(falta) }; },
-        statusItem(p) { if (p.ignorar) return 'ignored'; if (p.contagem === '' || p.contagem === undefined) return 'pending'; return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok'; },
-        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarProduto(p); },
-
-        adicionarProduto() {
-            if(!this.novoProd.nome) return alert("Nome obrigatório");
-            this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false });
-            if(db) db.ref('produtos').set(this.produtos);
-            alert("Produto salvo!"); this.novoProd.nome = '';
-        },
-        
         enviarZap(destId, itens) {
             const dest = this.config.destinos.find(d => d.id == destId);
             const tel = dest ? dest.telefone : '';
@@ -238,21 +237,21 @@ const app = createApp({
                 db.ref('/').on('value', snap => {
                     const d = snap.val();
                     if(d) {
-                        // CONVERTE SEMPRE PARA ARRAY PARA EVITAR BUGS
-                        this.usuarios = d.usuarios ? (Array.isArray(d.usuarios) ? d.usuarios : Object.values(d.usuarios)) : [];
-                        this.produtos = d.produtos ? (Array.isArray(d.produtos) ? d.produtos : Object.values(d.produtos)) : [];
+                        // CONVERTE OBJETOS DO FIREBASE PARA ARRAY LOCAL
+                        this.usuarios = d.usuarios ? Object.values(d.usuarios) : [];
+                        this.produtos = d.produtos ? Object.values(d.produtos) : [];
+                        
                         this.config = d.config || { destinos: [], rota: ['Geral'] };
                         this.historico = d.historico || [];
                         if(!this.config.rota) this.config.rota = ['Geral'];
 
                         if(this.usuarioLogado) {
-                            // ATUALIZAÇÃO EM TEMPO REAL DO STATUS
                             const u = this.usuarios.find(x => x.id === this.usuarioLogado.id);
                             if(u) { 
                                 this.usuarioLogado = u; 
                                 localStorage.setItem('artigiano_session', JSON.stringify(u)); 
                             } else {
-                                this.logout(); // Se foi excluído por outro admin
+                                this.logout(); 
                             }
                         }
                     }
@@ -263,9 +262,7 @@ const app = createApp({
         resetarTudo() { if(confirm("Isso apaga TUDO. Certeza?")) { if(db) db.ref('/').remove(); localStorage.clear(); window.location.reload(); } }
     },
     mounted() {
-        // CORREÇÃO DO LOADING
         setTimeout(() => { if(this.loadingInicial) this.loadingInicial = false; }, 3000);
-        
         const session = localStorage.getItem('artigiano_session');
         if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
         const theme = localStorage.getItem('artigiano_theme');
