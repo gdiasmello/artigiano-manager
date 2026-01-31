@@ -1,249 +1,241 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
-    authDomain: "artigiano-app.firebaseapp.com",
-    databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
-    projectId: "artigiano-app",
-    storageBucket: "artigiano-app.firebasestorage.app",
-    messagingSenderId: "212218495726",
-    appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
-};
-
-let db;
-try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-} catch (e) { console.error("Erro Firebase", e); }
-
 const { createApp } = Vue
 
 const app = createApp({
     data() {
         return {
-            temaEscuro: false,
-            // AUTH
-            authMode: 'login',
-            loginUser: '', loginPass: '',
-            sessaoAtiva: false,
-            usuarioLogado: null,
-            msgAuth: '', isError: false, loadingAuth: false,
+            // UI
+            mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            temaEscuro: false, termoBusca: '', observacaoExtra: '',
             
-            // CADASTRO
-            novoCadastro: { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' },
-            
-            // DADOS SISTEMA
-            usuarios: [],
-            config: { destinos: [], rota: ['Freezer', 'Geladeira', 'Estoque Seco'] },
+            // DADOS (Valores Padrão)
+            config: { 
+                nomeEmpresa: 'Artigiano', 
+                telefone: '',
+                rota: ['Geladeira', 'Estoque Seco', 'Freezer'],
+                fornecedores: []
+            },
             produtos: [],
+            historico: [],
             
-            // APP
-            moduloAtivo: null,
-            termoBusca: '',
-            mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false,
-            
-            // FORMS
-            novoProd: { nome: '', categoria: 'geral', local: 'Estoque Seco', unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '' },
-            novoDestino: { nome: '', telefone: '', msg: '' },
-            novoLocal: '',
-            salvarParaSegunda: false
+            // TEMPS
+            novoProd: { nome: '', setor: '', unQ: '', unC: '', fator: 1, meta: 0, fornecedorId: '' },
+            novoFornecedor: { nome: '', telefone: '' },
+            editandoId: null,
+            novoLocal: ''
         }
     },
     computed: {
-        usuariosPendentes() { return this.usuarios.filter(u => u.aprovado === false); },
-        usuariosAtivos() { return this.usuarios.filter(u => u.aprovado === true); },
-        pendentesCount() { return this.usuariosPendentes.length; },
-        nomeModulo() {
-            const nomes = { hortifruti: 'Hortifruti & Feira', geral: 'Geral & Insumos', bebidas: 'Bebidas', limpeza: 'Limpeza' };
-            return nomes[this.moduloAtivo] || '';
+        rotaExibicao() { 
+            const rotas = (this.config && Array.isArray(this.config.rota)) ? this.config.rota : ['Geral'];
+            const setoresUsados = [...new Set(this.produtos.map(p => p.setor))];
+            const orfaos = setoresUsados.filter(s => !rotas.includes(s));
+            return [...rotas, ...orfaos];
         },
-        produtosFiltrados() {
-            if (!this.moduloAtivo) return [];
-            return this.produtos.filter(p => {
-                const matchBusca = this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true;
-                const matchModulo = p.categoria === this.moduloAtivo;
-                return matchBusca && matchModulo;
-            });
-        },
-        // USA A ROTA PERSONALIZADA DA CONFIG
-        locaisDoModulo() { 
-            const rotaDefinida = this.config.rota || ['Geral'];
-            // Filtra apenas os locais que tem produtos E estão na rota, mantendo a ordem da rota
-            return rotaDefinida.filter(local => this.produtosFiltrados.some(p => p.local === local));
-        },
-        produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.local === local); },
-        itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
-        pedidosAgrupados() {
+        produtosVisiveisPorLocal() {
             const grupos = {};
-            this.itensParaPedir.forEach(p => {
-                const calc = this.calculaFalta(p);
-                const dId = p.destinoId || 'geral';
-                if (!grupos[dId]) grupos[dId] = [];
-                grupos[dId].push({ texto: `- ${calc.qtd} ${p.unC} ${p.nome}` });
+            const termo = this.termoBusca ? this.termoBusca.toLowerCase() : '';
+            this.produtos.forEach(p => {
+                if(termo && !p.nome.toLowerCase().includes(termo)) return;
+                const setor = p.setor || 'Geral';
+                if(!grupos[setor]) grupos[setor] = [];
+                grupos[setor].push(p);
             });
             return grupos;
-        }
+        },
+        itensContados() { return this.produtos.filter(p => p.contagem !== '' || p.ignorar).length; },
+        percentualConcluido() { return this.produtos.length === 0 ? 0 : (this.itensContados / this.produtos.length) * 100; },
+        
+        pedidosPorFornecedor() {
+            const grupos = {};
+            this.produtos.forEach(p => {
+                const qtdFalta = this.calculaFalta(p);
+                if (!p.ignorar && p.contagem !== '' && qtdFalta > 0) {
+                    const fId = p.fornecedorId || 'geral';
+                    if (!grupos[fId]) grupos[fId] = [];
+                    
+                    let linha = `- ${qtdFalta} ${p.unC || 'un'} de ${p.nome}`;
+                    if(p.obs) linha += ` (${p.obs})`;
+                    
+                    grupos[fId].push({ texto: linha, produto: p });
+                }
+            });
+            return grupos;
+        },
+        
+        dadosExportacao() { return JSON.stringify({ produtos: this.produtos, config: this.config }); }
     },
     methods: {
-        alternarTema() {
-            this.temaEscuro = !this.temaEscuro;
-            localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light');
-        },
+        // --- UX ---
+        toggleConfig() { this.mostrandoConfig = !this.mostrandoConfig; },
+        toggleHistorico() { this.mostrandoHistorico = !this.mostrandoHistorico; },
+        abrirPreview() { this.mostrandoPreview = true; },
+        alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_tema', this.temaEscuro); },
         
-        // --- AUTH ---
-        fazerLogin() {
-            this.loadingAuth = true; this.msgAuth = '';
-            setTimeout(() => {
-                if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
-                    let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
-                    if (!adminUser) {
-                        adminUser = {
-                            id: Date.now(), nome: 'Gabriel', cargo: 'Gerente', email: 'admin@artigiano.com',
-                            user: 'Gabriel', pass: '21gabriel', aprovado: true,
-                            permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
-                        };
-                        if(db) db.ref('usuarios').set([...this.usuarios, adminUser]);
-                        this.usuarios.push(adminUser);
-                    }
-                    this.logar(adminUser); return;
-                }
-                const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
-                if (user) {
-                    if (user.aprovado) this.logar(user);
-                    else { this.msgAuth = "Aguardando aprovação."; this.isError = true; this.loadingAuth = false; }
-                } else { this.msgAuth = "Dados incorretos."; this.isError = true; this.loadingAuth = false; }
-            }, 500);
-        },
-        logar(user) {
-            this.usuarioLogado = user; this.sessaoAtiva = true;
-            localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false;
-        },
-        solicitarCadastro() {
-            if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) { this.msgAuth = "Preencha tudo."; this.isError = true; return; }
-            const novoUser = {
-                id: Date.now(), ...this.novoCadastro, aprovado: false,
-                permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
-            };
-            if(db) db.ref('usuarios').set([...this.usuarios, novoUser]);
-            this.msgAuth = "Enviado! Aguarde aprovação."; this.isError = false; this.authMode = 'login';
-            this.novoCadastro = { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' };
-        },
-        logout() {
-            this.sessaoAtiva = false; this.usuarioLogado = null;
-            localStorage.removeItem('artigiano_session'); this.loginPass = '';
-        },
-
-        // --- SISTEMA ---
-        abrirModulo(mod) { this.moduloAtivo = mod; this.termoBusca = ''; },
-        podeAcessar(perm) { return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
-        
-        aprovarUsuario(id) {
-            const index = this.usuarios.findIndex(u => u.id === id);
-            if(index !== -1) { this.usuarios[index].aprovado = true; this.salvarDb(); }
-        },
-        removerUsuario(id) {
-            if(confirm("Remover usuário?")) {
-                const index = this.usuarios.findIndex(u => u.id === id);
-                this.usuarios.splice(index, 1); this.salvarDb();
-            }
-        },
-
-        // --- GESTÃO DE ROTA (NOVO) ---
-        adicionarLocal() {
-            if(this.novoLocal && !this.config.rota.includes(this.novoLocal)) {
-                this.config.rota.push(this.novoLocal);
-                this.novoLocal = '';
-                this.salvarDb();
-            }
-        },
-        removerLocal(idx) {
-            if(confirm("Remover local?")) {
-                this.config.rota.splice(idx, 1);
-                this.salvarDb();
-            }
-        },
-        moverRota(index, direction) {
-            if (direction === -1 && index > 0) {
-                [this.config.rota[index], this.config.rota[index - 1]] = [this.config.rota[index - 1], this.config.rota[index]];
-            } else if (direction === 1 && index < this.config.rota.length - 1) {
-                [this.config.rota[index], this.config.rota[index + 1]] = [this.config.rota[index + 1], this.config.rota[index]];
-            }
-            this.salvarDb();
-        },
-
-        calculaFalta(p) {
-            if (!p.contagem && p.contagem !== 0) return { qtd: 0 };
-            const fator = p.fator || 1;
-            const estoqueCompra = p.unQ !== p.unC ? p.contagem / fator : p.contagem * fator;
-            const falta = p.meta - estoqueCompra;
-            return { qtd: Math.ceil(falta) };
-        },
-        statusItem(p) {
-            if (p.ignorar) return 'ignored';
-            if (p.contagem === '' || p.contagem === undefined) return 'pending';
-            return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok';
-        },
-        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarDb(); },
-        
-        adicionarProduto() {
-            if(!this.novoProd.nome) return alert("Nome obrigatório");
-            this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false });
-            this.salvarDb(); alert("Produto salvo!"); this.novoProd.nome = '';
-        },
-        
-        enviarZap(destId, itens) {
-            const dest = this.config.destinos.find(d => d.id == destId);
-            const tel = dest ? dest.telefone : '';
-            let msg = this.salvarParaSegunda ? "*LISTA DE SEGUNDA-FEIRA*\n" : "*PEDIDO ARTIGIANO*\n";
-            msg += `Solicitante: ${this.usuarioLogado.nome}\n---\n`;
-            itens.forEach(i => msg += i.texto + '\n');
-            window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
-        },
-
-        adicionarDestino() {
-            if(this.novoDestino.nome) {
-                if(!this.config.destinos) this.config.destinos = [];
-                this.config.destinos.push({ id: Date.now(), ...this.novoDestino });
-                this.salvarDb(); this.novoDestino = { nome: '', telefone: '', msg: '' };
-            }
-        },
-        removerDestino(idx) { this.config.destinos.splice(idx, 1); this.salvarDb(); },
-        getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
-
-        salvarDb() { if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config }); },
-        carregarDb() {
-            if(db) {
-                db.ref('/').on('value', snap => {
-                    const d = snap.val();
-                    if(d) {
-                        this.usuarios = d.usuarios ? (Array.isArray(d.usuarios) ? d.usuarios : Object.values(d.usuarios)) : [];
-                        this.produtos = d.produtos ? (Array.isArray(d.produtos) ? d.produtos : Object.values(d.produtos)) : [];
-                        this.config = d.config || { destinos: [], rota: ['Geral'] };
-                        
-                        // Garante que rota seja array
-                        if(!this.config.rota) this.config.rota = ['Geral'];
-
-                        if(this.usuarioLogado) {
-                            const u = this.usuarios.find(x => x.id === this.usuarioLogado.id);
-                            if(u) this.usuarioLogado = u; else this.logout();
-                        }
-                    }
-                });
-            }
-        },
         resetarTudo() {
-            if(confirm("Isso apaga TUDO. Certeza?")) {
-                if(db) db.ref('/').remove();
+            if(confirm("ATENÇÃO: Isso vai apagar todos os produtos e configurações para corrigir erros. Continuar?")) {
                 localStorage.clear();
                 window.location.reload();
             }
+        },
+
+        // --- FORNECEDORES ---
+        getNomeFornecedor(id) {
+            if(id === 'geral' || !this.config.fornecedores) return 'Geral';
+            const f = this.config.fornecedores.find(x => x.id === id);
+            return f ? f.nome : 'Geral';
+        },
+        getTelefoneFornecedor(id) {
+            if(!this.config.fornecedores) return '';
+            const f = this.config.fornecedores.find(x => x.id === id);
+            return f ? f.telefone : '';
+        },
+        adicionarFornecedor() {
+            if(this.novoFornecedor.nome) {
+                if(!Array.isArray(this.config.fornecedores)) this.config.fornecedores = [];
+                this.config.fornecedores.push({ id: Date.now(), nome: this.novoFornecedor.nome, telefone: this.novoFornecedor.telefone });
+                this.novoFornecedor = { nome: '', telefone: '' };
+                this.salvar();
+            }
+        },
+        removerFornecedor(idx) {
+            if(confirm("Remover fornecedor?")) {
+                this.config.fornecedores.splice(idx, 1);
+                this.salvar();
+            }
+        },
+
+        // --- CORE ---
+        calculaFalta(p) {
+            if (p.ignorar || p.contagem === '') return 0;
+            const fator = (p.fator && !isNaN(p.fator) && p.fator > 0) ? Number(p.fator) : 1;
+            let estoqueConvertido = 0;
+            const contagem = Number(p.contagem) || 0;
+            
+            if (p.unQ && p.unC && p.unQ !== p.unC && fator > 1) {
+                 estoqueConvertido = contagem / fator;
+            } else {
+                 estoqueConvertido = contagem * fator;
+            }
+            const falta = (Number(p.meta) || 0) - estoqueConvertido;
+            return falta > 0 ? parseFloat(falta.toFixed(2)) : 0;
+        },
+        
+        adicionarProduto() { 
+            if(!this.novoProd.nome || !this.novoProd.setor) return alert('Preencha Nome e Local');
+            this.produtos.push({ id: Date.now(), ...this.novoProd, contagem: '', ignorar: false, obs: '' }); 
+            const ultSetor = this.novoProd.setor;
+            const ultForn = this.novoProd.fornecedorId;
+            this.novoProd={nome:'', setor: ultSetor, unQ:'', unC:'', fator:1, meta:0, fornecedorId: ultForn}; 
+            this.salvar(); 
+            alert('Salvo!'); 
+        },
+        editarProduto(p) {
+            this.novoProd = { ...p };
+            this.editandoId = p.id;
+            this.mostrandoConfig = true;
+        },
+        salvarEdicao() {
+            const index = this.produtos.findIndex(p => p.id === this.editandoId);
+            if(index !== -1) {
+                this.produtos[index] = { ...this.produtos[index], ...this.novoProd };
+                this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0, fornecedorId: ''}; 
+                this.editandoId = null;
+                this.salvar();
+                alert('Atualizado!');
+            }
+        },
+        cancelarEdicao() {
+            this.editandoId = null;
+            this.novoProd={nome:'', setor: '', unQ:'', unC:'', fator:1, meta:0}; 
+        },
+        
+        // --- WHATSAPP ---
+        enviarWhatsApp(fornecedorId, itens) {
+            const nomeForn = this.getNomeFornecedor(fornecedorId);
+            const telForn = this.getTelefoneFornecedor(fornecedorId);
+            
+            let msg = `*PEDIDO ${this.config.nomeEmpresa} (${nomeForn})*\n`;
+            msg += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
+            msg += `----------------\n`;
+            itens.forEach(i => msg += i.texto + '\n');
+            if(this.observacaoExtra) msg += `\nOBS: ${this.observacaoExtra}`;
+
+            this.historico.unshift({
+                data: new Date().toLocaleString('pt-BR'),
+                fornecedor: nomeForn,
+                resumo: `${itens.length} itens.`
+            });
+            if(this.historico.length > 50) this.historico.pop();
+            this.salvar();
+
+            const numeroFinal = telForn || this.config.telefone || ''; 
+            window.open(`https://wa.me/${numeroFinal}?text=${encodeURIComponent(msg)}`, '_blank');
+        },
+        apagarHistorico(index) {
+            if(confirm("Apagar?")) {
+                this.historico.splice(index, 1);
+                this.salvar();
+            }
+        },
+
+        // --- UX ---
+        toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) { p.contagem = ''; p.obs = ''; } this.salvar(); },
+        focarInput(id) { setTimeout(() => { const el = document.getElementById('input-'+id); if(el) el.focus(); }, 100); },
+        moverRota(index, direcao) {
+            const novaRota = [...this.config.rota];
+            if (direcao === -1 && index > 0) [novaRota[index], novaRota[index - 1]] = [novaRota[index - 1], novaRota[index]];
+            else if (direcao === 1 && index < novaRota.length - 1) [novaRota[index], novaRota[index + 1]] = [novaRota[index + 1], novaRota[index]];
+            this.config.rota = novaRota;
+            this.salvar();
+        },
+        adicionarLocal() { if(this.novoLocal && !this.config.rota.includes(this.novoLocal)){ this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvar(); } },
+
+        // --- PERSISTÊNCIA SEGURA ---
+        salvar() { 
+            try {
+                localStorage.setItem('artigiano_v15_nolock', JSON.stringify({ produtos: this.produtos, config: this.config, historico: this.historico })); 
+            } catch(e) { console.error("Erro ao salvar", e); }
+        },
+        carregar() {
+            try {
+                // Tenta carregar a versão sem login
+                let s = localStorage.getItem('artigiano_v15_nolock');
+                
+                // Se não tem, tenta as antigas
+                if (!s) s = localStorage.getItem('artigiano_v14_fix') || localStorage.getItem('artigiano_v14') || localStorage.getItem('artigiano_v13');
+
+                if (s) {
+                    const d = JSON.parse(s);
+                    this.produtos = Array.isArray(d.produtos) ? d.produtos : [];
+                    this.historico = Array.isArray(d.historico) ? d.historico : [];
+                    const cfg = d.config || {};
+                    
+                    this.config = {
+                        nomeEmpresa: cfg.nomeEmpresa || 'Artigiano',
+                        telefone: cfg.telefone || '',
+                        rota: (Array.isArray(cfg.rota) && cfg.rota.length > 0) ? cfg.rota : ['Geral'],
+                        fornecedores: Array.isArray(cfg.fornecedores) ? cfg.fornecedores : []
+                    };
+                }
+                this.temaEscuro = localStorage.getItem('artigiano_tema') === 'true';
+            } catch(e) {
+                console.error("Erro ao carregar, resetando...", e);
+            }
+        },
+        importarDados() { 
+            try { 
+                localStorage.setItem('artigiano_v15_nolock', document.querySelector('textarea').value); 
+                this.carregar(); 
+                alert('Importado!'); this.mostrandoConfig = false; 
+            } catch(e){ alert('Erro.'); } 
         }
     },
-    mounted() {
-        const session = localStorage.getItem('artigiano_session');
-        if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
-        const theme = localStorage.getItem('artigiano_theme');
-        if(theme === 'dark') this.temaEscuro = true;
-        this.carregarDb();
-    }
+    mounted() { this.carregar(); }
 });
+
+app.config.errorHandler = (err) => {
+    console.error("Erro Vue:", err);
+    // Recuperação silenciosa para não travar
+};
 
 app.mount('#app');
