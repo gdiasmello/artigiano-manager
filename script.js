@@ -1,4 +1,4 @@
-// --- CONFIGURAÇÃO FIREBASE (SUA CHAVE) ---
+// --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBIvH07JfRhuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -26,7 +26,7 @@ const app = createApp({
             loginUser: '', loginPass: '',
             sessaoAtiva: false,
             usuarioLogado: null,
-            msgAuth: '', isError: false,
+            msgAuth: '', isError: false, loadingAuth: false,
             
             // CADASTRO
             novoCadastro: { nome: '', nascimento: '', email: '', user: '', pass: '', cargo: '' },
@@ -82,39 +82,52 @@ const app = createApp({
             this.temaEscuro = !this.temaEscuro;
             localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light');
         },
-        // --- AUTH & LOGIN GABRIEL ---
+        
+        // --- LOGIN SEGURO V33 ---
         fazerLogin() {
-            // LOGIN MESTRE GABRIEL (Cria usuário se não existir)
-            if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
-                let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
-                if (!adminUser) {
-                    adminUser = {
-                        id: Date.now(), nome: 'Gabriel', cargo: 'Gerente', email: 'gabriel@artigiano.com',
-                        user: 'Gabriel', pass: '21gabriel', aprovado: true,
-                        permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
-                    };
-                    const novaLista = [...this.usuarios, adminUser];
-                    if(db) db.ref('usuarios').set(novaLista);
+            this.loadingAuth = true;
+            this.msgAuth = '';
+            
+            setTimeout(() => {
+                // LOGIN MESTRE (HARDCODED) - FUNCIONA SEMPRE
+                if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
+                    // Garante que o admin exista no banco
+                    let adminUser = this.usuarios.find(u => u.user === 'Gabriel');
+                    if (!adminUser) {
+                        adminUser = {
+                            id: Date.now(), nome: 'Gabriel', cargo: 'Gerente', email: 'admin@artigiano.com',
+                            user: 'Gabriel', pass: '21gabriel', aprovado: true,
+                            permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
+                        };
+                        const novaLista = [...this.usuarios, adminUser];
+                        if(db) db.ref('usuarios').set(novaLista);
+                        this.usuarios.push(adminUser); // Atualiza localmente
+                    }
+                    this.logar(adminUser);
+                    return;
                 }
-                this.usuarioLogado = adminUser;
-                this.sessaoAtiva = true;
-                localStorage.setItem('artigiano_session', JSON.stringify(adminUser));
-                return;
-            }
 
-            const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
-            if (user) {
-                if (user.aprovado) {
-                    this.usuarioLogado = user;
-                    this.sessaoAtiva = true;
-                    localStorage.setItem('artigiano_session', JSON.stringify(user));
+                // LOGIN NORMAL
+                const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
+                if (user) {
+                    if (user.aprovado) {
+                        this.logar(user);
+                    } else {
+                        this.msgAuth = "Aguardando aprovação do Admin."; this.isError = true; this.loadingAuth = false;
+                    }
                 } else {
-                    this.msgAuth = "Aguardando aprovação do Admin."; this.isError = true;
+                    this.msgAuth = "Usuário ou senha incorretos."; this.isError = true; this.loadingAuth = false;
                 }
-            } else {
-                this.msgAuth = "Dados incorretos."; this.isError = true;
-            }
+            }, 500); // Pequeno delay para feedback visual
         },
+        
+        logar(user) {
+            this.usuarioLogado = user;
+            this.sessaoAtiva = true;
+            localStorage.setItem('artigiano_session', JSON.stringify(user));
+            this.loadingAuth = false;
+        },
+
         solicitarCadastro() {
             if (!this.novoCadastro.nome || !this.novoCadastro.user || !this.novoCadastro.pass) {
                 this.msgAuth = "Preencha tudo."; this.isError = true; return;
@@ -122,7 +135,7 @@ const app = createApp({
             const novoUser = {
                 id: Date.now(),
                 ...this.novoCadastro,
-                aprovado: false, // Requer aprovação
+                aprovado: false, // Precisa aprovação
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: true }
             };
             if(db) {
@@ -162,7 +175,7 @@ const app = createApp({
         },
         statusItem(p) {
             if (p.ignorar) return 'ignored';
-            if (p.contagem === '') return 'pending';
+            if (p.contagem === '' || p.contagem === undefined) return 'pending';
             return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok';
         },
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem = ''; this.salvarDb(); },
@@ -193,13 +206,17 @@ const app = createApp({
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
 
         salvarDb() { if(db) db.ref('/').update({ usuarios: this.usuarios, produtos: this.produtos, config: this.config }); },
+        
+        // --- CORREÇÃO DO TRAVAMENTO V33 ---
         carregarDb() {
             if(db) {
                 db.ref('/').on('value', snap => {
                     const d = snap.val();
                     if(d) {
-                        this.usuarios = d.usuarios || [];
-                        this.produtos = d.produtos || [];
+                        // CONVERTE OBJETO FIREBASE EM ARRAY (SEGURANÇA CONTRA TRAVAMENTO)
+                        this.usuarios = d.usuarios ? (Array.isArray(d.usuarios) ? d.usuarios : Object.values(d.usuarios)) : [];
+                        this.produtos = d.produtos ? (Array.isArray(d.produtos) ? d.produtos : Object.values(d.produtos)) : [];
+                        
                         this.config = d.config || { destinos: [] };
                         if(this.usuarioLogado) {
                             const u = this.usuarios.find(x => x.id === this.usuarioLogado.id);
@@ -210,7 +227,7 @@ const app = createApp({
             }
         },
         resetarTudo() {
-            if(confirm("ATENÇÃO: Isso apaga todo o banco de dados. Continuar?")) {
+            if(confirm("Isso apaga TUDO. Certeza?")) {
                 if(db) db.ref('/').remove();
                 localStorage.clear();
                 window.location.reload();
@@ -226,4 +243,4 @@ const app = createApp({
     }
 });
 
-createApp(app).mount('#app');
+app.mount('#app');
