@@ -47,6 +47,30 @@ const app = createApp({
         }
     },
     methods: {
+        // --- IMPORTAR CONTATO (API NATIVA DO CELULAR) ---
+        async importarContatoDoCelular() {
+            const suportado = 'contacts' in navigator && 'ContactsManager' in window;
+            if (suportado) {
+                try {
+                    const props = ['name', 'tel'];
+                    const opts = { multiple: false };
+                    const contacts = await navigator.contacts.select(props, opts);
+                    if (contacts[0]) {
+                        this.novoDestino.nome = contacts[0].name[0];
+                        // Limpa o número (remove traços, parenteses, espaços)
+                        let tel = contacts[0].tel[0].replace(/\D/g,'');
+                        // Tenta garantir DDI do Brasil se faltar
+                        if(tel.length >= 10 && tel.length <= 11) tel = '55' + tel;
+                        this.novoDestino.telefone = tel;
+                    }
+                } catch (ex) {
+                    alert("Seleção cancelada ou erro.");
+                }
+            } else {
+                alert("Seu navegador não suporta importação direta. Digite manualmente.");
+            }
+        },
+
         // --- HELP SYSTEM ---
         abrirAjuda() {
             if (this.mostrandoAdmin) {
@@ -74,7 +98,6 @@ const app = createApp({
             this.loadingAuth = true; this.msgAuth = '';
             setTimeout(() => {
                 const li = this.loginUser.trim().toLowerCase(); const pi = this.loginPass.trim();
-                // MASTER GABRIEL = ADMIN
                 if (li === 'gabriel' && pi === '21gabriel') {
                     const u = this.usuarios.find(x => x.user.toLowerCase() === 'gabriel') || { id: 'admin_gabriel_master', nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true, permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true } };
                     this.salvarUsuarioUnitario(u); this.logar(u); return;

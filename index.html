@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V47</title>
+    <title>Pizzeria Master V48</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=47">
+    <link rel="stylesheet" href="styles.css?v=48">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -17,30 +17,8 @@
 
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
 
-    <div v-if="mostrandoAjuda" class="modal-backdrop help-modal">
-        <div class="modal-window">
-            <div class="modal-top"><h3><i class="fas fa-question-circle"></i> Ajuda: {{ tituloAjuda }}</h3></div>
-            <div class="modal-content help-content">
-                <p v-html="textoAjuda"></p>
-                <button class="btn-primary full" @click="mostrandoAjuda = false">Entendi</button>
-            </div>
-        </div>
-    </div>
-
-    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal">
-        <div class="modal-window large">
-            <div class="modal-top"><h3>Termos de Uso</h3></div>
-            <div class="modal-content terms-content">
-                <p class="terms-intro">Uso profissional do <strong>Artigiano Manager</strong>.</p>
-                <div class="terms-text">
-                    <h4>1. ACESSO</h4><ul><li>Uso exclusivo para colaboradores autorizados.</li><li>O acesso é revogável a qualquer momento.</li></ul>
-                    <h4>2. RESPONSABILIDADE</h4><ul><li>O sistema sugere quantidades baseadas na meta.</li><li>A conferência final é humana.</li></ul>
-                    <h4>3. PRIVACIDADE</h4><ul><li>Dados usados apenas para operação interna.</li></ul>
-                </div>
-                <button class="btn-primary full" @click="aceitarTermos" style="margin-top:20px;">CONCORDO</button>
-            </div>
-        </div>
-    </div>
+    <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3><i class="fas fa-question-circle"></i> Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button class="btn-primary full" @click="mostrandoAjuda = false">Entendi</button></div></div></div>
+    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal"><div class="modal-window large"><div class="modal-top"><h3>Termos de Uso</h3></div><div class="modal-content terms-content"><p class="terms-intro">Uso profissional do <strong>Artigiano Manager</strong>.</p><div class="terms-text"><h4>1. ACESSO</h4><ul><li>Uso exclusivo para colaboradores autorizados.</li></ul><h4>2. RESPONSABILIDADE</h4><ul><li>O sistema sugere quantidades. A conferência é humana.</li></ul></div><button class="btn-primary full" @click="aceitarTermos" style="margin-top:20px;">CONCORDO</button></div></div></div>
 
     <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial && !mostrandoTermos">
         <button class="theme-toggle" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
@@ -77,9 +55,7 @@
         </header>
 
         <main class="main-content">
-            <div v-if="isSemanaFeriado" class="holiday-banner animated-up">
-                <i class="fas fa-calendar-check"></i> Semana com Feriado! (+20%)
-            </div>
+            <div v-if="isSemanaFeriado" class="holiday-banner animated-up"><i class="fas fa-calendar-check"></i> Semana com Feriado! (+20%)</div>
 
             <div v-if="!moduloAtivo" class="dashboard animated-fade">
                 <div class="dash-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')"><div class="icon-circle"><i class="fas fa-carrot"></i></div><span>Hortifruti</span></div>
@@ -104,8 +80,7 @@
                                 <input type="number" v-model.number="p.contagem" :placeholder="p.unQ" class="input-qty" :disabled="p.ignorar" @change="salvarProdutoUnitario(p)">
                             </div>
                             <div class="p-status" v-if="!p.ignorar && p.contagem !== ''">
-                                <span v-if="calculaFalta(p).qtd > 0" class="tag-buy">COMPRAR {{ calculaFalta(p).qtd }} {{ p.unC }} <i v-if="isSemanaFeriado" class="fas fa-arrow-up" style="font-size:0.7em"></i></span>
-                                <span v-else class="tag-ok">OK</span>
+                                <span v-if="calculaFalta(p).qtd > 0" class="tag-buy">COMPRAR {{ calculaFalta(p).qtd }} {{ p.unC }} <i v-if="isSemanaFeriado" class="fas fa-arrow-up" style="font-size:0.7em"></i></span><span v-else class="tag-ok">OK</span>
                             </div>
                         </div>
                     </div>
@@ -152,61 +127,49 @@
                     <div class="row"><input v-model="usuarioLogado.user" placeholder="Usuário"><input v-model="usuarioLogado.pass" placeholder="Senha"></div>
                     <button class="btn-primary full" @click="salvarMeuPerfil">Atualizar Perfil</button>
                 </div>
+                
+                <div class="config-box">
+                    <h4>📞 Contatos & Saudação</h4>
+                    
+                    <button class="btn-secondary full" @click="importarContatoDoCelular" style="margin-bottom:15px; background:#3B82F6; color:white;">
+                        <i class="fas fa-address-book"></i> Importar da Agenda
+                    </button>
+
+                    <div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row" style="flex-direction:column; align-items:flex-start;">
+                        <div style="display:flex; justify-content:space-between; width:100%;"><span><strong>{{ d.nome }}</strong> ({{ d.telefone }})</span><i class="fas fa-trash text-red" @click="removerDestino(idx)"></i></div>
+                        <small style="color:#666;">Saudação: "{{ d.msgPersonalizada || 'Olá,' }}"</small>
+                    </div>
+                    <div class="row" style="margin-top:10px;"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap (Ex: 5543...)"></div>
+                    <input v-model="novoDestino.msgPersonalizada" placeholder="Saudação" class="full-input">
+                    <button class="btn-primary full" @click="adicionarDestino">Adicionar Manualmente</button>
+                </div>
+
                 <div class="config-box" v-if="usuarioLogado.permissoes.admin">
-                    <h4><i class="fas fa-calendar-alt"></i> Feriados (+20%)</h4>
+                    <h4><i class="fas fa-calendar-alt"></i> Feriados</h4>
                     <div v-for="(f, idx) in feriadosOrdenados" :key="idx" class="rota-row"><span>{{ f.dataFormatted }} - {{ f.nome }}</span><i class="fas fa-trash text-red" @click="removerFeriado(f.id)"></i></div>
                     <div class="row" style="margin-top:10px;"><input v-model="novoFeriado.data" type="date"><input v-model="novoFeriado.nome" placeholder="Nome"></div>
-                    <button class="btn-primary full" @click="adicionarFeriado">Adicionar Data</button>
+                    <button class="btn-primary full" @click="adicionarFeriado">Adicionar</button>
                 </div>
+
                 <div class="config-box" v-if="usuarioLogado.permissoes.admin">
-                    <h4>📦 Novo Produto</h4>
+                    <h4>📦 Produto</h4>
                     <input v-model="novoProd.nome" placeholder="Nome" class="full-input">
                     <div class="row"><select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select><select v-model="novoProd.local"><option v-for="l in config.rota" :value="l">{{ l }}</option></select></div>
-                    <div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)"><input v-model="novoProd.unC" placeholder="Pede (Cx)"></div>
-                    <div class="row"><input v-model.number="novoProd.fator" placeholder="Qtd Cx"><input v-model.number="novoProd.meta" placeholder="Meta"></div>
+                    <div class="row"><input v-model="novoProd.unQ" placeholder="Un"><input v-model="novoProd.unC" placeholder="Pede"><input v-model.number="novoProd.fator" placeholder="Fator"><input v-model.number="novoProd.meta" placeholder="Meta"></div>
                     <select v-model="novoProd.destinoId" class="full-input"><option value="" disabled>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
                     <button class="btn-primary full" @click="adicionarProduto">Salvar</button>
                 </div>
-                <div class="config-box">
-                    <h4>📞 Contatos & Saudação</h4>
-                    <div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row" style="flex-direction:column; align-items:flex-start;">
-                        <div style="display:flex; justify-content:space-between; width:100%;"><span><strong>{{ d.nome }}</strong> ({{ d.telefone }})</span><i class="fas fa-trash text-red" @click="removerDestino(idx)"></i></div>
-                        <small style="color:#666; font-style:italic;">"{{ d.msgPersonalizada || 'Olá,' }}"</small>
-                    </div>
-                    <div class="row" style="margin-top:10px;"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap"></div>
-                    <input v-model="novoDestino.msgPersonalizada" placeholder="Saudação" class="full-input">
-                    <button class="btn-primary full" @click="adicionarDestino">Adicionar</button>
-                </div>
-                <div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="logout">Sair do App</button></div>
+                
+                <div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="logout">Sair</button></div>
             </div>
         </div>
     </div>
 
-    <div class="modal-backdrop" v-if="mostrandoPreview">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Enviar Pedido</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div>
-            <div class="modal-content">
-                <div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block">
-                    <div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div>
-                    <ul><li v-for="i in g">{{ i.texto }}</li></ul>
-                    
-                    <div class="send-options">
-                        <button class="btn-zap" @click="enviarZap(id, g, false)">
-                            <i class="fab fa-whatsapp"></i> Enviar Agora
-                        </button>
-                        <button class="btn-zap secondary" @click="enviarZap(id, g, true)">
-                            <i class="fas fa-clock"></i> P/ Segunda
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <div class="modal-backdrop" v-if="mostrandoPreview"><div class="modal-window"><div class="modal-top"><h3>Enviar</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block"><div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div><ul><li v-for="i in g">{{ i.texto }}</li></ul><div class="send-options"><button class="btn-zap" @click="enviarZap(id, g, false)"><i class="fab fa-whatsapp"></i> Enviar Agora</button><button class="btn-zap secondary" @click="enviarZap(id, g, true)"><i class="fas fa-clock"></i> P/ Segunda</button></div></div></div></div></div>
     <div class="modal-backdrop" v-if="mostrandoHistorico"><div class="modal-window"><div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(h, idx) in historico" :key="idx" class="history-card"><div class="h-header"><span>{{ h.data }}</span><span class="h-user">{{ h.usuario }}</span></div><div class="h-dest">Para: {{ h.destino }}</div><div class="h-body">{{ h.itens }}</div><button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(h.id)">Apagar</button></div></div></div></div>
 
 </div>
 
-<script src="script.js?v=47"></script>
+<script src="script.js?v=48"></script>
 </body>
 </html>
