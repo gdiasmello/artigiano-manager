@@ -22,12 +22,12 @@ const app = createApp({
         return {
             loadingInicial: true,
             temaEscuro: false,
+            mostrandoTermos: false, // CONTROLE DO TERMO
             // AUTH
             loginUser: '', loginPass: '',
             sessaoAtiva: false,
             usuarioLogado: null,
             msgAuth: '', isError: false, loadingAuth: false,
-            statusConexao: 'Verificando...',
             // ADMIN
             novoUserAdmin: { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' },
             editandoUsuarioId: null,
@@ -41,7 +41,7 @@ const app = createApp({
             termoBusca: '',
             mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
             novoProd: { nome: '', categoria: 'geral', local: 'Estoque Seco', unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '' },
-            novoDestino: { nome: '', telefone: '', msg: '' },
+            novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, // ADICIONADO msgPersonalizada
             novoLocal: '',
             salvarParaSegunda: false
         }
@@ -79,13 +79,24 @@ const app = createApp({
         gerarId() { return 'id_' + Math.random().toString(36).substr(2, 9); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); },
 
+        // --- TERMOS DE USO ---
+        verificarTermos() {
+            const aceitou = localStorage.getItem('artigiano_tos_accepted');
+            if (!aceitou) {
+                this.mostrandoTermos = true;
+            }
+        },
+        aceitarTermos() {
+            localStorage.setItem('artigiano_tos_accepted', 'true');
+            this.mostrandoTermos = false;
+        },
+
         // --- AUTH ---
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
             
             // VERIFICA SE O BANCO ESTÁ VAZIO (SINAL DE BLOQUEIO DO GOOGLE)
             if(this.usuarios.length === 0) {
-                // Tenta criar o Mestre Gabriel na força bruta pra ver se o banco aceita escrita
                 const masterId = 'admin_gabriel_master';
                 const admin = {
                     id: masterId, nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true,
@@ -100,13 +111,10 @@ const app = createApp({
             }
 
             setTimeout(() => {
-                // IGNORA MAIUSCULA/MINUSCULA NO LOGIN
                 const loginInput = this.loginUser.trim().toLowerCase();
                 const passInput = this.loginPass.trim();
 
-                // MESTRE GABRIEL
                 if (loginInput === 'gabriel' && passInput === '21gabriel') {
-                    // Se conseguiu logar com mestre, cria ele na memória se não existir
                     const u = this.usuarios.find(x => x.user.toLowerCase() === 'gabriel') || {
                         id: 'admin_gabriel_master', nome: 'Gabriel', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true,
                         permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
@@ -115,7 +123,6 @@ const app = createApp({
                     this.logar(u); return;
                 }
 
-                // LOGIN NORMAL (Case Insensitive)
                 const user = this.usuarios.find(u => u.user.toLowerCase() === loginInput && u.pass === passInput);
                 
                 if (user) {
@@ -131,11 +138,6 @@ const app = createApp({
             localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false;
         },
         logout() { this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session'); this.loginPass = ''; },
-
-        // --- DIAGNÓSTICO ---
-        diagnosticoBanco() {
-            alert(`Status Conexão: ${this.statusConexao}\nUsuários Carregados: ${this.usuarios.length}\nProdutos: ${this.produtos.length}`);
-        },
 
         // --- SYNC ATOMICO ---
         salvarUsuarioUnitario(u) { if(db) db.ref('system/users/' + u.id).set(u); },
@@ -183,22 +185,34 @@ const app = createApp({
             this.salvarProdutoUnitario(p);
             alert("Salvo!"); this.novoProd.nome = '';
         },
+        
+        // --- WHATSAPP PERSONALIZADO ---
         enviarZap(destId, itens) {
             const dest = this.config.destinos.find(d => d.id == destId);
             const tel = dest ? dest.telefone : '';
-            let msg = this.salvarParaSegunda ? "*PARA SEGUNDA-FEIRA*\n" : "*PEDIDO ARTIGIANO*\n";
-            msg += `Resp: ${this.usuarioLogado.nome} | Data: ${new Date().toLocaleDateString()}\n---\n`;
-            let txtH = "";
-            itens.forEach(i => { msg += i.texto + '\n'; txtH += i.texto.replace('- ','') + ', '; });
+            
+            // SAUDAÇÃO PERSONALIZADA
+            let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, gostaria de fazer o seguinte pedido:";
+            let msg = this.salvarParaSegunda ? "*PARA SEGUNDA-FEIRA*\n" : "";
+            
+            msg += `${saudacao}\n\n`; // Adiciona a saudação
+            
+            itens.forEach(i => { msg += i.texto + '\n'; });
+            msg += `\n*Responsável:* ${this.usuarioLogado.nome}`;
+            
+            // Histórico (Simplificado)
+            let txtH = itens.map(i => i.texto.replace('- ','')).join(', ');
             const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: dest ? dest.nome : 'Geral', itens: txtH };
             this.salvarHistoricoUnitario(h);
+            
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
         },
+        
         apagarHistorico(id) { if(confirm("Apagar?")) db.ref('store/history/' + id).remove(); },
 
         // CONFIG
         salvarConfig() { if(db) db.ref('system/config').set(this.config); },
-        adicionarDestino() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:''}; } },
+        adicionarDestino() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:'', msgPersonalizada:''}; } },
         removerDestino(idx) { this.config.destinos.splice(idx,1); this.salvarConfig(); },
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
         adicionarLocal() { if(this.novoLocal) { if(!this.config.rota) this.config.rota=[]; this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvarConfig(); } },
@@ -215,7 +229,6 @@ const app = createApp({
                 // LISTENERS
                 db.ref('system/users').on('value', s => { 
                     this.usuarios = s.val() ? Object.values(s.val()) : []; 
-                    this.statusConexao = 'Conectado (' + this.usuarios.length + ' users)';
                     this.verificarSessao(); 
                 });
                 db.ref('store/products').on('value', s => { this.produtos = s.val() ? Object.values(s.val()) : []; });
@@ -225,7 +238,7 @@ const app = createApp({
                     if(!this.config.rota) this.config.rota=['Geral'];
                     this.loadingInicial = false; 
                 });
-            } else { this.loadingInicial = false; this.statusConexao = 'Erro Conexão'; }
+            } else { this.loadingInicial = false; }
         },
         verificarSessao() {
             if(this.usuarioLogado) {
@@ -237,6 +250,7 @@ const app = createApp({
     },
     mounted() {
         setTimeout(() => { if(this.loadingInicial) this.loadingInicial = false; }, 4000);
+        this.verificarTermos(); // Verifica se já aceitou
         const session = localStorage.getItem('artigiano_session');
         if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
         const theme = localStorage.getItem('artigiano_theme');

@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V44</title>
+    <title>Pizzeria Master V45</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=44">
+    <link rel="stylesheet" href="styles.css?v=45">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -21,6 +21,95 @@
 
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
 
+    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal">
+        <div class="modal-window large">
+            <div class="modal-top">
+                <h3><i class="fas fa-file-contract"></i> Termos de Uso</h3>
+            </div>
+            <div class="modal-content terms-content">
+                <p class="terms-intro">Para utilizar o sistema <strong>Artigiano Manager</strong>, você deve concordar com os termos abaixo.</p>
+                
+                <div class="terms-text">
+                    <h4>1. DA ACEITAÇÃO E VINCULAÇÃO</h4>
+                    <ul>
+                        <li>1.1. Este software é de propriedade intelectual do Desenvolvedor (Gabriel).</li>
+                        <li>1.2. O uso é concedido sob licença temporária e revogável.</li>
+                        <li>1.3. O aceite destes termos é obrigatório para o desbloqueio das funções.</li>
+                    </ul>
+
+                    <h4>2. DO OBJETO</h4>
+                    <ul>
+                        <li>2.1. O sistema visa auxiliar na contagem de estoque e geração de listas.</li>
+                        <li>2.2. A comunicação final (envio via WhatsApp) é responsabilidade do usuário.</li>
+                        <li>2.3. O sistema não substitui a conferência humana.</li>
+                    </ul>
+
+                    <h4>3. DA PROTEÇÃO DE DADOS (LGPD)</h4>
+                    <ul>
+                        <li>3.1. O sistema opera em conformidade com a Lei 13.709/2018.</li>
+                        <li>3.2. Dados coletados (Login, Histórico) são para uso interno operacional.</li>
+                        <li>3.3. Não há compartilhamento de dados com terceiros para fins publicitários.</li>
+                    </ul>
+
+                    <h4>4. DA ISENÇÃO DE RESPONSABILIDADE (DESENVOLVEDOR)</h4>
+                    <ul>
+                        <li>4.1. O Desenvolvedor (Gabriel) <strong>NÃO SE RESPONSABILIZA</strong> por:</li>
+                        <li>4.2. Pedidos errados enviados aos fornecedores.</li>
+                        <li>4.3. Falta de produtos ou excesso de estoque.</li>
+                        <li>4.4. Prejuízos financeiros decorrentes do uso do software.</li>
+                        <li>4.5. Falhas de conexão ou instabilidade do servidor Google Firebase.</li>
+                    </ul>
+
+                    <h4>5. DAS OBRIGAÇÕES DO USUÁRIO</h4>
+                    <ul>
+                        <li>5.1. Conferir a lista antes de enviar ao fornecedor.</li>
+                        <li>5.2. Manter sua senha de acesso segura e pessoal.</li>
+                        <li>5.3. Não tentar copiar ou engenheirar reversamente o código.</li>
+                    </ul>
+
+                    <h4>6. DA SEGURANÇA DA INFORMAÇÃO</h4>
+                    <ul>
+                        <li>6.1. O banco de dados é hospedado em nuvem (Firebase).</li>
+                        <li>6.2. O acesso é restrito via autenticação criada pelo Administrador.</li>
+                        <li>6.3. O Administrador tem acesso total ao histórico de ações.</li>
+                    </ul>
+
+                    <h4>7. DA PROPRIEDADE INTELECTUAL</h4>
+                    <ul>
+                        <li>7.1. O código-fonte pertence exclusivamente ao Desenvolvedor.</li>
+                        <li>7.2. A empresa tem apenas o direito de uso, não a propriedade.</li>
+                        <li>7.3. Customizações feitas a pedido não transferem a propriedade.</li>
+                    </ul>
+
+                    <h4>8. DAS ATUALIZAÇÕES</h4>
+                    <ul>
+                        <li>8.1. O sistema pode sofrer alterações sem aviso prévio.</li>
+                        <li>8.2. Funcionalidades podem ser adicionadas ou removidas.</li>
+                        <li>8.3. Não há garantia de suporte técnico 24h.</li>
+                    </ul>
+
+                    <h4>9. DA VALIDADE E VIGÊNCIA (KILL SWITCH)</h4>
+                    <ul>
+                        <li>9.1. Esta licença de uso está estritamente vinculada ao contrato de trabalho/prestação de serviço do Desenvolvedor (Gabriel) com a Empresa.</li>
+                        <li>9.2. <strong>No momento em que o Desenvolvedor deixar de fazer parte do quadro da empresa, a licença é automaticamente revogada.</strong></li>
+                        <li>9.3. O Desenvolvedor reserva-se o direito de suspender o acesso remoto após o fim do vínculo.</li>
+                    </ul>
+
+                    <h4>10. DO FORO</h4>
+                    <ul>
+                        <li>10.1. Fica eleito o foro da comarca de Londrina/PR para dirimir dúvidas.</li>
+                        <li>10.2. Casos omissos serão tratados conforme o Código Civil Brasileiro.</li>
+                        <li>10.3. Ao clicar em aceitar, você concorda juridicamente com tudo acima.</li>
+                    </ul>
+                </div>
+
+                <button class="btn-primary full" @click="aceitarTermos" style="margin-top:20px; background:var(--accent);">
+                    LI E CONCORDO COM OS TERMOS
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div v-if="loadingInicial" class="loading-screen">
         <div class="spinner-container">
             <i class="fas fa-pizza-slice fa-spin"></i>
@@ -28,36 +117,27 @@
         </div>
     </div>
 
-    <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial">
+    <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial && !mostrandoTermos">
         <button class="theme-toggle" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
         <div class="auth-box animated-up">
-            <div class="brand" @click="diagnosticoBanco"> <div class="logo-bg"><i class="fas fa-pizza-slice"></i></div>
+            <div class="brand">
+                <div class="logo-bg"><i class="fas fa-pizza-slice"></i></div>
                 <h1>Pizzeria Master</h1>
                 <p>Acesso Restrito</p>
             </div>
             
             <div class="form-group">
-                <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin">
-                </div>
-                <div class="input-group">
-                    <i class="fas fa-lock"></i>
-                    <input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin">
-                </div>
-                
+                <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
+                <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin"></div>
                 <button class="btn-primary" @click="fazerLogin" :disabled="loadingAuth">
-                    <span v-if="loadingAuth"><i class="fas fa-spinner fa-spin"></i> Verificando...</span>
-                    <span v-else>ACESSAR</span>
+                    <span v-if="loadingAuth"><i class="fas fa-spinner fa-spin"></i> Verificando...</span><span v-else>ACESSAR</span>
                 </button>
             </div>
-
             <p v-if="msgAuth" class="msg-box" :class="{error: isError}">{{ msgAuth }}</p>
-            <p style="font-size:0.7rem; color:#999; margin-top:20px;">V44 - Status: {{ statusConexao }}</p>
         </div>
     </div>
 
-    <div v-else-if="sessaoAtiva" class="app-layout">
+    <div v-else-if="sessaoAtiva && !mostrandoTermos" class="app-layout">
         <header class="app-header">
             <div class="user-pill" @click="mostrandoConfig = true">
                 <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
@@ -86,7 +166,6 @@
                     <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button><h2>{{ nomeModulo }}</h2>
                 </div>
                 <div class="search-wrap"><i class="fas fa-search"></i><input v-model="termoBusca" placeholder="Buscar item..."></div>
-                
                 <div class="products-container">
                     <div v-if="produtosFiltrados.length === 0" class="empty-msg">Nenhum item encontrado.</div>
                     <div v-for="local in locaisDoModulo" :key="local">
@@ -116,19 +195,12 @@
                     <h4><i class="fas" :class="editandoUsuarioId ? 'fa-user-edit' : 'fa-user-plus'"></i> {{ editandoUsuarioId ? 'Editar' : 'Novo Usuário' }}</h4>
                     <div class="row"><input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input"><select v-model="novoUserAdmin.cargo" class="full-input"><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div>
                     <div class="row"><input v-model="novoUserAdmin.user" placeholder="Login"><input v-model="novoUserAdmin.pass" placeholder="Senha"></div>
-                    <div class="row" v-if="editandoUsuarioId">
-                        <button class="btn-primary full" @click="salvarEdicaoUsuario">Salvar</button>
-                        <button class="btn-secondary full" @click="cancelarEdicaoUsuario">Cancelar</button>
-                    </div>
+                    <div class="row" v-if="editandoUsuarioId"><button class="btn-primary full" @click="salvarEdicaoUsuario">Salvar</button><button class="btn-secondary full" @click="cancelarEdicaoUsuario">Cancelar</button></div>
                     <button v-else class="btn-primary full" @click="adicionarUsuarioAdmin">Criar Usuário</button>
                 </div>
                 <h4>Membros Ativos</h4>
                 <div v-for="u in usuariosAtivos" :key="u.id" class="user-item">
-                    <div class="user-head">
-                        <div @click="u.expandido = !u.expandido" style="flex:1; cursor:pointer;"><strong>{{ u.nome }}</strong> <small class="role-badge">{{ u.cargo }}</small></div>
-                        <button class="btn-edit" @click="prepararEdicao(u)"><i class="fas fa-pencil-alt"></i></button>
-                        <i class="fas fa-chevron-down" @click="u.expandido = !u.expandido"></i>
-                    </div>
+                    <div class="user-head"><div @click="u.expandido = !u.expandido" style="flex:1;"><strong>{{ u.nome }}</strong> <small class="role-badge">{{ u.cargo }}</small></div><button class="btn-edit" @click="prepararEdicao(u)"><i class="fas fa-pencil-alt"></i></button><i class="fas fa-chevron-down" @click="u.expandido = !u.expandido"></i></div>
                     <div v-if="u.expandido" class="perm-grid">
                         <label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarUsuarioUnitario(u)"> Admin</label>
                         <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarUsuarioUnitario(u)"> Horti</label>
@@ -142,12 +214,55 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" v-if="mostrandoConfig">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Ajustes</h3><button @click="mostrandoConfig = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-content">
+                
+                <div class="config-box">
+                    <h4>📦 Produto</h4>
+                    <input v-model="novoProd.nome" placeholder="Nome" class="full-input">
+                    <div class="row"><select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select><select v-model="novoProd.local"><option v-for="l in config.rota" :value="l">{{ l }}</option></select></div>
+                    <div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)"><input v-model="novoProd.unC" placeholder="Pede (Cx)"></div>
+                    <div class="row"><input v-model.number="novoProd.fator" placeholder="Qtd Cx"><input v-model.number="novoProd.meta" placeholder="Meta"></div>
+                    <select v-model="novoProd.destinoId" class="full-input"><option value="" disabled>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
+                    <button class="btn-primary full" @click="adicionarProduto">Salvar Produto</button>
+                </div>
+
+                <div class="config-box">
+                    <h4>📞 Contatos & Saudação</h4>
+                    <div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row" style="flex-direction:column; align-items:flex-start;">
+                        <div style="display:flex; justify-content:space-between; width:100%;">
+                            <span><strong>{{ d.nome }}</strong> ({{ d.telefone }})</span>
+                            <i class="fas fa-trash text-red" @click="removerDestino(idx)"></i>
+                        </div>
+                        <small style="color:#666; font-style:italic;">"{{ d.msgPersonalizada || 'Olá,' }}"</small>
+                    </div>
+                    
+                    <div class="row" style="margin-top:10px;">
+                        <input v-model="novoDestino.nome" placeholder="Nome (Ex: Sacolão)">
+                        <input v-model="novoDestino.telefone" placeholder="Zap (Ex: 554399...)">
+                    </div>
+                    <input v-model="novoDestino.msgPersonalizada" placeholder="Saudação (Ex: Bom dia Sr. João, segue pedido:)" class="full-input">
+                    <button class="btn-primary full" @click="adicionarDestino">Adicionar Contato</button>
+                </div>
+
+                <div class="config-box">
+                    <h4>📍 Rota</h4>
+                    <div v-for="(l, idx) in config.rota" :key="idx" class="rota-row"><span>{{ idx+1 }}. {{ l }}</span><div><i class="fas fa-arrow-up" @click="moverRota(idx,-1)"></i><i class="fas fa-arrow-down" @click="moverRota(idx,1)"></i><i class="fas fa-trash text-red" @click="removerLocal(idx)"></i></div></div>
+                    <div class="add-row"><input v-model="novoLocal" placeholder="Novo Local"><button @click="adicionarLocal">+</button></div>
+                </div>
+
+                <div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="resetarTudo">Resetar App</button></div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-backdrop" v-if="mostrandoHistorico"><div class="modal-window"><div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-if="historico.length === 0" class="empty-msg">Vazio.</div><div v-for="(h, idx) in historico" :key="idx" class="history-card"><div class="h-header"><span>{{ h.data }} - {{ h.hora }}</span><span class="h-user">{{ h.usuario }}</span></div><div class="h-dest">Para: {{ h.destino }}</div><div class="h-body">{{ h.itens }}</div><button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(h.id)">Apagar</button></div></div></div></div>
-    <div class="modal-backdrop" v-if="mostrandoConfig"><div class="modal-window"><div class="modal-top"><h3>Ajustes</h3><button @click="mostrandoConfig = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div class="config-box"><h4>📍 Rota</h4><div v-for="(l, idx) in config.rota" :key="idx" class="rota-row"><span>{{ idx+1 }}. {{ l }}</span><div><i class="fas fa-arrow-up" @click="moverRota(idx,-1)"></i><i class="fas fa-arrow-down" @click="moverRota(idx,1)"></i><i class="fas fa-trash text-red" @click="removerLocal(idx)"></i></div></div><div class="add-row"><input v-model="novoLocal" placeholder="Novo Local"><button @click="adicionarLocal">+</button></div></div><div class="config-box"><h4>📦 Produto</h4><input v-model="novoProd.nome" placeholder="Nome" class="full-input"><div class="row"><select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select><select v-model="novoProd.local"><option v-for="l in config.rota" :value="l">{{ l }}</option></select></div><div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)"><input v-model="novoProd.unC" placeholder="Pede (Cx)"></div><div class="row"><input v-model.number="novoProd.fator" placeholder="Qtd Cx"><input v-model.number="novoProd.meta" placeholder="Meta"></div><select v-model="novoProd.destinoId" class="full-input"><option value="" disabled>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select><button class="btn-primary full" @click="adicionarProduto">Salvar</button></div><div class="config-box"><h4>📞 Contatos</h4><div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row"><span>{{ d.nome }}</span><i class="fas fa-trash text-red" @click="removerDestino(idx)"></i></div><div class="row"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap"></div><button class="btn-primary full" @click="adicionarDestino">Add</button></div><div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="resetarTudo">Resetar App</button></div></div></div></div>
     <div class="modal-backdrop" v-if="mostrandoPreview"><div class="modal-window"><div class="modal-top"><h3>Enviar</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block"><div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div><ul><li v-for="i in g">{{ i.texto }}</li></ul><button class="btn-zap" @click="enviarZap(id, g)">Enviar WhatsApp</button></div><div class="future-chk"><label><input type="checkbox" v-model="salvarParaSegunda"> Salvar para Segunda?</label></div></div></div></div>
 
 </div>
 
-<script src="script.js?v=44"></script>
+<script src="script.js?v=45"></script>
 </body>
 </html>
