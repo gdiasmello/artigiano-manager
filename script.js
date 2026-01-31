@@ -1,4 +1,4 @@
-// --- FIREBASE CONFIG (Sua Chave AIza...) ---
+// --- FIREBASE CONFIG ---
 const firebaseConfig = {
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", 
     authDomain: "artigiano-app.firebaseapp.com",
@@ -27,7 +27,8 @@ const app = createApp({
             sessaoAtiva: false,
             usuarioLogado: null,
             msgAuth: '', isError: false, loadingAuth: false,
-            // ADMIN ADD MANUAL
+            statusConexao: 'Verificando...',
+            // ADMIN
             novoUserAdmin: { nome: '', cargo: 'Pizzaiolo', user: '', pass: '' },
             editandoUsuarioId: null,
             // DADOS
@@ -75,38 +76,65 @@ const app = createApp({
         }
     },
     methods: {
-        // --- UTIL ---
         gerarId() { return 'id_' + Math.random().toString(36).substr(2, 9); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); },
 
         // --- AUTH ---
         fazerLogin() {
             this.loadingAuth = true; this.msgAuth = '';
+            
+            // VERIFICA SE O BANCO ESTÁ VAZIO (SINAL DE BLOQUEIO DO GOOGLE)
+            if(this.usuarios.length === 0) {
+                // Tenta criar o Mestre Gabriel na força bruta pra ver se o banco aceita escrita
+                const masterId = 'admin_gabriel_master';
+                const admin = {
+                    id: masterId, nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true,
+                    permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
+                };
+                if(db) {
+                    db.ref('system/users/' + masterId).set(admin).catch(e => {
+                        this.msgAuth = "ERRO CRÍTICO: Banco de dados Bloqueado. Acesse o Firebase > Rules e mude para true.";
+                        this.isError = true; this.loadingAuth = false;
+                    });
+                }
+            }
+
             setTimeout(() => {
-                // LOGIN MESTRE (CRIA ADMIN SE NÃO EXISTIR)
-                if (this.loginUser === 'Gabriel' && this.loginPass === '21gabriel') {
-                    const masterId = 'admin_gabriel_master';
-                    const admin = this.usuarios.find(u => u.id === masterId) || {
-                        id: masterId, nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true,
+                // IGNORA MAIUSCULA/MINUSCULA NO LOGIN
+                const loginInput = this.loginUser.trim().toLowerCase();
+                const passInput = this.loginPass.trim();
+
+                // MESTRE GABRIEL
+                if (loginInput === 'gabriel' && passInput === '21gabriel') {
+                    // Se conseguiu logar com mestre, cria ele na memória se não existir
+                    const u = this.usuarios.find(x => x.user.toLowerCase() === 'gabriel') || {
+                        id: 'admin_gabriel_master', nome: 'Gabriel', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true,
                         permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true }
                     };
-                    this.salvarUsuarioUnitario(admin);
-                    this.logar(admin);
-                    return;
+                    this.salvarUsuarioUnitario(u);
+                    this.logar(u); return;
                 }
-                const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
+
+                // LOGIN NORMAL (Case Insensitive)
+                const user = this.usuarios.find(u => u.user.toLowerCase() === loginInput && u.pass === passInput);
+                
                 if (user) {
                     if (user.aprovado) this.logar(user);
-                    else { this.msgAuth = "Aguardando aprovação."; this.isError = true; this.loadingAuth = false; }
-                } else { this.msgAuth = "Dados incorretos."; this.isError = true; this.loadingAuth = false; }
+                    else { this.msgAuth = "Conta aguardando aprovação."; this.isError = true; this.loadingAuth = false; }
+                } else { 
+                    this.msgAuth = "Dados incorretos (ou Banco bloqueado)."; this.isError = true; this.loadingAuth = false; 
+                }
             }, 800);
         },
         logar(user) {
             this.usuarioLogado = user; this.sessaoAtiva = true;
             localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false;
         },
-        logout() {
-            this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session');
+        logout() { this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session'); this.loginPass = ''; },
+
+        // --- DIAGNÓSTICO ---
+        diagnosticoBanco() {
+            alert(`Status Conexão: ${this.statusConexao}\nUsuários Carregados: ${this.usuarios.length}\nProdutos: ${this.produtos.length}`);
         },
 
         // --- SYNC ATOMICO ---
@@ -114,18 +142,16 @@ const app = createApp({
         salvarProdutoUnitario(p) { if(db) db.ref('store/products/' + p.id).set(p); },
         salvarHistoricoUnitario(h) { if(db) db.ref('store/history/' + h.id).set(h); },
         
-        // ADMIN USERS (AGORA CRIA APROVADO)
+        // ADMIN USERS
         adicionarUsuarioAdmin() {
             if (!this.novoUserAdmin.nome || !this.novoUserAdmin.user) return alert("Preencha dados");
             const novo = {
-                id: this.gerarId(), 
-                ...this.novoUserAdmin, 
-                aprovado: true, // ADMIN CRIA JÁ APROVADO
+                id: this.gerarId(), ...this.novoUserAdmin, aprovado: true,
                 permissoes: { admin: false, hortifruti: true, geral: true, bebidas: true, limpeza: true }
             };
             this.salvarUsuarioUnitario(novo);
             this.novoUserAdmin = { nome: '', user: '', pass: '', cargo: 'Pizzaiolo' };
-            alert("Criado! Login Liberado.");
+            alert("Usuário Criado!");
         },
         prepararEdicao(u) { this.novoUserAdmin = { ...u }; this.editandoUsuarioId = u.id; },
         salvarEdicaoUsuario() {
@@ -137,7 +163,6 @@ const app = createApp({
             }
         },
         cancelarEdicaoUsuario() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', user: '', pass: '', cargo: 'Pizzaiolo' }; },
-        aprovarUsuario(u) { u.aprovado = true; this.salvarUsuarioUnitario(u); },
         removerUsuario(id) { if(confirm("Remover?")) db.ref('system/users/' + id).remove(); },
         atualizarPermissao(u) { this.salvarUsuarioUnitario(u); },
 
@@ -165,7 +190,6 @@ const app = createApp({
             msg += `Resp: ${this.usuarioLogado.nome} | Data: ${new Date().toLocaleDateString()}\n---\n`;
             let txtH = "";
             itens.forEach(i => { msg += i.texto + '\n'; txtH += i.texto.replace('- ','') + ', '; });
-            
             const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: dest ? dest.nome : 'Geral', itens: txtH };
             this.salvarHistoricoUnitario(h);
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -188,18 +212,20 @@ const app = createApp({
 
         carregarDb() {
             if(db) {
-                db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); });
-                db.ref('store/products').on('value', s => { this.produtos = s.val() ? Object.values(s.val()) : []; });
-                db.ref('store/history').on('value', s => { 
-                    const h = s.val() ? Object.values(s.val()) : []; 
-                    this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); 
+                // LISTENERS
+                db.ref('system/users').on('value', s => { 
+                    this.usuarios = s.val() ? Object.values(s.val()) : []; 
+                    this.statusConexao = 'Conectado (' + this.usuarios.length + ' users)';
+                    this.verificarSessao(); 
                 });
+                db.ref('store/products').on('value', s => { this.produtos = s.val() ? Object.values(s.val()) : []; });
+                db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); });
                 db.ref('system/config').on('value', s => { 
                     this.config = s.val() || { destinos: [], rota: ['Geral'] }; 
                     if(!this.config.rota) this.config.rota=['Geral'];
                     this.loadingInicial = false; 
                 });
-            } else { this.loadingInicial = false; }
+            } else { this.loadingInicial = false; this.statusConexao = 'Erro Conexão'; }
         },
         verificarSessao() {
             if(this.usuarioLogado) {
@@ -210,7 +236,7 @@ const app = createApp({
         }
     },
     mounted() {
-        setTimeout(() => { if(this.loadingInicial) this.loadingInicial = false; }, 3000);
+        setTimeout(() => { if(this.loadingInicial) this.loadingInicial = false; }, 4000);
         const session = localStorage.getItem('artigiano_session');
         if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
         const theme = localStorage.getItem('artigiano_theme');
