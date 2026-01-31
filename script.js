@@ -1,7 +1,12 @@
 
-// 1. Configuração do Firebase
+/**
+ * Pizzeria Master - Core Application Script
+ * Sênior Engineering Approach: Vanilla JS for maximum performance and portability.
+ */
+
+// 1. Firebase Config (Usando as credenciais injetadas ou pré-configuradas)
 const firebaseConfig = {
-  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
+  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", // Nota: Idealmente vindo de process.env, mas mantendo para portabilidade imediata
   authDomain: "artigiano-app.firebaseapp.com",
   databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
   projectId: "artigiano-app",
@@ -10,116 +15,142 @@ const firebaseConfig = {
   appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
 };
 
-// Inicialização
+// Inicialização Global
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// 2. Estado Global do App
-let appState = {
-    view: 'login', // login, dashboard, inventory, admin, orders
+// 2. Estado do Aplicativo
+const state = {
+    view: 'login', // login, dashboard, inventory, admin, orders, register
     user: null,
     theme: localStorage.getItem('theme') || 'light',
     activeCategory: null,
-    products: [],
+    
+    // Data Sync
     users: [],
+    products: [],
     suppliers: [],
     routes: [],
     orders: [],
-    counts: {} // Dados temporários da contagem atual
+    
+    // UI Local State
+    counts: {},
+    isAddingUser: false,
+    authError: '',
+    loading: true
 };
 
-// 3. Constantes e Dados Iniciais
-const MASTER_LOGIN = { usuario: 'Gabriel', senha: '21gabriel' };
+// 3. Constantes
+const MASTER_USER = { usuario: 'Gabriel', senha: '21gabriel' };
 const CATEGORIES = ['Hortifruti', 'Geral/Insumos', 'Bebidas', 'Limpeza'];
-const INITIAL_PRODUCTS = [
-  { id: 'p1', nome: 'Tomate Italiano', categoria: 'Hortifruti', localEstoque: 'Câmara Fria', unidadeContagem: 'kg', unidadeCompra: 'cx', fatorConversao: 10, meta: 50, supplierId: 's1' },
-  { id: 'p2', nome: 'Coca-Cola 2L', categoria: 'Bebidas', localEstoque: 'Geladeira Bebidas', unidadeContagem: 'un', unidadeCompra: 'fardo', fatorConversao: 6, meta: 36, supplierId: 's2' }
-];
-const INITIAL_SUPPLIERS = [
-  { id: 's1', nome: 'Sacolão do Zé', whatsapp: '5511999999999' },
-  { id: 's2', nome: 'Distribuidora Bebidas', whatsapp: '5511888888888' }
-];
+const ROLES = ['Pizzaiolo', 'Gerente', 'Atendente'];
 
 // 4. Inicialização do Tema
-if (appState.theme === 'dark') document.documentElement.classList.add('dark');
+if (state.theme === 'dark') document.documentElement.classList.add('dark');
 
-// 5. Funções de Sincronização com Firebase
+// 5. Motor de Sincronização (Real-time Database)
 function startSync() {
     // Sincronizar Usuários
     db.ref('users').on('value', snapshot => {
         const val = snapshot.val();
-        appState.users = val ? Object.entries(val).map(([id, item]) => ({ ...item, id })) : [];
-        if (appState.view === 'admin') render();
+        state.users = val ? Object.entries(val).map(([id, item]) => ({ ...item, id })) : [];
+        render();
     });
 
     // Sincronizar Produtos
     db.ref('products').on('value', snapshot => {
         const val = snapshot.val();
-        if (!val) db.ref('products').set(INITIAL_PRODUCTS);
-        appState.products = val || INITIAL_PRODUCTS;
-        if (appState.view === 'dashboard' || appState.view === 'inventory') render();
+        state.products = val || [];
+        render();
     });
 
     // Sincronizar Fornecedores
     db.ref('suppliers').on('value', snapshot => {
         const val = snapshot.val();
-        if (!val) db.ref('suppliers').set(INITIAL_SUPPLIERS);
-        appState.suppliers = val || INITIAL_SUPPLIERS;
+        state.suppliers = val || [];
+        render();
     });
 
     // Sincronizar Rotas
     db.ref('routes').on('value', snapshot => {
         const val = snapshot.val();
-        if (!val) db.ref('routes').set(['Câmara Fria', 'Geladeira Bebidas', 'Estoque Seco', 'Área de Limpeza']);
-        appState.routes = val || [];
+        state.routes = val || [];
+        render();
     });
 
     // Sincronizar Pedidos
     db.ref('orders').on('value', snapshot => {
         const val = snapshot.val();
-        appState.orders = val ? Object.entries(val).map(([id, item]) => ({ ...item, id })) : [];
-        if (appState.view === 'orders') render();
+        state.orders = val ? Object.entries(val).map(([id, item]) => ({ ...item, id })) : [];
+        render();
     });
 }
 
-// 6. Lógica de Autenticação
+// 6. Monitoramento de Sessão
 auth.onAuthStateChanged(firebaseUser => {
+    state.loading = false;
     if (firebaseUser) {
         db.ref(`users/${firebaseUser.uid}`).on('value', snapshot => {
-            appState.user = snapshot.val();
-            if (appState.user) {
-                appState.view = 'dashboard';
-                startSync();
+            state.user = snapshot.val();
+            if (state.user) {
+                if (state.user.status === 'Aprovado') {
+                    state.view = state.view === 'login' ? 'dashboard' : state.view;
+                    startSync();
+                } else {
+                    auth.signOut();
+                    state.authError = "Seu acesso está pendente de aprovação.";
+                    state.view = 'login';
+                }
             } else {
-                auth.signOut();
+                state.view = 'login';
             }
             render();
         });
     } else {
-        appState.user = null;
-        appState.view = 'login';
+        state.user = null;
+        if (state.view !== 'register') state.view = 'login';
         render();
     }
 });
 
-async function handleLogin(e) {
+// 7. Handlers de Ação
+window.navigate = (view, category = null) => {
+    state.view = view;
+    if (category) {
+        state.activeCategory = category;
+        state.counts = {};
+    }
+    render();
+};
+
+window.toggleDarkMode = () => {
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('theme', state.theme);
+    document.documentElement.classList.toggle('dark');
+    render();
+};
+
+window.handleLogin = async (e) => {
     e.preventDefault();
     const user = e.target.username.value;
     const pass = e.target.password.value;
-    const errorEl = document.getElementById('auth-error');
-    
+    state.authError = '';
+    render();
+
     try {
-        // Login Mestre
-        if (user === MASTER_LOGIN.usuario && pass === MASTER_LOGIN.senha) {
+        // Login Master Gabriel
+        if (user === MASTER_USER.usuario && pass === MASTER_USER.senha) {
             const masterEmail = "admin@pizzeriamaster.com";
             try {
                 await auth.signInWithEmailAndPassword(masterEmail, pass);
             } catch {
                 const cred = await auth.createUserWithEmailAndPassword(masterEmail, pass);
                 await db.ref(`users/${cred.user.uid}`).set({
+                    id: cred.user.uid,
                     nome: 'Gabriel (Master)',
                     usuario: 'Gabriel',
+                    senha: pass,
                     cargo: 'Admin',
                     status: 'Aprovado',
                     permissoes: CATEGORIES
@@ -128,34 +159,129 @@ async function handleLogin(e) {
             return;
         }
 
-        const email = user.includes('@') ? user : `${user}@pizzeriamaster.com`;
+        const email = user.includes('@') ? user : `${user.toLowerCase()}@pizzeriamaster.com`;
         await auth.signInWithEmailAndPassword(email, pass);
     } catch (err) {
-        errorEl.innerText = "Credenciais inválidas ou pendente de aprovação.";
-        errorEl.classList.remove('hidden');
+        state.authError = "Usuário ou senha inválidos.";
+        render();
     }
-}
+};
 
-// 7. Componentes de Interface (Templates)
+window.handleRegister = async (e) => {
+    e.preventDefault();
+    const d = new FormData(e.target);
+    const data = Object.fromEntries(d.entries());
+    
+    try {
+        const email = `${data.usuario.toLowerCase()}@pizzeriamaster.com`;
+        const cred = await auth.createUserWithEmailAndPassword(email, data.senha);
+        await db.ref(`users/${cred.user.uid}`).set({
+            id: cred.user.uid,
+            nome: data.nome,
+            usuario: data.usuario,
+            senha: data.senha,
+            cargo: data.cargo,
+            status: 'Pendente',
+            permissoes: []
+        });
+        alert('Cadastro enviado! Aguarde aprovação do administrador.');
+        state.view = 'login';
+        render();
+    } catch (err) {
+        alert('Erro ao cadastrar: ' + err.message);
+    }
+};
+
+window.updateCount = (id, val) => {
+    const num = parseFloat(val) || 0;
+    const p = state.products.find(prod => prod.id === id);
+    if (!p) return;
+
+    const unitsNeeded = p.meta - num;
+    const boxes = unitsNeeded > 0 ? Math.ceil(unitsNeeded / p.fatorConversao) : 0;
+
+    state.counts[id] = {
+        productId: id,
+        quantidade: num,
+        skip: state.counts[id]?.skip || false,
+        pedir: boxes
+    };
+    render();
+};
+
+window.toggleSkip = (id) => {
+    if (!state.counts[id]) state.counts[id] = { productId: id, quantidade: 0, skip: false, pedir: 0 };
+    state.counts[id].skip = !state.counts[id].skip;
+    if (state.counts[id].skip) state.counts[id].pedir = 0;
+    render();
+};
+
+window.finishInventory = async (isMonday = false) => {
+    const itemsToOrder = Object.values(state.counts).filter(c => !c.skip && c.pedir > 0);
+    if (itemsToOrder.length === 0) return alert('Nenhum item para pedir.');
+
+    const orderData = {
+        data: new Date().toLocaleDateString('pt-BR'),
+        titulo: isMonday ? `PARA SEGUNDA-FEIRA (${state.activeCategory})` : `Pedido ${state.activeCategory}`,
+        items: itemsToOrder,
+        category: state.activeCategory
+    };
+
+    await db.ref('orders').push(orderData);
+
+    if (!isMonday) {
+        const bySupplier = {};
+        itemsToOrder.forEach(item => {
+            const prod = state.products.find(p => p.id === item.productId);
+            if (!bySupplier[prod.supplierId]) bySupplier[prod.supplierId] = [];
+            bySupplier[prod.supplierId].push({ nome: prod.nome, pedir: item.pedir, unid: prod.unidadeCompra });
+        });
+
+        for (const supId in bySupplier) {
+            const sup = state.suppliers.find(s => s.id === supId);
+            let msg = `*PEDIDO PIZZERIA MASTER*\nSetor: ${state.activeCategory}\n----------------\n`;
+            bySupplier[supId].forEach(i => msg += `• ${i.nome}: *PEDIR ${i.pedir} ${i.unid}*\n`);
+            window.open(`https://wa.me/${sup.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+    }
+
+    alert(isMonday ? 'Lista salva para segunda-feira!' : 'Pedidos enviados via WhatsApp!');
+    navigate('dashboard');
+};
+
+// Admin Helpers
+window.approveUser = (id) => db.ref(`users/${id}`).update({ status: 'Aprovado', permissoes: CATEGORIES });
+window.deleteUser = (id) => confirm('Excluir este funcionário?') && db.ref(`users/${id}`).remove();
+window.updatePerm = (userId, cat) => {
+    const u = state.users.find(x => x.id === userId);
+    const perms = u.permissoes || [];
+    const newPerms = perms.includes(cat) ? perms.filter(p => p !== cat) : [...perms, cat];
+    db.ref(`users/${userId}`).update({ permissoes: newPerms });
+};
+
+// 8. Renderização do Template (Vanilla Engine)
 function render() {
     const root = document.getElementById('root');
     
-    if (appState.view === 'login') {
-        root.innerHTML = renderLogin();
-        return;
-    }
+    if (state.loading) return;
 
-    root.innerHTML = `
-        <div class="min-h-screen flex bg-gray-50 dark:bg-gray-950">
-            ${renderSidebar()}
-            <main class="flex-1 p-4 md:p-8 overflow-y-auto pt-20 md:pt-8 animate-fadeIn">
-                ${renderContent()}
-            </main>
-        </div>
-    `;
+    if (state.view === 'login') {
+        root.innerHTML = templateLogin();
+    } else if (state.view === 'register') {
+        root.innerHTML = templateRegister();
+    } else {
+        root.innerHTML = `
+            <div class="min-h-screen flex bg-gray-50 dark:bg-gray-950">
+                ${templateSidebar()}
+                <main class="flex-1 p-4 md:p-8 overflow-y-auto pt-20 md:pt-8 animate-fadeIn">
+                    ${templateContent()}
+                </main>
+            </div>
+        `;
+    }
 }
 
-function renderLogin() {
+function templateLogin() {
     return `
     <div class="min-h-screen flex items-center justify-center p-4">
         <div class="max-w-md w-full bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-10 border border-gray-100 dark:border-gray-800 animate-fadeInUp">
@@ -166,22 +292,40 @@ function renderLogin() {
                 <h1 class="text-3xl font-black">Pizzeria <span class="text-italian-red">Master</span></h1>
                 <p class="text-gray-400 font-medium mt-2">Gestão Profissional de Estoque</p>
             </div>
-            <div id="auth-error" class="hidden bg-red-50 text-red-600 p-4 rounded-2xl text-sm font-bold mb-6"></div>
+            ${state.authError ? `<div class="bg-red-50 text-red-600 p-4 rounded-2xl text-sm font-bold mb-6">${state.authError}</div>` : ''}
             <form onsubmit="handleLogin(event)" class="space-y-5">
-                <div>
-                    <input type="text" name="username" required placeholder="Usuário" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 focus:border-italian-green outline-none dark:text-white">
-                </div>
-                <div>
-                    <input type="password" name="password" required placeholder="Senha" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 focus:border-italian-green outline-none dark:text-white">
-                </div>
+                <input type="text" name="username" required placeholder="Usuário" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 focus:border-italian-green outline-none dark:text-white">
+                <input type="password" name="password" required placeholder="Senha" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 focus:border-italian-green outline-none dark:text-white">
                 <button class="w-full bg-italian-green text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-green-900/30 hover:scale-[1.02] active:scale-95 transition-all">ENTRAR</button>
+            </form>
+            <div class="text-center mt-6">
+                <button onclick="navigate('register')" class="text-sm font-bold text-gray-400 hover:text-italian-green underline">Solicitar Acesso</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function templateRegister() {
+    return `
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-10 border border-gray-100 dark:border-gray-800 animate-fadeInUp">
+            <h2 class="text-2xl font-black mb-8 text-center">Cadastro de Funcionário</h2>
+            <form onsubmit="handleRegister(event)" class="space-y-4">
+                <input type="text" name="nome" required placeholder="Nome Completo" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 outline-none focus:border-italian-green">
+                <input type="text" name="usuario" required placeholder="Usuário (ex: gabriel)" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 outline-none focus:border-italian-green">
+                <input type="password" name="senha" required placeholder="Senha" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 outline-none focus:border-italian-green">
+                <select name="cargo" class="w-full bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-4 outline-none">
+                    ${ROLES.map(r => `<option value="${r}">${r}</option>`).join('')}
+                </select>
+                <button class="w-full bg-italian-red text-white py-5 rounded-2xl font-black">SOLICITAR ACESSO</button>
+                <button type="button" onclick="navigate('login')" class="w-full text-gray-400 font-bold">Voltar</button>
             </form>
         </div>
     </div>`;
 }
 
-function renderSidebar() {
-    const isAdmin = appState.user.cargo === 'Admin' || appState.user.cargo === 'Gerente';
+function templateSidebar() {
+    const isAdmin = state.user.cargo === 'Admin' || state.user.cargo === 'Gerente';
     return `
     <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 p-6">
         <div class="flex items-center gap-3 mb-10">
@@ -189,46 +333,48 @@ function renderSidebar() {
             <span class="font-bold text-lg">Master Gestão</span>
         </div>
         <nav class="flex-1 space-y-2">
-            <button onclick="navigate('dashboard')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl ${appState.view === 'dashboard' ? 'bg-italian-green text-white' : 'text-gray-500'}">
+            <button onclick="navigate('dashboard')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl ${state.view === 'dashboard' ? 'bg-italian-green text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}">
                 <i class="fas fa-home"></i> Início
             </button>
-            <button onclick="navigate('orders')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl ${appState.view === 'orders' ? 'bg-italian-green text-white' : 'text-gray-500'}">
+            <button onclick="navigate('orders')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl ${state.view === 'orders' ? 'bg-italian-green text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}">
                 <i class="fas fa-history"></i> Pedidos
             </button>
             ${isAdmin ? `
-            <button onclick="navigate('admin')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl ${appState.view === 'admin' ? 'bg-italian-green text-white' : 'text-gray-500'}">
+            <button onclick="navigate('admin')" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl ${state.view === 'admin' ? 'bg-italian-green text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}">
                 <i class="fas fa-cog"></i> Admin
             </button>` : ''}
         </nav>
-        <div class="pt-6 border-t border-gray-100 dark:border-gray-800 mt-6">
-            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl mb-4">
-                <p class="text-sm font-bold truncate">${appState.user.nome}</p>
-                <p class="text-[10px] text-gray-500 uppercase font-black">${appState.user.cargo}</p>
-            </div>
+        <div class="pt-6 border-t border-gray-100 dark:border-gray-800 mt-6 space-y-4">
             <button onclick="toggleDarkMode()" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-gray-500">
-                <i class="fas ${appState.theme === 'light' ? 'fa-moon' : 'fa-sun'}"></i> Tema
+                <i class="fas ${state.theme === 'light' ? 'fa-moon' : 'fa-sun'}"></i> Tema
             </button>
             <button onclick="auth.signOut()" class="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-red-500">
                 <i class="fas fa-sign-out-alt"></i> Sair
             </button>
+            <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl">
+                <p class="text-sm font-bold truncate">${state.user.nome}</p>
+                <p class="text-[10px] text-gray-500 uppercase font-black">${state.user.cargo}</p>
+            </div>
         </div>
     </aside>
     <!-- Mobile Header -->
     <div class="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-800 md:hidden flex items-center justify-between px-6 z-50">
         <span class="font-bold">Pizzeria <span class="text-italian-red">Master</span></span>
-        <button onclick="auth.signOut()" class="text-red-500"><i class="fas fa-sign-out-alt"></i></button>
+        <button onclick="auth.signOut()" class="text-red-500 p-2"><i class="fas fa-sign-out-alt"></i></button>
     </div>`;
 }
 
-function renderContent() {
-    if (appState.view === 'dashboard') return renderDashboard();
-    if (appState.view === 'inventory') return renderInventory();
-    if (appState.view === 'admin') return renderAdmin();
-    if (appState.view === 'orders') return renderOrders();
-    return '';
+function templateContent() {
+    switch(state.view) {
+        case 'dashboard': return templateDashboard();
+        case 'inventory': return templateInventory();
+        case 'admin': return templateAdmin();
+        case 'orders': return templateOrders();
+        default: return templateDashboard();
+    }
 }
 
-function renderDashboard() {
+function templateDashboard() {
     const cats = [
         { id: 'Hortifruti', icon: 'fa-apple-whole', color: 'bg-emerald-500' },
         { id: 'Geral/Insumos', icon: 'fa-box-open', color: 'bg-blue-500' },
@@ -236,20 +382,18 @@ function renderDashboard() {
         { id: 'Limpeza', icon: 'fa-broom', color: 'bg-purple-500' },
     ];
     
-    // Filtrar por permissão
-    const filteredCats = (appState.user.cargo === 'Admin' || appState.user.cargo === 'Gerente')
-        ? cats
-        : cats.filter(c => appState.user.permissoes && appState.user.permissoes.includes(c.id));
+    const filteredCats = (state.user.cargo === 'Admin' || state.user.cargo === 'Gerente')
+        ? cats : cats.filter(c => state.user.permissoes?.includes(c.id));
 
     return `
     <div class="space-y-8">
         <header>
-            <h1 class="text-3xl font-black">Olá, ${appState.user.nome.split(' ')[0]} 👋</h1>
+            <h1 class="text-3xl font-black">Olá, ${state.user.nome.split(' ')[0]} 👋</h1>
             <p class="text-gray-500">Selecione o setor para contagem.</p>
         </header>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             ${filteredCats.map(cat => `
-                <button onclick="startInventory('${cat.id}')" class="group bg-white dark:bg-gray-900 p-8 rounded-[2rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-left border border-gray-100 dark:border-gray-800">
+                <button onclick="navigate('inventory', '${cat.id}')" class="group bg-white dark:bg-gray-900 p-8 rounded-[2rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-left border border-gray-100 dark:border-gray-800 relative overflow-hidden">
                     <div class="w-14 h-14 ${cat.color} rounded-2xl flex items-center justify-center text-white text-2xl mb-6 shadow-lg">
                         <i class="fas ${cat.icon}"></i>
                     </div>
@@ -261,41 +405,39 @@ function renderDashboard() {
     </div>`;
 }
 
-function renderInventory() {
-    const products = appState.products
-        .filter(p => p.categoria === appState.activeCategory)
-        .sort((a, b) => (appState.routes.indexOf(a.localEstoque) - appState.routes.indexOf(b.localEstoque)));
+function templateInventory() {
+    const products = state.products
+        .filter(p => p.categoria === state.activeCategory)
+        .sort((a, b) => (state.routes.indexOf(a.localEstoque) - state.routes.indexOf(b.localEstoque)));
 
     return `
-    <div class="space-y-6 pb-24">
+    <div class="space-y-6 pb-40">
         <header class="flex items-center justify-between">
             <button onclick="navigate('dashboard')" class="text-gray-500 font-bold"><i class="fas fa-chevron-left"></i> Voltar</button>
-            <h1 class="text-2xl font-black">${appState.activeCategory}</h1>
+            <h1 class="text-2xl font-black">${state.activeCategory}</h1>
         </header>
         <div class="space-y-4">
             ${products.map(p => {
-                const count = appState.counts[p.id] || { quantidade: 0, skip: false, pedir: 0 };
+                const count = state.counts[p.id] || { quantidade: 0, skip: false, pedir: 0 };
                 return `
-                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center gap-4 ${count.skip ? 'opacity-50 grayscale' : ''}">
+                <div class="bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center gap-4 ${count.skip ? 'opacity-40 grayscale' : ''}">
                     <div class="flex-1 w-full">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[10px] font-black text-italian-green uppercase tracking-widest">${p.localEstoque}</span>
-                            <button onclick="toggleSkip('${p.id}')" class="text-gray-400 hover:text-red-500"><i class="fas fa-ban"></i></button>
+                            <button onclick="toggleSkip('${p.id}')" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-ban"></i></button>
                         </div>
                         <h3 class="text-xl font-bold">${p.nome}</h3>
                         <p class="text-xs text-gray-500">Unidade: ${p.unidadeContagem} | Meta: ${p.meta}</p>
                     </div>
                     <div class="flex items-center gap-4 w-full sm:w-auto">
-                        <div class="relative">
-                            <input type="number" 
-                                value="${count.quantidade || ''}" 
-                                placeholder="0" 
-                                oninput="updateCount('${p.id}', this.value)"
-                                ${count.skip ? 'disabled' : ''}
-                                class="w-full sm:w-28 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl py-4 text-center font-black text-xl outline-none focus:border-italian-green">
-                        </div>
+                        <input type="number" 
+                            value="${count.quantidade || ''}" 
+                            placeholder="0" 
+                            oninput="updateCount('${p.id}', this.value)"
+                            ${count.skip ? 'disabled' : ''}
+                            class="w-full sm:w-28 bg-gray-50 dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 rounded-2xl py-4 text-center font-black text-2xl outline-none focus:border-italian-green">
                         ${count.pedir > 0 && !count.skip ? `
-                        <div class="bg-italian-green text-white px-6 py-4 rounded-2xl text-center shadow-lg shadow-green-900/20 animate-bounce-subtle">
+                        <div class="bg-italian-green text-white px-6 py-4 rounded-2xl text-center shadow-lg shadow-green-900/20 animate-bounce-subtle min-w-[120px]">
                             <p class="text-[10px] font-black uppercase opacity-80">Pedir</p>
                             <p class="text-xl font-black">${count.pedir} ${p.unidadeCompra}</p>
                         </div>` : ''}
@@ -303,30 +445,82 @@ function renderInventory() {
                 </div>`;
             }).join('')}
         </div>
-        <div class="fixed bottom-6 left-4 right-4 md:left-auto md:right-8 md:w-64 z-50">
-            <button onclick="finishInventory()" class="w-full bg-italian-green text-white py-5 rounded-3xl font-black shadow-2xl hover:scale-[1.02] transition-all">FINALIZAR E ENVIAR</button>
+        <div class="fixed bottom-6 left-6 right-6 flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto z-40">
+            <button onclick="finishInventory(true)" class="flex-1 bg-white border-2 border-italian-green text-italian-green py-5 rounded-3xl font-black shadow-xl hover:scale-[1.02] transition-all">PARA SEGUNDA-FEIRA</button>
+            <button onclick="finishInventory(false)" class="flex-1 bg-italian-green text-white py-5 rounded-3xl font-black shadow-2xl hover:scale-[1.02] transition-all">FINALIZAR E PEDIR</button>
         </div>
     </div>`;
 }
 
-function renderOrders() {
+function templateAdmin() {
+    return `
+    <div class="space-y-8 pb-10">
+        <h1 class="text-3xl font-black">Administração</h1>
+        <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr class="text-[10px] font-black uppercase text-gray-400">
+                            <th class="px-6 py-4">Equipe / Senha</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4">Permissões</th>
+                            <th class="px-6 py-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        ${state.users.map(u => `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td class="px-6 py-4">
+                                    <p class="font-bold">${u.nome}</p>
+                                    <p class="text-xs text-gray-400">User: ${u.usuario} | Pass: ${u.senha}</p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.status === 'Aprovado' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}">${u.status}</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap gap-2 max-w-[250px]">
+                                        ${CATEGORIES.map(cat => `
+                                            <label class="flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" ${u.permissoes?.includes(cat) ? 'checked' : ''} 
+                                                    onchange="updatePerm('${u.id}', '${cat}')" 
+                                                    ${u.cargo === 'Admin' ? 'disabled' : ''}
+                                                    class="accent-italian-green">
+                                                <span class="text-[9px] font-bold text-gray-500">${cat}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    ${u.status === 'Pendente' ? `<button onclick="approveUser('${u.id}')" class="text-green-500 mr-4 text-xl"><i class="fas fa-check-circle"></i></button>` : ''}
+                                    ${u.usuario !== 'Gabriel' ? `<button onclick="deleteUser('${u.id}')" class="text-red-500 text-xl"><i class="fas fa-trash-alt"></i></button>` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>`;
+}
+
+function templateOrders() {
     return `
     <div class="space-y-8">
         <h1 class="text-3xl font-black">Histórico de Pedidos</h1>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            ${appState.orders.map(o => `
+            ${state.orders.length === 0 ? '<p class="text-gray-400 font-bold">Nenhum pedido realizado.</p>' : 
+              state.orders.sort((a,b) => b.data.localeCompare(a.data)).map(o => `
                 <div class="bg-white dark:bg-gray-900 p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800">
                     <div class="flex justify-between items-start mb-4">
                         <div>
-                            <span class="text-xs text-italian-green font-bold">${o.data}</span>
-                            <h3 class="text-xl font-bold">${o.titulo}</h3>
+                            <span class="text-[10px] bg-green-50 text-italian-green px-2 py-1 rounded-full font-bold">${o.data}</span>
+                            <h3 class="text-xl font-bold mt-2">${o.titulo}</h3>
                         </div>
-                        <i class="fas fa-file-invoice text-gray-200 text-2xl"></i>
                     </div>
-                    <div class="space-y-1">
-                        ${o.items.filter(i => i.pedir > 0).map(i => {
-                            const p = appState.products.find(prod => prod.id === i.productId);
-                            return `<div class="flex justify-between text-sm"><span class="text-gray-500">${p?.nome}</span> <span class="font-bold">Pedir ${i.pedir} ${p?.unidadeCompra}</span></div>`;
+                    <div class="space-y-2 border-t pt-4 border-gray-100 dark:border-gray-800">
+                        ${o.items.map(i => {
+                            const p = state.products.find(prod => prod.id === i.productId);
+                            return `<div class="flex justify-between text-sm"><span class="text-gray-500">${p?.nome || 'Item Removido'}</span> <span class="font-bold">Pedir ${i.pedir} ${p?.unidadeCompra || ''}</span></div>`;
                         }).join('')}
                     </div>
                 </div>
@@ -335,131 +529,5 @@ function renderOrders() {
     </div>`;
 }
 
-function renderAdmin() {
-    return `
-    <div class="space-y-8">
-        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h1 class="text-3xl font-black">Administração</h1>
-            <button onclick="resetData()" class="px-6 py-3 bg-red-500 text-white rounded-xl font-bold text-sm"><i class="fas fa-trash"></i> Reset Sistema</button>
-        </header>
-        <section class="bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr class="text-[10px] font-black uppercase text-gray-400">
-                        <th class="px-6 py-4">Equipe</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    ${appState.users.map(u => `
-                        <tr>
-                            <td class="px-6 py-4">
-                                <p class="font-bold">${u.nome}</p>
-                                <p class="text-xs text-gray-500">${u.cargo}</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded-full text-[10px] font-black uppercase ${u.status === 'Aprovado' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}">${u.status}</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                ${u.status === 'Pendente' ? `<button onclick="approveUser('${u.id}')" class="text-green-500 mr-4"><i class="fas fa-check"></i></button>` : ''}
-                                <button onclick="deleteUser('${u.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </section>
-    </div>`;
-}
-
-// 8. Funções de Ação (Handlers)
-function navigate(view) {
-    appState.view = view;
-    render();
-}
-
-function toggleDarkMode() {
-    appState.theme = appState.theme === 'light' ? 'dark' : 'light';
-    localStorage.setItem('theme', appState.theme);
-    document.documentElement.classList.toggle('dark');
-    render();
-}
-
-function startInventory(cat) {
-    appState.view = 'inventory';
-    appState.activeCategory = cat;
-    appState.counts = {};
-    render();
-}
-
-function updateCount(id, val) {
-    const num = parseFloat(val) || 0;
-    const p = appState.products.find(prod => prod.id === id);
-    const need = p.meta - num;
-    const boxes = need > 0 ? Math.ceil(need / p.fatorConversao) : 0;
-    
-    appState.counts[id] = {
-        productId: id,
-        quantidade: num,
-        skip: appState.counts[id]?.skip || false,
-        pedir: boxes
-    };
-    render();
-}
-
-function toggleSkip(id) {
-    if (!appState.counts[id]) appState.counts[id] = { productId: id, quantidade: 0, skip: false, pedir: 0 };
-    appState.counts[id].skip = !appState.counts[id].skip;
-    if (appState.counts[id].skip) appState.counts[id].pedir = 0;
-    render();
-}
-
-async function finishInventory() {
-    const items = Object.values(appState.counts).filter(i => i.pedir > 0);
-    if (items.length === 0) return alert('Nenhum item para pedir.');
-
-    // Salvar Pedido no DB
-    const order = {
-        data: new Date().toLocaleDateString('pt-BR'),
-        titulo: `Pedido ${appState.activeCategory}`,
-        items: items
-    };
-    await db.ref('orders').push(order);
-
-    // Enviar WhatsApp (Agrupado por Fornecedor)
-    const bySupplier = {};
-    items.forEach(i => {
-        const p = appState.products.find(prod => prod.id === i.productId);
-        if (!bySupplier[p.supplierId]) bySupplier[p.supplierId] = [];
-        bySupplier[p.supplierId].push({ nome: p.nome, pedir: i.pedir, unid: p.unidadeCompra });
-    });
-
-    for (const supId in bySupplier) {
-        const sup = appState.suppliers.find(s => s.id === supId);
-        let msg = `*PEDIDO PIZZERIA MASTER*\nSetor: ${appState.activeCategory}\n----------------\n`;
-        bySupplier[supId].forEach(i => msg += `• ${i.nome}: *PEDIR ${i.pedir} ${i.unid}*\n`);
-        window.open(`https://wa.me/${sup.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    alert('Pedidos enviados com sucesso!');
-    navigate('dashboard');
-}
-
-function approveUser(id) {
-    db.ref(`users/${id}`).update({ status: 'Aprovado', permissoes: CATEGORIES });
-}
-
-function deleteUser(id) {
-    if (confirm('Excluir este funcionário?')) db.ref(`users/${id}`).remove();
-}
-
-function resetData() {
-    if (confirm('RESET TOTAL? Isso apagará todos os dados do servidor.')) {
-        db.ref('/').remove();
-        location.reload();
-    }
-}
-
-// Iniciar app
+// Início
 render();
