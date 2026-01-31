@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V46</title>
+    <title>Pizzeria Master V47</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=46">
+    <link rel="stylesheet" href="styles.css?v=47">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -17,20 +17,27 @@
 
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
 
+    <div v-if="mostrandoAjuda" class="modal-backdrop help-modal">
+        <div class="modal-window">
+            <div class="modal-top"><h3><i class="fas fa-question-circle"></i> Ajuda: {{ tituloAjuda }}</h3></div>
+            <div class="modal-content help-content">
+                <p v-html="textoAjuda"></p>
+                <button class="btn-primary full" @click="mostrandoAjuda = false">Entendi</button>
+            </div>
+        </div>
+    </div>
+
     <div v-if="mostrandoTermos" class="modal-backdrop terms-modal">
         <div class="modal-window large">
-            <div class="modal-top"><h3><i class="fas fa-file-contract"></i> Termos de Uso</h3></div>
+            <div class="modal-top"><h3>Termos de Uso</h3></div>
             <div class="modal-content terms-content">
-                <p class="terms-intro">Ao utilizar o <strong>Artigiano Manager</strong>, você concorda:</p>
+                <p class="terms-intro">Uso profissional do <strong>Artigiano Manager</strong>.</p>
                 <div class="terms-text">
-                    <h4>1. LICENÇA E VÍNCULO</h4>
-                    <ul><li>Uso exclusivo para fins profissionais na empresa.</li><li>A licença cessa imediatamente após o fim do vínculo empregatício do desenvolvedor (Gabriel).</li></ul>
-                    <h4>2. ISENÇÃO DE RESPONSABILIDADE</h4>
-                    <ul><li>O desenvolvedor não se responsabiliza por erros de contagem, pedidos excedentes ou falta de insumos.</li><li>A conferência final é dever do usuário.</li></ul>
-                    <h4>3. PRIVACIDADE (LGPD)</h4>
-                    <ul><li>Seus dados (Login, Ações) são usados apenas para funcionamento do sistema.</li></ul>
-                    </div>
-                <button class="btn-primary full" @click="aceitarTermos" style="margin-top:20px;">LI E CONCORDO</button>
+                    <h4>1. ACESSO</h4><ul><li>Uso exclusivo para colaboradores autorizados.</li><li>O acesso é revogável a qualquer momento.</li></ul>
+                    <h4>2. RESPONSABILIDADE</h4><ul><li>O sistema sugere quantidades baseadas na meta.</li><li>A conferência final é humana.</li></ul>
+                    <h4>3. PRIVACIDADE</h4><ul><li>Dados usados apenas para operação interna.</li></ul>
+                </div>
+                <button class="btn-primary full" @click="aceitarTermos" style="margin-top:20px;">CONCORDO</button>
             </div>
         </div>
     </div>
@@ -41,7 +48,7 @@
             <div class="brand">
                 <div class="logo-bg"><i class="fas fa-pizza-slice"></i></div>
                 <h1>Artigiano</h1>
-                <p>Gestão Inteligente</p>
+                <p>Gestão de Estoque</p>
             </div>
             <div class="form-group">
                 <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
@@ -61,6 +68,7 @@
                 <div class="info"><span class="name">{{ usuarioLogado.nome }}</span><span class="role">{{ usuarioLogado.cargo }}</span></div>
             </div>
             <div class="header-actions">
+                <button class="action-btn" @click="abrirAjuda"><i class="fas fa-question"></i></button>
                 <button class="action-btn" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
                 <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="action-btn admin" :class="{pulse: pendentesCount > 0}">
                     <i class="fas fa-users-cog"></i><span class="badge" v-if="pendentesCount > 0">{{ pendentesCount }}</span>
@@ -70,7 +78,7 @@
 
         <main class="main-content">
             <div v-if="isSemanaFeriado" class="holiday-banner animated-up">
-                <i class="fas fa-calendar-check"></i> Semana com Feriado! Pedidos +20%
+                <i class="fas fa-calendar-check"></i> Semana com Feriado! (+20%)
             </div>
 
             <div v-if="!moduloAtivo" class="dashboard animated-fade">
@@ -86,7 +94,6 @@
                     <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button><h2>{{ nomeModulo }}</h2>
                 </div>
                 <div class="search-wrap"><i class="fas fa-search"></i><input v-model="termoBusca" placeholder="Buscar item..."></div>
-                
                 <div class="products-container">
                     <div v-for="local in locaisDoModulo" :key="local">
                         <div v-if="produtosDoLocal(local).length > 0" class="local-label">{{ local }}</div>
@@ -97,10 +104,7 @@
                                 <input type="number" v-model.number="p.contagem" :placeholder="p.unQ" class="input-qty" :disabled="p.ignorar" @change="salvarProdutoUnitario(p)">
                             </div>
                             <div class="p-status" v-if="!p.ignorar && p.contagem !== ''">
-                                <span v-if="calculaFalta(p).qtd > 0" class="tag-buy">
-                                    COMPRAR {{ calculaFalta(p).qtd }} {{ p.unC }}
-                                    <i v-if="isSemanaFeriado" class="fas fa-arrow-up" style="font-size:0.7em"></i>
-                                </span>
+                                <span v-if="calculaFalta(p).qtd > 0" class="tag-buy">COMPRAR {{ calculaFalta(p).qtd }} {{ p.unC }} <i v-if="isSemanaFeriado" class="fas fa-arrow-up" style="font-size:0.7em"></i></span>
                                 <span v-else class="tag-ok">OK</span>
                             </div>
                         </div>
@@ -111,74 +115,98 @@
         </main>
     </div>
 
-    <div class="modal-backdrop" v-if="mostrandoConfig">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Ajustes</h3><button @click="mostrandoConfig = false"><i class="fas fa-times"></i></button></div>
-            <div class="modal-content">
-                
-                <div class="config-box">
-                    <h4><i class="fas fa-id-badge"></i> Meus Dados</h4>
-                    <input v-model="usuarioLogado.nome" placeholder="Nome" class="full-input">
-                    <div class="row">
-                        <input v-model="usuarioLogado.user" placeholder="Usuário">
-                        <input v-model="usuarioLogado.pass" placeholder="Senha">
-                    </div>
-                    <div class="row">
-                        <input v-model="usuarioLogado.nascimento" type="date" placeholder="Nascimento">
-                        <input v-model="usuarioLogado.email" placeholder="Email (Opcional)">
-                    </div>
-                    <button class="btn-primary full" @click="salvarMeuPerfil">Atualizar Meu Perfil</button>
-                </div>
-
-                <div class="config-box" v-if="usuarioLogado.permissoes.admin">
-                    <h4><i class="fas fa-calendar-alt"></i> Feriados (+20%)</h4>
-                    <div v-for="(f, idx) in feriadosOrdenados" :key="idx" class="rota-row">
-                        <span>{{ f.dataFormatted }} - {{ f.nome }}</span>
-                        <i class="fas fa-trash text-red" @click="removerFeriado(f.id)"></i>
-                    </div>
-                    <div class="row" style="margin-top:10px;">
-                        <input v-model="novoFeriado.data" type="date">
-                        <input v-model="novoFeriado.nome" placeholder="Nome do Feriado">
-                    </div>
-                    <button class="btn-primary full" @click="adicionarFeriado">Adicionar Data</button>
-                </div>
-
-                <div class="config-box" v-if="usuarioLogado.permissoes.admin">
-                    <h4>📦 Produto Rápido</h4>
-                    <div class="row"><input v-model="novoProd.nome" placeholder="Nome"><select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select></div>
-                    <div class="row"><input v-model="novoProd.unQ" placeholder="Un"><input v-model.number="novoProd.meta" placeholder="Meta"></div>
-                    <button class="btn-primary full" @click="adicionarProduto">Salvar</button>
-                </div>
-
-                <div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="logout">Sair</button></div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal-backdrop" v-if="mostrandoAdmin">
         <div class="modal-window">
             <div class="modal-top"><h3>Gestão de Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div>
             <div class="modal-content">
-                <div class="config-box">
-                    <h4>Novo Usuário</h4>
+                <div class="config-box" :class="{editing: editandoUsuarioId}">
+                    <h4><i class="fas" :class="editandoUsuarioId ? 'fa-user-edit' : 'fa-user-plus'"></i> {{ editandoUsuarioId ? 'Editar' : 'Novo Usuário' }}</h4>
                     <div class="row"><input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input"><select v-model="novoUserAdmin.cargo" class="full-input"><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div>
                     <div class="row"><input v-model="novoUserAdmin.user" placeholder="Login"><input v-model="novoUserAdmin.pass" placeholder="Senha"></div>
-                    <button class="btn-primary full" @click="adicionarUsuarioAdmin">Criar</button>
+                    <div class="row" v-if="editandoUsuarioId"><button class="btn-primary full" @click="salvarEdicaoUsuario">Salvar</button><button class="btn-secondary full" @click="cancelarEdicaoUsuario">Cancelar</button></div>
+                    <button v-else class="btn-primary full" @click="adicionarUsuarioAdmin">Criar</button>
                 </div>
                 <h4>Equipe</h4>
                 <div v-for="u in usuariosAtivos" :key="u.id" class="user-item">
-                    <div class="user-head"><strong>{{ u.nome }}</strong> <small>{{ u.cargo }}</small> <i class="fas fa-trash" @click="removerUsuario(u.id)"></i></div>
+                    <div class="user-head"><div @click="u.expandido = !u.expandido" style="flex:1;"><strong>{{ u.nome }}</strong> <small>{{ u.cargo }}</small></div><button class="btn-edit" @click="prepararEdicao(u)"><i class="fas fa-pencil-alt"></i></button><i class="fas fa-chevron-down" @click="u.expandido = !u.expandido"></i></div>
+                    <div v-if="u.expandido" class="perm-grid">
+                        <label><input type="checkbox" v-model="u.permissoes.admin" @change="salvarUsuarioUnitario(u)"> Admin</label>
+                        <label><input type="checkbox" v-model="u.permissoes.hortifruti" @change="salvarUsuarioUnitario(u)"> Horti</label>
+                        <label><input type="checkbox" v-model="u.permissoes.geral" @change="salvarUsuarioUnitario(u)"> Geral</label>
+                        <label><input type="checkbox" v-model="u.permissoes.bebidas" @change="salvarUsuarioUnitario(u)"> Bebidas</label>
+                        <label><input type="checkbox" v-model="u.permissoes.limpeza" @change="salvarUsuarioUnitario(u)"> Limpeza</label>
+                        <button class="btn-del" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id">Excluir</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal-backdrop" v-if="mostrandoPreview"><div class="modal-window"><div class="modal-top"><h3>Enviar</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block"><div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div><ul><li v-for="i in g">{{ i.texto }}</li></ul><button class="btn-zap" @click="enviarZap(id, g)">Enviar WhatsApp</button></div></div></div></div>
+    <div class="modal-backdrop" v-if="mostrandoConfig">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Ajustes</h3><button @click="mostrandoConfig = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-content">
+                <div class="config-box">
+                    <h4><i class="fas fa-id-badge"></i> Meus Dados</h4>
+                    <input v-model="usuarioLogado.nome" placeholder="Nome" class="full-input">
+                    <div class="row"><input v-model="usuarioLogado.user" placeholder="Usuário"><input v-model="usuarioLogado.pass" placeholder="Senha"></div>
+                    <button class="btn-primary full" @click="salvarMeuPerfil">Atualizar Perfil</button>
+                </div>
+                <div class="config-box" v-if="usuarioLogado.permissoes.admin">
+                    <h4><i class="fas fa-calendar-alt"></i> Feriados (+20%)</h4>
+                    <div v-for="(f, idx) in feriadosOrdenados" :key="idx" class="rota-row"><span>{{ f.dataFormatted }} - {{ f.nome }}</span><i class="fas fa-trash text-red" @click="removerFeriado(f.id)"></i></div>
+                    <div class="row" style="margin-top:10px;"><input v-model="novoFeriado.data" type="date"><input v-model="novoFeriado.nome" placeholder="Nome"></div>
+                    <button class="btn-primary full" @click="adicionarFeriado">Adicionar Data</button>
+                </div>
+                <div class="config-box" v-if="usuarioLogado.permissoes.admin">
+                    <h4>📦 Novo Produto</h4>
+                    <input v-model="novoProd.nome" placeholder="Nome" class="full-input">
+                    <div class="row"><select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select><select v-model="novoProd.local"><option v-for="l in config.rota" :value="l">{{ l }}</option></select></div>
+                    <div class="row"><input v-model="novoProd.unQ" placeholder="Conta (Un)"><input v-model="novoProd.unC" placeholder="Pede (Cx)"></div>
+                    <div class="row"><input v-model.number="novoProd.fator" placeholder="Qtd Cx"><input v-model.number="novoProd.meta" placeholder="Meta"></div>
+                    <select v-model="novoProd.destinoId" class="full-input"><option value="" disabled>Fornecedor</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
+                    <button class="btn-primary full" @click="adicionarProduto">Salvar</button>
+                </div>
+                <div class="config-box">
+                    <h4>📞 Contatos & Saudação</h4>
+                    <div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row" style="flex-direction:column; align-items:flex-start;">
+                        <div style="display:flex; justify-content:space-between; width:100%;"><span><strong>{{ d.nome }}</strong> ({{ d.telefone }})</span><i class="fas fa-trash text-red" @click="removerDestino(idx)"></i></div>
+                        <small style="color:#666; font-style:italic;">"{{ d.msgPersonalizada || 'Olá,' }}"</small>
+                    </div>
+                    <div class="row" style="margin-top:10px;"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap"></div>
+                    <input v-model="novoDestino.msgPersonalizada" placeholder="Saudação" class="full-input">
+                    <button class="btn-primary full" @click="adicionarDestino">Adicionar</button>
+                </div>
+                <div v-if="usuarioLogado.permissoes.admin"><button class="btn-danger full" @click="logout">Sair do App</button></div>
+            </div>
+        </div>
+    </div>
 
-    <div class="modal-backdrop" v-if="mostrandoHistorico"><div class="modal-window"><div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(h, idx) in historico" :key="idx" class="history-card"><div class="h-header"><span>{{ h.data }}</span><span class="h-user">{{ h.usuario }}</span></div><div class="h-body">{{ h.itens }}</div><button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(h.id)">Apagar</button></div></div></div></div>
+    <div class="modal-backdrop" v-if="mostrandoPreview">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Enviar Pedido</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-content">
+                <div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block">
+                    <div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div>
+                    <ul><li v-for="i in g">{{ i.texto }}</li></ul>
+                    
+                    <div class="send-options">
+                        <button class="btn-zap" @click="enviarZap(id, g, false)">
+                            <i class="fab fa-whatsapp"></i> Enviar Agora
+                        </button>
+                        <button class="btn-zap secondary" @click="enviarZap(id, g, true)">
+                            <i class="fas fa-clock"></i> P/ Segunda
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" v-if="mostrandoHistorico"><div class="modal-window"><div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(h, idx) in historico" :key="idx" class="history-card"><div class="h-header"><span>{{ h.data }}</span><span class="h-user">{{ h.usuario }}</span></div><div class="h-dest">Para: {{ h.destino }}</div><div class="h-body">{{ h.itens }}</div><button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(h.id)">Apagar</button></div></div></div></div>
 
 </div>
 
-<script src="script.js?v=46"></script>
+<script src="script.js?v=47"></script>
 </body>
 </html>
