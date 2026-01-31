@@ -16,58 +16,29 @@ const app = createApp({
             novoProd: { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir' },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
             
-            // --- PRODUÇÃO ---
+            // PRODUÇÃO
             sobraMassa: '', mostrarLotes: false,
-            lotesPadrao: [
-                {qtd: 15, far: '2kg', agua: '1.247g', lev: '90g', sal: '60g'},
-                {qtd: 30, far: '4kg', agua: '2.494g', lev: '180g', sal: '120g'},
-                {qtd: 45, far: '6kg', agua: '3.742g', lev: '270g', sal: '180g'},
-                {qtd: 60, far: '8kg', agua: '4.989g', lev: '360g', sal: '240g'},
-                {qtd: 75, far: '10kg', agua: '6.237g', lev: '450g', sal: '300g'},
-                {qtd: 90, far: '12kg', agua: '7.484g', lev: '540g', sal: '360g'},
-                {qtd: 110, far: '14kg', agua: '8.732g', lev: '630g', sal: '420g'}
-            ]
+            lotesPadrao: [{qtd:15,far:'2kg',agua:'1.247g',lev:'90g',sal:'60g'},{qtd:30,far:'4kg',agua:'2.494g',lev:'180g',sal:'120g'},{qtd:45,far:'6kg',agua:'3.742g',lev:'270g',sal:'180g'},{qtd:60,far:'8kg',agua:'4.989g',lev:'360g',sal:'240g'},{qtd:75,far:'10kg',agua:'6.237g',lev:'450g',sal:'300g'},{qtd:90,far:'12kg',agua:'7.484g',lev:'540g',sal:'360g'},{qtd:110,far:'14kg',agua:'8.732g',lev:'630g',sal:'420g'}]
         }
     },
     computed: {
-        // --- LÓGICA DE PRODUÇÃO ---
+        // PRODUÇÃO
         nomeDiaSemana() { const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; return dias[new Date().getDay()]; },
-        metaDia() {
-            const d = new Date().getDay(); // 0=Dom, 6=Sab
-            // 0 (Dom), 5 (Sex), 6 (Sab) = 100. Outros = 60
-            if (d === 0 || d === 5 || d === 6) return 100;
-            return 60;
-        },
-        qtdProduzir() {
-            const sobra = this.sobraMassa || 0;
-            const falta = this.metaDia - sobra;
-            return Math.max(0, falta);
-        },
+        metaDia() { const d = new Date().getDay(); if(d===0||d===5||d===6) return 100; return 60; },
+        qtdProduzir() { const sobra = this.sobraMassa || 0; return Math.max(0, this.metaDia - sobra); },
         receitaCalculada() {
-            const q = this.qtdProduzir;
-            const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 };
-            // Multiplica e arredonda
-            return {
-                farinha: Math.round(q * r.farinha),
-                aguaLiq: Math.round(q * r.aguaLiq),
-                gelo: Math.round(q * r.gelo),
-                aguaTotal: Math.round(q * (r.aguaLiq + r.gelo)),
-                levain: Math.round(q * r.levain),
-                sal: Math.round(q * r.sal)
-            };
+            const q = this.qtdProduzir; const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 };
+            return { farinha: Math.round(q*r.farinha), aguaLiq: Math.round(q*r.aguaLiq), gelo: Math.round(q*r.gelo), aguaTotal: Math.round(q*(r.aguaLiq+r.gelo)), levain: Math.round(q*r.levain), sal: Math.round(q*r.sal) };
         },
-
-        // --- SISTEMA ---
+        // APP
         usuariosAtivos() { return this.usuarios.filter(u => u.aprovado === true); },
-        pendentesCount() { return this.usuarios.filter(u => u.aprovado === false).length; },
-        nomeModulo() { const n = { hortifruti: 'Hortifruti', geral: 'Geral', bebidas: 'Bebidas', limpeza: 'Limpeza', producao: 'Produção de Massas' }; return n[this.moduloAtivo] || ''; },
+        usuariosPendentes() { return this.usuarios.filter(u => u.aprovado === false); },
+        pendentesCount() { return this.usuariosPendentes.length; },
+        nomeModulo() { const n = { hortifruti:'Hortifruti', geral:'Geral', bebidas:'Bebidas', limpeza:'Limpeza', producao:'Produção de Massas' }; return n[this.moduloAtivo] || ''; },
         feriadosOrdenados() { return this.feriados.slice().sort((a,b) => a.data.localeCompare(b.data)).map(f => ({ ...f, dataFormatted: f.data.split('-').reverse().join('/') })); },
-        isSemanaFeriado() {
-            const hoje = new Date(); const i = new Date(hoje); i.setDate(hoje.getDate() - hoje.getDay()); const f = new Date(hoje); f.setDate(hoje.getDate() + (6 - hoje.getDay()));
-            return this.feriados.some(fer => { const d = new Date(fer.data + 'T00:00:00'); return d >= i && d <= f; });
-        },
-        produtosFiltrados() { if (!this.moduloAtivo) return []; return this.produtos.filter(p => (this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true) && p.categoria === this.moduloAtivo); },
-        locaisDoModulo() { const r = this.config.rota || ['Geral']; return r.filter(local => this.produtosFiltrados.some(p => p.locais && p.locais.includes(local))); },
+        isSemanaFeriado() { const h = new Date(); const i = new Date(h); i.setDate(h.getDate()-h.getDay()); const f = new Date(h); f.setDate(h.getDate()+(6-h.getDay())); return this.feriados.some(fer => { const d = new Date(fer.data+'T00:00:00'); return d>=i && d<=f; }); },
+        produtosFiltrados() { if(!this.moduloAtivo) return []; return this.produtos.filter(p => (this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true) && p.categoria === this.moduloAtivo); },
+        locaisDoModulo() { const r = this.config.rota || ['Geral']; return r.filter(l => this.produtosFiltrados.some(p => p.locais && p.locais.includes(l))); },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.locais && p.locais.includes(local)); },
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         pedidosAgrupados() {

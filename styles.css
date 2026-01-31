@@ -2,23 +2,25 @@
 [data-theme="dark"] { --primary: #EF4444; --primary-dark: #991B1B; --accent: #10B981; --bg: #111827; --card: #1F2937; --text: #F3F4F6; --text-light: #9CA3AF; --border: #374151; --input-bg: #374151; }
 [v-cloak] { display: none; }
 * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); color: var(--text); margin: 0; transition: background 0.3s; height: 100vh; overflow: hidden; }
 
-/* SCROLL FIX (O Segredo para Lista Mexer) */
+/* CORREÇÃO DO SCROLL MOBILE */
+html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; /* Trava o corpo para não quicar */ }
+#app { height: 100%; }
+.app-layout { height: 100%; display: flex; flex-direction: column; }
 .main-content {
-    padding: 20px;
     flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* ESSENCIAL PARA IPHONE */
-    scroll-behavior: smooth;
-    padding-bottom: 100px; /* GARANTE ESPAÇO NO FINAL */
+    overflow-y: auto; /* Libera o scroll interno */
+    -webkit-overflow-scrolling: touch; /* Fluidez no iPhone */
+    touch-action: pan-y; /* Permite arrastar verticalmente */
+    padding: 20px;
+    padding-bottom: 120px; /* Garante que o último item não fique escondido */
 }
 
-/* AUTH & LAYOUT */
+/* OUTROS ESTILOS */
 .loading-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
 .spinner-container { text-align: center; color: var(--primary); font-size: 1.5rem; }
 .spinner-container i { font-size: 3rem; margin-bottom: 10px; display: block; }
-.auth-wrapper { height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 20px; }
+.auth-wrapper { height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 20px; overflow-y: auto; }
 .auth-box { background: var(--card); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 25px rgba(0,0,0,0.2); text-align: center; }
 .brand h1 { color: var(--primary); margin: 10px 0 5px; font-weight: 800; font-size: 1.8rem; }
 .logo-bg { width: 60px; height: 60px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto; }
@@ -29,7 +31,6 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .btn-secondary { width: 100%; padding: 14px; background: var(--text-light); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-left: 5px; }
 .msg-box { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 0.9rem; background: #DEF7EC; color: #03543F; }
 .msg-box.error { background: #FDE8E8; color: #9B1C1C; }
-.app-layout { display: flex; flex-direction: column; height: 100%; }
 .app-header { background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .user-pill { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .avatar { width: 38px; height: 38px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
@@ -39,9 +40,11 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .action-btn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text-light); cursor: pointer; position: relative; }
 .action-btn.admin { color: var(--primary); border-color: rgba(196,30,58,0.2); background: rgba(196,30,58,0.05); }
 .badge { position: absolute; top: -5px; right: -5px; background: var(--primary); color: white; font-size: 0.7rem; padding: 2px 5px; border-radius: 10px; }
-.holiday-banner { background: #FEF3C7; color: #D97706; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-weight: 700; text-align: center; border: 1px solid #FCD34D; display: flex; align-items: center; justify-content: center; gap: 8px; animation: slideDown 0.5s ease-out; }
+.holiday-banner { background: #FEF3C7; color: #D97706; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-weight: 700; text-align: center; border: 1px solid #FCD34D; display: flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; }
 .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .dash-card { background: var(--card); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer; }
+.dash-card.producao { background: #FFF7ED; border-color: #FDBA74; grid-column: 1 / -1; }
+.producao .icon-circle { background: #FFEDD5; color: #EA580C; }
 .icon-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 10px; }
 .horti .icon-circle { background: #ECFDF5; color: #059669; } .geral .icon-circle { background: #EFF6FF; color: #2563EB; } .bebidas .icon-circle { background: #FEF2F2; color: #DC2626; } .limpeza .icon-circle { background: #F5F3FF; color: #7C3AED; } .history .icon-circle { background: #FFF7ED; color: #EA580C; }
 .view-header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
@@ -54,6 +57,7 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .p-info small { display: block; color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
 .p-actions-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .btn-open { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 42px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text-light); font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
+.btn-open i { font-size: 1rem; margin-bottom: 2px; }
 .btn-open.active { background: #FEF3C7; color: #D97706; border-color: #FCD34D; font-weight: bold; }
 .btn-ignore { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text-light); cursor: pointer; }
 .btn-ignore.active { background: var(--text); color: var(--bg); }
@@ -66,12 +70,14 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: flex-end; backdrop-filter: blur(2px); }
 .modal-window { background: var(--card); width: 100%; max-height: 90vh; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.3s; }
 .modal-top { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
-.modal-content { padding: 20px; overflow-y: auto; }
+.modal-content { padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .config-box { border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
 .config-box.editing { border: 2px solid var(--accent); background: #F0FDF4; }
 .user-item { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
 .user-head { display: flex; align-items: center; justify-content: space-between; }
 .btn-edit { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.1rem; padding: 5px; margin-right: 10px; }
+.btn-ok { background: var(--accent); color: white; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; margin-right: 5px; }
+.btn-no { background: white; border: 1px solid #FECACA; color: var(--primary); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
 .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .rota-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; }
 .text-red { color: var(--primary); }
@@ -93,7 +99,7 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .btn-del-mini { font-size: 0.7rem; color: var(--primary); background: none; border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; margin-top: 5px; cursor: pointer; }
 .animated-up { animation: slideUp 0.4s ease-out; } @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .animated-fade { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.terms-text { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
+.terms-text, .help-content { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
 .terms-text h4 { color: var(--text); margin: 15px 0 5px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
 .terms-text ul { padding-left: 20px; margin: 0; }
 .terms-text li { margin-bottom: 5px; color: var(--text-light); }
@@ -108,78 +114,17 @@ body { background: var(--bg); color: var(--text); margin: 0; transition: backgro
 .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .checkbox-grid label { font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .perm-selector { margin: 15px 0; padding: 10px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border); }
-.perm-tags { display: flex; gap: 5px; ma/* MANTER TODO O CSS DA V53 E ADICIONAR: */
-
-/* CARD PRODUÇÃO */
-.dash-card.producao {
-    background: #FFF7ED;
-    border-color: #FDBA74;
-    grid-column: 1 / -1; /* Ocupa largura total */
-}
-.producao .icon-circle { background: #FFEDD5; color: #EA580C; }
-
-/* CALCULADORA */
-.calc-box {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
+.calc-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
 .calc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-.calc-header small { color: var(--text-light); }
-.stock-input { text-align: right; }
-.stock-input label { display: block; font-size: 0.7rem; font-weight: bold; margin-bottom: 2px; }
 .stock-input input { width: 60px; text-align: center; border: 1px solid var(--primary); color: var(--primary); font-weight: bold; border-radius: 8px; padding: 5px; }
-
-.result-display {
-    background: var(--bg);
-    border-radius: 10px;
-    padding: 15px;
-    text-align: center;
-    border: 2px solid var(--accent);
-    margin-bottom: 15px;
-}
-.result-display span { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); }
-.result-display h1 { margin: 5px 0 0; color: var(--accent); font-size: 2.5rem; }
-.result-display h1 small { font-size: 1rem; color: var(--text); font-weight: normal; }
-
-/* TABELA DE RECEITA */
+.result-display { background: var(--bg); border-radius: 10px; padding: 15px; text-align: center; border: 2px solid var(--accent); margin-bottom: 15px; }
 .recipe-table { background: var(--input-bg); border-radius: 8px; padding: 10px; }
 .r-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 8px 0; }
-.r-row:last-child { border: none; }
 .r-sub-row { display: flex; justify-content: space-between; padding: 5px 0 5px 20px; font-size: 0.85rem; color: var(--text-light); border-bottom: 1px dashed var(--border); }
-.r-sub-row i { margin-right: 5px; opacity: 0.7; }
-
-/* POP (PROCESSO) */
 .pop-section h3 { color: var(--primary); margin-bottom: 15px; font-size: 1.1rem; }
-.step-card {
-    display: flex;
-    gap: 15px;
-    background: var(--bg);
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    border: 1px solid var(--border);
-}
-.step-num {
-    background: var(--primary);
-    color: white;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: bold;
-    flex-shrink: 0;
-}
-.step-text strong { display: block; margin-bottom: 5px; font-size: 1rem; }
-.step-text p { margin: 0; font-size: 0.9rem; color: var(--text-light); line-height: 1.4; }
-
-/* TABELA LOTES */
-.std-batches h4 { cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 5px; }
+.step-card { display: flex; gap: 15px; background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
+.step-num { background: var(--primary); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
 .table-responsive { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 th, td { padding: 8px; text-align: center; border-bottom: 1px solid var(--border); }
-th { background: var(--input-bg); color: var(--text-light); font-weight: bold; }
-rgin-top: 5px; flex-wrap: wrap; }
-.perm-tags .tag { font-size: 0.6rem; padding: 2px 6px; background: var(--border); border-radius: 4px; color: var(--text-light); }
-.perm-tags .tag.admin { background: var(--primary); color: white; }
+th { background: var(--input-bg); color: var(--text-light); }
