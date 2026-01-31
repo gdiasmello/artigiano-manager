@@ -1,25 +1,20 @@
+/* RESET E VARIAVEIS GLOBAIS */
 :root { --primary: #C41E3A; --primary-dark: #8B0000; --accent: #008C45; --bg: #F3F4F6; --card: #FFFFFF; --text: #1F2937; --text-light: #6B7280; --border: #E5E7EB; --input-bg: #F9FAFB; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+/* MODO ESCURO FORÇADO NO BODY */
 [data-theme="dark"] { --primary: #EF4444; --primary-dark: #991B1B; --accent: #10B981; --bg: #111827; --card: #1F2937; --text: #F3F4F6; --text-light: #9CA3AF; --border: #374151; --input-bg: #374151; }
-[v-cloak] { display: none; }
-* { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
 
-/* CORREÇÃO DO SCROLL MOBILE */
-html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; /* Trava o corpo para não quicar */ }
-#app { height: 100%; }
+/* CORREÇÃO CRÍTICA DO BACKGROUND BODY */
+body { background-color: var(--bg); color: var(--text); margin: 0; transition: background-color 0.3s; height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
+#app { height: 100%; background-color: var(--bg); } /* Garante que o app herde a cor */
+
+/* SCROLL E LAYOUT */
 .app-layout { height: 100%; display: flex; flex-direction: column; }
-.main-content {
-    flex: 1;
-    overflow-y: auto; /* Libera o scroll interno */
-    -webkit-overflow-scrolling: touch; /* Fluidez no iPhone */
-    touch-action: pan-y; /* Permite arrastar verticalmente */
-    padding: 20px;
-    padding-bottom: 120px; /* Garante que o último item não fique escondido */
-}
+.main-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 20px; padding-bottom: 120px; }
 
-/* OUTROS ESTILOS */
+/* ESTILOS PADRÃO */
 .loading-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
 .spinner-container { text-align: center; color: var(--primary); font-size: 1.5rem; }
-.spinner-container i { font-size: 3rem; margin-bottom: 10px; display: block; }
 .auth-wrapper { height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 20px; overflow-y: auto; }
 .auth-box { background: var(--card); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 25px rgba(0,0,0,0.2); text-align: center; }
 .brand h1 { color: var(--primary); margin: 10px 0 5px; font-weight: 800; font-size: 1.8rem; }
@@ -57,7 +52,6 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; /* Trava o c
 .p-info small { display: block; color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
 .p-actions-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .btn-open { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 42px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text-light); font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
-.btn-open i { font-size: 1rem; margin-bottom: 2px; }
 .btn-open.active { background: #FEF3C7; color: #D97706; border-color: #FCD34D; font-weight: bold; }
 .btn-ignore { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text-light); cursor: pointer; }
 .btn-ignore.active { background: var(--text); color: var(--bg); }
@@ -70,14 +64,12 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; /* Trava o c
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: flex-end; backdrop-filter: blur(2px); }
 .modal-window { background: var(--card); width: 100%; max-height: 90vh; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; animation: slideUp 0.3s; }
 .modal-top { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
-.modal-content { padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.modal-content { padding: 20px; overflow-y: auto; }
 .config-box { border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
 .config-box.editing { border: 2px solid var(--accent); background: #F0FDF4; }
 .user-item { background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
 .user-head { display: flex; align-items: center; justify-content: space-between; }
 .btn-edit { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.1rem; padding: 5px; margin-right: 10px; }
-.btn-ok { background: var(--accent); color: white; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; margin-right: 5px; }
-.btn-no { background: white; border: 1px solid #FECACA; color: var(--primary); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
 .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .rota-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; }
 .text-red { color: var(--primary); }
@@ -124,7 +116,12 @@ html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; /* Trava o c
 .pop-section h3 { color: var(--primary); margin-bottom: 15px; font-size: 1.1rem; }
 .step-card { display: flex; gap: 15px; background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); }
 .step-num { background: var(--primary); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
-.table-responsive { overflow-x: auto; }
+.table-responsive { overflow-x: auto; margin-top: 5px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 th, td { padding: 8px; text-align: center; border-bottom: 1px solid var(--border); }
 th { background: var(--input-bg); color: var(--text-light); }
+.mode-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+.btn-mode { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text-light); cursor: pointer; }
+.btn-mode.active { background: var(--accent); color: white; border-color: var(--accent); }
+.select-lote { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
+.std-batches h4 { cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 5px; }
