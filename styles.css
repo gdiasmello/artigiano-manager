@@ -17,8 +17,7 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
 .input-group input, .input-group select { width: 100%; padding: 12px 12px 12px 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text); font-size: 1rem; outline: none; }
 .btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
-.btn-secondary { width: 100%; padding: 14px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 12px; font-weight: 700; cursor: pointer; margin-left: 5px; }
-.btn-danger { width: 100%; padding: 14px; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+.btn-secondary { width: 100%; padding: 14px; background: var(--text-light); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-left: 5px; }
 .msg-box { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 0.9rem; background: #DEF7EC; color: #03543F; }
 .msg-box.error { background: #FDE8E8; color: #9B1C1C; }
 .user-pill { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -41,11 +40,9 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .btn-back { background: var(--card); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; color: var(--text); cursor: pointer; }
 .search-wrap { background: var(--card); padding: 12px 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .search-wrap input { border: none; background: transparent; flex: 1; color: var(--text); font-size: 1rem; outline: none; }
-.product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; position: relative; }
+.product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
 .p-info strong { display: block; font-size: 1rem; margin-bottom: 3px; }
 .p-info small { display: block; color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
-.desc-text { display: block; color: var(--text-light); font-size: 0.75rem; font-style: italic; margin-bottom: 3px; }
-.btn-del-item { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-light); cursor: pointer; padding: 5px; }
 .p-actions-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .btn-open { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 42px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text-light); font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
 .btn-open.active { background: #FEF3C7; color: #D97706; border-color: #FCD34D; font-weight: bold; }
@@ -84,13 +81,15 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .h-user { color: var(--primary); font-weight: 700; }
 .h-dest { font-weight: 700; margin-bottom: 5px; }
 .h-body { font-size: 0.85rem; white-space: pre-wrap; color: var(--text); line-height: 1.4; }
-.h-user-row { font-weight: bold; color: var(--primary); font-size: 0.9rem; margin-bottom: 5px; }
 .btn-del-mini { font-size: 0.7rem; color: var(--primary); background: none; border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; margin-top: 5px; cursor: pointer; }
-.terms-text, .help-content { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
+.terms-text { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
 .terms-text h4 { color: var(--text); margin: 15px 0 5px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
 .suggest-badge { position: absolute; top: 10px; right: 10px; background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #FCD34D; animation: pulse 2s infinite; }
 .text-alert { color: #D97706; margin-left: 5px; animation: pulse 2s infinite; }
 .cat-tag { display: inline-block; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+.color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.color-item { display: flex; align-items: center; gap: 10px; background: var(--bg); padding: 5px; border-radius: 8px; }
+.color-item input { width: 30px; height: 30px; border: none; cursor: pointer; }
 .multi-select-box { background: var(--input-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
 .multi-select-box p { margin: 0 0 5px; font-weight: bold; font-size: 0.8rem; }
 .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
@@ -125,11 +124,3 @@ th { background: var(--input-bg); color: var(--text-light); }
 .highlight-box h4 { color: var(--primary); }
 .animated-up { animation: slideUp 0.4s ease-out; } @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .animated-fade { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* AUTOCOMPLETE & SPLIT */
-.suggestions-box { background: white; border: 1px solid var(--primary); border-radius: 0 0 12px 12px; max-height: 150px; overflow-y: auto; position: absolute; width: calc(100% - 22px); z-index: 500; margin-top: -10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); left: 11px; }
-.suggestion-item { padding: 12px; border-bottom: 1px solid #eee; color: var(--text); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-.suggestion-item:hover { background-color: #f9f9f9; }
-.suggestion-item small { color: var(--text-light); font-size: 0.75rem; }
-.row.split-2 { display: flex; gap: 10px; }
-.row.split-2 input, .row.split-2 select { flex: 1; width: 50%; min-width: 0; }
