@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V60</title>
+    <title>Pizzeria Master V60.1</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=60">
+    <link rel="stylesheet" href="styles.css?v=60.1">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -28,22 +28,20 @@
                 <div class="terms-text">
                     <h4>1. Licença de Uso</h4>
                     <p>Este software é concedido para uso exclusivo na <strong>Artigiano</strong>.</p>
-                    <h4>2. Suporte Técnico (Cláusula Gabriel)</h4>
-                    <p>O suporte, manutenção e atualizações deste sistema serão fornecidos pelo desenvolvedor (Gabriel) <strong>exclusivamente durante a vigência de seu vínculo profissional</strong> com a Artigiano. Após o término deste vínculo, não há obrigatoriedade de suporte.</p>
-                    <h4>3. Responsabilidade</h4>
-                    <p>A conferência final dos pedidos é responsabilidade do usuário.</p>
+                    <h4>2. Suporte Técnico</h4>
+                    <p>O suporte é garantido durante a vigência do contrato de trabalho do desenvolvedor.</p>
                 </div>
                 <button class="btn-primary full" @click="aceitarTermos" style="margin-top:15px;">LI E CONCORDO</button>
             </div>
         </div>
     </div>
     
-    <div v-if="loadingInicial" class="loading-screen"><div class="spinner-container"><i class="fas fa-pizza-slice fa-spin"></i><p>Conectando...</p><button @click="loadingInicial = false" class="btn-force">Entrar forçado</button></div></div>
+    <div v-if="loadingInicial" class="loading-screen"><div class="spinner-container"><i class="fas fa-pizza-slice fa-spin"></i><p>Carregando V60.1...</p><button @click="loadingInicial = false" class="btn-force">Entrar forçado</button></div></div>
 
     <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial && !mostrandoTermos">
         <button class="theme-toggle" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
         <div class="auth-box animated-up">
-            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V60</p></div>
+            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V60.1</p></div>
             <div class="form-group">
                 <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
                 <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin"></div>
@@ -101,7 +99,13 @@
                     <div v-for="local in locaisDoModulo" :key="local">
                         <div v-if="produtosDoLocal(local).length > 0" class="local-label">{{ local }}</div>
                         <div v-for="p in produtosDoLocal(local)" :key="p.id + local" class="product-card" :style="{borderLeft: '5px solid ' + getCorCategoria(p.categoria)}">
-                            <div class="p-info"><div class="cat-tag" :style="{background: getCorCategoria(p.categoria)}">{{ p.categoria }}</div><strong>{{ p.nome }}</strong><small>Meta: {{ p.meta }} {{ p.unC }}</small></div>
+                            <div class="p-info">
+                                <div class="cat-tag" :style="{background: getCorCategoria(p.categoria)}">{{ p.categoria }}</div>
+                                <strong>{{ p.nome }}</strong>
+                                <small v-if="p.descricao" class="desc-text">{{ p.descricao }}</small>
+                                <small>Meta: {{ p.meta }} {{ p.unC }}</small>
+                                <button v-if="usuarioLogado.permissoes.admin" class="btn-del-item" @click="prepararEdicaoProduto(p)"><i class="fas fa-pencil-alt"></i></button>
+                            </div>
                             <div class="p-actions-row">
                                 <button class="btn-open" :class="{active: p.temAberto}" @click="toggleAberto(p)"><i class="fas fa-box-open"></i><span>+0.5</span></button>
                                 <div class="input-wrapper"><input type="number" v-model.number="p.contagem[local]" :placeholder="p.unQ + ' (' + local + ')'" class="input-qty" :disabled="p.ignorar" @change="salvarProdutoUnitario(p)"></div>
@@ -122,16 +126,53 @@
 
     <div class="modal-backdrop" v-if="mostrandoConfig"><div class="modal-window"><div class="modal-top"><h3>Ajustes</h3><button @click="mostrandoConfig = false"><i class="fas fa-times"></i></button></div><div class="modal-content">
         <div class="config-box highlight-box" v-if="usuarioLogado.permissoes.admin"><h4><i class="fas fa-calendar-star"></i> Feriados (+20%)</h4><div v-for="(f, idx) in feriadosOrdenados" :key="idx" class="rota-row"><span>{{ f.dataFormatted }} - {{ f.nome }}</span><i class="fas fa-trash text-red" @click="removerFeriado(f.id)"></i></div><div class="row" style="margin-top:10px;"><input v-model="novoFeriado.data" type="date"><input v-model="novoFeriado.nome" placeholder="Nome"></div><button class="btn-primary full" @click="adicionarFeriado">Adicionar</button></div>
+        
         <div class="config-box" v-if="usuarioLogado.permissoes.admin">
-            <h4>📦 Produto</h4>
-            <input v-model="novoProd.nome" placeholder="Nome" class="full-input">
+            <h4 v-if="editandoProdutoId">✏️ Editando: {{ novoProd.nome }}</h4>
+            <h4 v-else>📦 Buscar/Criar Produto</h4>
+            
+            <div style="position: relative; margin-bottom: 5px;">
+                <input v-model="novoProd.nome" placeholder="Digite para buscar..." class="full-input" autocomplete="off">
+                <div v-if="sugestoesProdutos.length > 0 && !editandoProdutoId" class="suggestions-box">
+                    <div v-for="s in sugestoesProdutos" :key="s.id" class="suggestion-item" @click="carregarParaEdicao(s)">
+                        <span>{{ s.nome }}</span>
+                        <small>Editar <i class="fas fa-pencil-alt"></i></small>
+                    </div>
+                </div>
+            </div>
+
+            <input v-model="novoProd.descricao" placeholder="Descrição / Marca (Opcional)" class="full-input" style="font-size: 0.9rem; margin-top:-5px;">
+
             <label class="checkbox-row"><input type="checkbox" v-model="novoProd.somenteNome"> Enviar apenas o nome (sem Qtd/Un)</label>
-            <div class="row"><select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select><select v-model="novoProd.tipoConversao"><option value="dividir">Dividir (Un->Cx)</option><option value="multiplicar">Mult (Peça->Kg)</option></select></div>
+            
+            <div class="row split-2">
+                <select v-model="novoProd.categoria"><option value="hortifruti">Horti</option><option value="geral">Geral</option><option value="bebidas">Bebidas</option><option value="limpeza">Limpeza</option></select>
+                <select v-model="novoProd.tipoConversao"><option value="dividir">Dividir (Un->Cx)</option><option value="multiplicar">Mult (Peça->Kg)</option></select>
+            </div>
+            
             <div class="multi-select-box"><p>Locais:</p><div class="checkbox-grid"><label v-for="l in config.rota" :key="l"><input type="checkbox" :value="l" v-model="novoProd.locaisSelecionados"> {{ l }}</label></div></div>
-            <div class="row"><input v-model="novoProd.unQ" placeholder="Un"><input v-model="novoProd.unC" placeholder="Cx"><input v-model.number="novoProd.fator" placeholder="Fator"><input v-model.number="novoProd.meta" placeholder="Meta"></div>
+            
+            <div class="row split-2">
+                <input v-model="novoProd.unQ" placeholder="Un (Ex: Un)">
+                <input v-model="novoProd.unC" placeholder="Cx (Ex: Cx)">
+            </div>
+            
+            <div class="row split-2">
+                <input v-model.number="novoProd.fator" placeholder="Fator">
+                <input v-model.number="novoProd.meta" placeholder="Meta">
+            </div>
+            
             <select v-model="novoProd.destinoId" class="full-input"><option value="" disabled>Fornecedor (Opcional)</option><option v-for="d in config.destinos" :value="d.id">{{ d.nome }}</option></select>
-            <button class="btn-primary full" @click="adicionarProduto">Salvar</button>
+            
+            <div class="row split-2" v-if="editandoProdutoId">
+                <button class="btn-primary full" @click="salvarEdicaoProduto">Salvar</button>
+                <button class="btn-secondary full" @click="cancelarEdicaoProduto">Cancelar</button>
+            </div>
+            <button v-else class="btn-primary full" @click="adicionarProduto">Criar Produto</button>
+            
+            <button v-if="editandoProdutoId" class="btn-danger full" @click="excluirProduto(editandoProdutoId)" style="margin-top:10px;">Excluir Item</button>
         </div>
+
         <div class="config-box"><h4>📞 Contatos</h4><button class="btn-secondary full" @click="importarContatoDoCelular" style="margin-bottom:10px; background:#3B82F6; color:white;">Importar Agenda</button><div v-for="(d, idx) in config.destinos" :key="idx" class="rota-row"><span><strong>{{ d.nome }}</strong></span><i class="fas fa-trash text-red" @click="removerDestino(idx)" v-if="usuarioLogado.permissoes.admin"></i></div><div class="row" style="margin-top:10px;"><input v-model="novoDestino.nome" placeholder="Nome"><input v-model="novoDestino.telefone" placeholder="Zap"></div><input v-model="novoDestino.msgPersonalizada" placeholder="Saudação" class="full-input"><button class="btn-primary full" @click="adicionarDestino">Adicionar</button></div>
         <div class="config-box" v-if="usuarioLogado.permissoes.admin"><h4>📍 Locais</h4><div v-for="(l, idx) in config.rota" :key="idx" class="rota-row"><span>{{ l }}</span><i class="fas fa-trash text-red" @click="removerLocal(idx)"></i></div><div class="add-row"><input v-model="novoLocal" placeholder="Novo Local"><button @click="adicionarLocal">+</button></div></div>
         <div class="config-box"><h4>👤 Perfil</h4><input v-model="usuarioLogado.nome" placeholder="Nome" class="full-input"><div class="row"><input v-model="usuarioLogado.user" placeholder="User"><input v-model="usuarioLogado.pass" placeholder="Senha"></div><button class="btn-primary full" @click="salvarMeuPerfil">Atualizar</button></div><button class="btn-danger full" @click="logout">Sair</button>
@@ -140,14 +181,4 @@
     <div class="modal-backdrop" v-if="mostrandoAdmin"><div class="modal-window"><div class="modal-top"><h3>Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div class="config-box"><h4>Usuário</h4><div class="row"><input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input"><select v-model="novoUserAdmin.cargo" class="full-input" @change="aplicarPermissoesPadrao"><option value="" disabled>Cargo (Padrão)</option><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div><div class="row"><input v-model="novoUserAdmin.user" placeholder="Login"><input v-model="novoUserAdmin.pass" placeholder="Senha"></div><div class="perm-selector"><p>Acesso:</p><div class="checkbox-grid"><label><input type="checkbox" v-model="novoUserAdmin.permissoes.admin"> Admin</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.producao"> Massas</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.hortifruti"> Horti</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.geral"> Geral</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.bebidas"> Bebidas</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.limpeza"> Limpeza</label></div></div><div class="row" v-if="editandoUsuarioId"><button class="btn-primary full" @click="salvarEdicaoUsuario">Salvar</button><button class="btn-secondary full" @click="cancelarEdicaoUsuario">Cancelar</button></div><button v-else class="btn-primary full" @click="adicionarUsuarioAdmin">Criar</button></div><div v-for="u in usuariosAtivos" :key="u.id" class="user-item"><div class="user-head"><strong>{{ u.nome }}</strong><button class="btn-edit" @click="prepararEdicao(u)"><i class="fas fa-pencil-alt"></i></button><i class="fas fa-trash text-red" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id"></i></div></div></div></div></div>
     
     <div class="modal-backdrop" v-if="mostrandoPreview"><div class="modal-window"><div class="modal-top"><h3>Revisar Pedido</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div><div class="modal-content">
-        <div class="algo-mais-box"><p><strong>Algo mais?</strong></p><div class="row"><input v-model="novoItemExtra" placeholder="Ex: 1cx Lâmpada" @keyup.enter="adicionarExtra"><button class="btn-add-extra" @click="adicionarExtra">+</button></div><ul v-if="itensExtras.length > 0" class="extra-list"><li v-for="(item, idx) in itensExtras" :key="idx">{{ item }} <i class="fas fa-times text-red" @click="removerExtra(idx)"></i></li></ul></div>
-        <div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block"><div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div><ul><li v-for="i in g">{{ i.texto }}</li></ul><div class="send-options"><button class="btn-zap" @click="enviarZap(id, g, false)">Enviar Agora</button><button class="btn-zap secondary" @click="enviarZap(id, g, true)">Guardar P/ Segunda</button></div></div>
-    </div></div></div>
-    
-    <div class="modal-backdrop" v-if="mostrandoHistorico"><div class="modal-window"><div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div v-for="(h, idx) in historico" :key="idx" class="history-card"><div class="h-header"><span>{{ h.data }}</span><span class="h-user">{{ h.usuario }}</span></div><div class="h-dest">Para: {{ h.destino }}</div><div class="h-body">{{ h.itens }}</div><button v-if="usuarioLogado.permissoes.admin" class="btn-del-mini" @click="apagarHistorico(h.id)">Apagar</button></div></div></div></div>
-
-</div>
-
-<script src="script.js?v=60"></script>
-</body>
-</html>
+        <div class="algo-mais-box"><p><strong>Algo mais?</strong></p><div class="row"><input v-model="novoItemExtra" placehol
