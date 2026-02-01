@@ -1,6 +1,6 @@
 const firebaseConfig = { apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", authDomain: "artigiano-app.firebaseapp.com", databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", projectId: "artigiano-app", storageBucket: "artigiano-app.firebasestorage.app", messagingSenderId: "212218495726", appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" };
 
-let db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error("Firebase Error:", e); }
+let db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
 
 const { createApp } = Vue
 
@@ -9,31 +9,21 @@ const app = createApp({
         return {
             loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
-            // ADMIN
-            novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }, 
-            editandoUsuarioId: null,
-            // DADOS INICIAIS VAZIOS PARA NÃO TRAVAR VUE
+            novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }, editandoUsuarioId: null,
             feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
             produtos: [], historico: [], historicoMassa: [], 
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            novoProd: { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir' },
+            novoProd: { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
-            // EXTRAS E PRODUÇÃO
             novoItemExtra: '', itensExtras: [],
             sobraMassa: '', mostrarLotes: false, mostrarHistoricoMassa: false, modoReceita: 'calc', loteSelecionado: '',
             lotesPadrao: [{qtd:15,far:'2kg',agua:'1.247g',lev:'90g',sal:'60g'},{qtd:30,far:'4kg',agua:'2.494g',lev:'180g',sal:'120g'},{qtd:45,far:'6kg',agua:'3.742g',lev:'270g',sal:'180g'},{qtd:60,far:'8kg',agua:'4.989g',lev:'360g',sal:'240g'},{qtd:75,far:'10kg',agua:'6.237g',lev:'450g',sal:'300g'},{qtd:90,far:'12kg',agua:'7.484g',lev:'540g',sal:'360g'},{qtd:110,far:'14kg',agua:'8.732g',lev:'630g',sal:'420g'}]
         }
     },
     computed: {
-        // PRODUÇÃO
         nomeDiaSemana() { const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; return dias[new Date().getDay()]; },
-        metaDia() { 
-            const d = new Date().getDay(); 
-            let base = (d===0||d===5||d===6) ? 100 : 60; 
-            if(this.isSemanaFeriado) base = Math.round(base * 1.2); 
-            return base; 
-        },
+        metaDia() { const d = new Date().getDay(); let base = (d===0||d===5||d===6) ? 100 : 60; if(this.isSemanaFeriado) base = Math.round(base * 1.2); return base; },
         qtdProduzir() { const sobra = this.sobraMassa || 0; return Math.max(0, this.metaDia - sobra); },
         receitaCalculada() {
             const q = this.qtdProduzir; const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 };
@@ -41,20 +31,18 @@ const app = createApp({
         },
         receitaExibida() {
             if (this.modoReceita === 'lote' && this.loteSelecionado) {
-                const l = this.lotesPadrao.find(x => x.qtd === this.loteSelecionado);
-                if(l) return { far: l.far, aguaTotal: l.agua, agua: 'Ver tabela', gelo: 'Ver tabela', lev: l.lev, sal: l.sal };
+                const l = this.lotesPadrao.find(x => x.qtd === this.loteSelecionado); if(l) return { far: l.far, aguaTotal: l.agua, agua: 'Ver tabela', gelo: 'Ver tabela', lev: l.lev, sal: l.sal };
             }
             const c = this.receitaCalculada;
             return { far: this.formatGramas(c.farinha), aguaTotal: this.formatGramas(c.aguaTotal), agua: this.formatGramas(c.aguaLiq), gelo: this.formatGramas(c.gelo), lev: this.formatGramas(c.levain), sal: this.formatGramas(c.sal) };
         },
-        // APP
         usuariosAtivos() { return this.usuarios.filter(u => u.aprovado === true); },
         usuariosPendentes() { return this.usuarios.filter(u => u.aprovado === false); },
         pendentesCount() { return this.usuariosPendentes.length; },
         nomeModulo() { const n = { hortifruti:'Hortifruti', geral:'Geral', bebidas:'Bebidas', limpeza:'Limpeza', producao:'Produção de Massas' }; return n[this.moduloAtivo] || ''; },
         feriadosOrdenados() { return this.feriados.slice().sort((a,b) => a.data.localeCompare(b.data)).map(f => ({ ...f, dataFormatted: f.data.split('-').reverse().join('/') })); },
         isSemanaFeriado() { const h = new Date(); const i = new Date(h); i.setDate(h.getDate()-h.getDay()); const f = new Date(h); f.setDate(h.getDate()+(6-h.getDay())); return this.feriados.some(fer => { const d = new Date(fer.data+'T00:00:00'); return d>=i && d<=f; }); },
-        produtosFiltrados() { if (!this.moduloAtivo) return []; return this.produtos.filter(p => (this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true) && p.categoria === this.moduloAtivo); },
+        produtosFiltrados() { if(!this.moduloAtivo) return []; return this.produtos.filter(p => (this.termoBusca ? p.nome.toLowerCase().includes(this.termoBusca.toLowerCase()) : true) && p.categoria === this.moduloAtivo); },
         locaisDoModulo() { const r = this.config.rota || ['Geral']; return r.filter(l => this.produtosFiltrados.some(p => p.locais && p.locais.includes(l))); },
         produtosDoLocal() { return (local) => this.produtosFiltrados.filter(p => p.locais && p.locais.includes(local)); },
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
@@ -64,20 +52,26 @@ const app = createApp({
             this.itensParaPedir.forEach(p => {
                 if(processados.has(p.id)) return; processados.add(p.id);
                 const calc = this.calculaFalta(p); 
-                const dId = (p.destinoId && p.destinoId.trim() !== '') ? p.destinoId : 'geral_padrao';
+                // LOGICA DE SEPARAÇÃO: Se não tem destino, agrupa por categoria
+                let dId = p.destinoId ? p.destinoId : '';
+                if (!dId) {
+                    if (p.categoria === 'hortifruti') dId = 'Hortifruti';
+                    else if (p.categoria === 'bebidas') dId = 'Bebidas';
+                    else dId = 'Geral'; // Geral e Limpeza juntos
+                }
                 if (!grupos[dId]) grupos[dId] = [];
-                let obs = this.analisarHistorico(p) ? " (⚠️ Acabou rápido!)" : "";
-                grupos[dId].push({ texto: `- ${calc.qtd} ${p.unC} ${p.nome}${obs}` });
+                let textoItem = "";
+                if (p.somenteNome) textoItem = `- ${p.nome}`;
+                else textoItem = `- ${calc.qtd} ${p.unC} ${p.nome}`;
+                if(this.analisarHistorico(p)) textoItem += " (⚠️ Acabou rápido!)";
+                grupos[dId].push({ texto: textoItem, id: p.id });
             });
             return grupos;
         }
     },
     methods: {
-        // --- EXTRAS V58 ---
         adicionarExtra() { if(this.novoItemExtra) { this.itensExtras.push(this.novoItemExtra); this.novoItemExtra = ''; } },
         removerExtra(idx) { this.itensExtras.splice(idx, 1); },
-
-        // --- SISTEMA ---
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); if(this.temaEscuro) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); },
         formatGramas(g) { if(g >= 1000) return (g/1000).toFixed(2).replace('.', ',') + ' kg'; return g + ' g'; },
         getCorCategoria(cat) { return this.config.cores ? (this.config.cores[cat] || '#ccc') : '#ccc'; },
@@ -89,21 +83,40 @@ const app = createApp({
         toggleIgnorar(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem={}; this.salvarProdutoUnitario(p); },
         
         enviarZap(destId, itens, isSegunda) { 
-            let dest = null; if(destId !== 'geral_padrao') dest = this.config.destinos.find(d => d.id == destId);
+            let dest = this.config.destinos.find(d => d.id == destId);
             const tel = dest ? dest.telefone : ''; 
-            let nomeDestino = dest ? dest.nome : "Geral";
+            let nomeDestino = dest ? dest.nome : destId; // Usa o nome do grupo se não for destino cadastrado
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
             
             let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
+            
+            // Adiciona Extras se for Geral
             if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
-                msg += "\n*Algo mais:*\n";
+                // Adiciona direto na lista sem cabeçalho "Algo mais"
                 this.itensExtras.forEach(e => msg += `- ${e}\n`);
             }
+
             const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
+            
+            // SE FOR GUARDAR P/ SEGUNDA: Apenas salva historico, NÃO abre zap, NÃO limpa
+            if (isSegunda) {
+                alert("Salvo no Rascunho para Segunda!");
+                return;
+            }
+
+            // SE FOR ENVIAR AGORA: Abre Zap e LIMPA
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
+            
+            // Limpa os itens enviados
+            itens.forEach(i => {
+                const prod = this.produtos.find(p => p.id === i.id);
+                if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); }
+            });
+            if(nomeDestino === 'Geral') this.itensExtras = []; // Limpa extras se enviou Geral
+            this.mostrandoPreview = false; // Fecha modal
         },
 
         registrarProducao() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
@@ -136,7 +149,7 @@ const app = createApp({
         apagarHistorico(id) { if(confirm("Apagar?")) db.ref('store/history/' + id).remove(); },
         adicionarDestino() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:'', msgPersonalizada:''}; } },
         removerDestino(idx) { this.config.destinos.splice(idx,1); this.salvarConfig(); },
-        getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : 'Geral'; },
+        getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : id; },
         adicionarLocal() { if(this.novoLocal) { if(!this.config.rota) this.config.rota=[]; this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvarConfig(); } },
         removerLocal(idx) { if(confirm("Remover?")) { this.config.rota.splice(idx,1); this.salvarConfig(); } },
         resetarTudo() { if(confirm("RESET?")) { db.ref('/').remove(); location.reload(); } },
@@ -150,14 +163,7 @@ const app = createApp({
         } else { this.loadingInicial = false; } },
         verificarSessao() { if(this.usuarioLogado) { const u = this.usuarios.find(x => x.id === this.usuarioLogado.id); if(u) { this.usuarioLogado = u; localStorage.setItem('artigiano_session', JSON.stringify(u)); } else { this.logout(); } } }
     },
-    mounted() { 
-        // CORREÇÃO CRÍTICA DE TRAVAMENTO
-        setTimeout(() => { if(this.loadingInicial) this.loadingInicial = false; }, 5000); 
-        this.verificarTermos(); 
-        const session = localStorage.getItem('artigiano_session'); 
-        if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; const th = localStorage.getItem('artigiano_theme'); if(th==='dark') { this.temaEscuro=true; document.body.classList.add('dark-mode'); } } 
-        this.carregarDb(); 
-    }
+    mounted() { setTimeout(() => { if(this.loadingInicial) this.loadingInicial = false; }, 5000); this.verificarTermos(); const session = localStorage.getItem('artigiano_session'); if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; const th = localStorage.getItem('artigiano_theme'); if(th==='dark') { this.temaEscuro=true; document.body.classList.add('dark-mode'); } } this.carregarDb(); }
 });
 
 app.mount('#app');
