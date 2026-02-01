@@ -77,11 +77,14 @@ const app = createApp({
         }
     },
     methods: {
+        // --- SEGURANÇA V63 ---
         podeAcessar(perm) {
+            // EVITA TELA BRANCA SE USER AINDA NAO CARREGOU
             if (!this.usuarioLogado) return false;
             return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; 
         },
         tentarReconectar() { location.reload(); },
+
         adicionarExtra() { if(this.novoItemExtra) { this.itensExtras.push(this.novoItemExtra); this.novoItemExtra = ''; } },
         removerExtra(idx) { this.itensExtras.splice(idx, 1); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); if(this.temaEscuro) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); },
@@ -100,7 +103,6 @@ const app = createApp({
             let nomeDestino = dest ? dest.nome : destId; 
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
-            
             let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
             if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
@@ -108,7 +110,6 @@ const app = createApp({
             }
             const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
-            
             if (isSegunda) { alert("Salvo no Rascunho para Segunda!"); return; }
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
             itens.forEach(i => { const prod = this.produtos.find(p => p.id === i.id); if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); } });
@@ -197,7 +198,6 @@ const app = createApp({
         removerLocal(idx) { if(confirm("Remover?")) { this.config.rota.splice(idx,1); this.salvarConfig(); } },
         resetarTudo() { if(confirm("RESET?")) { db.ref('/').remove(); location.reload(); } },
         carregarDb() { if(db) { 
-            db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }, e => { this.erroGlobal = 'server'; this.textoErroGlobal = "Erro ao conectar no banco."; }); 
+            db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }, e => { this.erroGlobal = 'server'; this.textoErroGlobal = "Erro de conexão com o servidor."; }); 
             db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
-            db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
-            db.ref('store/doug
+            db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sor
