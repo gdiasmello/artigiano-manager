@@ -16,10 +16,10 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .input-group { position: relative; margin-bottom: 15px; }
 .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
 .input-group input, .input-group select { width: 100%; padding: 12px 12px 12px 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text); font-size: 1rem; outline: none; }
-.btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-.btn-secondary { width: 100%; padding: 14px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-.btn-danger { width: 100%; padding: 14px; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 20px; }
+.btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+.btn-secondary { width: 100%; padding: 14px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 12px; font-weight: 700; cursor: pointer; }
+.btn-danger { width: 100%; padding: 14px; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+.big-btn { padding: 16px; font-size: 1.1rem; }
 .msg-box { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 0.9rem; background: #DEF7EC; color: #03543F; }
 .msg-box.error { background: #FDE8E8; color: #9B1C1C; }
 .user-pill { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -42,9 +42,11 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .btn-back { background: var(--card); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; color: var(--text); cursor: pointer; }
 .search-wrap { background: var(--card); padding: 12px 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .search-wrap input { border: none; background: transparent; flex: 1; color: var(--text); font-size: 1rem; outline: none; }
-.product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
+.product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; position: relative; }
 .p-info strong { display: block; font-size: 1rem; margin-bottom: 3px; }
 .p-info small { display: block; color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
+.btn-del-item { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #fee2e2; cursor: pointer; padding: 5px; }
+.btn-del-item i { color: #fca5a5; }
 .p-actions-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .btn-open { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 42px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text-light); font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
 .btn-open.active { background: #FEF3C7; color: #D97706; border-color: #FCD34D; font-weight: bold; }
@@ -89,11 +91,6 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .suggest-badge { position: absolute; top: 10px; right: 10px; background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #FCD34D; animation: pulse 2s infinite; }
 .text-alert { color: #D97706; margin-left: 5px; animation: pulse 2s infinite; }
 .cat-tag { display: inline-block; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-.color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.color-item { display: flex; align-items: center; gap: 10px; background: var(--bg); padding: 5px; border-radius: 8px; }
-.color-item input { width: 30px; height: 30px; border: none; cursor: pointer; }
-.multi-select-box { background: var(--input-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; }
-.multi-select-box p { margin: 0 0 5px; font-weight: bold; font-size: 0.8rem; }
 .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .checkbox-grid label { font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .perm-selector { margin: 15px 0; padding: 10px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border); }
