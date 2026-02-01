@@ -7,7 +7,8 @@ const { createApp } = Vue
 const app = createApp({
     data() {
         return {
-            loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
+            loadingInicial: true, erroGlobal: '', textoErroGlobal: '',
+            temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
             // ADMIN
             novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }, 
@@ -76,12 +77,11 @@ const app = createApp({
         }
     },
     methods: {
-        // --- SEGURANÇA V62 ---
         podeAcessar(perm) {
-            if (!this.usuarioLogado) return false; // FIX TELA BRANCA
+            if (!this.usuarioLogado) return false;
             return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; 
         },
-
+        tentarReconectar() { location.reload(); },
         adicionarExtra() { if(this.novoItemExtra) { this.itensExtras.push(this.novoItemExtra); this.novoItemExtra = ''; } },
         removerExtra(idx) { this.itensExtras.splice(idx, 1); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); if(this.temaEscuro) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); },
@@ -100,6 +100,7 @@ const app = createApp({
             let nomeDestino = dest ? dest.nome : destId; 
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
+            
             let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
             if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
@@ -107,6 +108,7 @@ const app = createApp({
             }
             const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
+            
             if (isSegunda) { alert("Salvo no Rascunho para Segunda!"); return; }
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
             itens.forEach(i => { const prod = this.produtos.find(p => p.id === i.id); if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); } });
@@ -170,7 +172,6 @@ const app = createApp({
         adicionarProduto() { if(!this.novoProd.nome) return alert("Nome?"); if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?"); const p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Salvo!"); this.novoProd.nome = ''; this.novoProd.locaisSelecionados = []; },
         migrarProduto(p) { let mudou=false; if(p.local&&!p.locais){p.locais=[p.local];mudou=true;} if(typeof p.contagem!=='object'&&p.locais&&p.locais.length>0){const val=p.contagem;p.contagem={};if(val!==''&&val!==undefined)p.contagem[p.locais[0]]=val;mudou=true;} return mudou?p:null; },
         gerarId() { return 'id_' + Math.random().toString(36).substr(2, 9); },
-        alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); if(this.temaEscuro) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); },
         verificarTermos() { if (!localStorage.getItem('artigiano_tos_accepted')) this.mostrandoTermos = true; },
         aceitarTermos() { localStorage.setItem('artigiano_tos_accepted', 'true'); this.mostrandoTermos = false; },
         abrirAjuda() { if(this.moduloAtivo==='producao'){this.tituloAjuda="Produção";this.textoAjuda="Calculadora automática.";}else{this.tituloAjuda = "Ajuda"; this.textoAjuda = "Use 'Importar Agenda'.\nClique no carrinho para finalizar.";} this.mostrandoAjuda = true; },
@@ -194,8 +195,9 @@ const app = createApp({
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : id; },
         adicionarLocal() { if(this.novoLocal) { if(!this.config.rota) this.config.rota=[]; this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvarConfig(); } },
         removerLocal(idx) { if(confirm("Remover?")) { this.config.rota.splice(idx,1); this.salvarConfig(); } },
+        resetarTudo() { if(confirm("RESET?")) { db.ref('/').remove(); location.reload(); } },
         carregarDb() { if(db) { 
-            db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }); 
+            db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }, e => { this.erroGlobal = 'server'; this.textoErroGlobal = "Erro ao conectar no banco."; }); 
             db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
             db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
-            db.ref('store/dough_his
+            db.ref('store/doug

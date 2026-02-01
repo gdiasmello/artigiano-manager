@@ -6,9 +6,19 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .app-layout { display: flex; flex-direction: column; min-height: 100vh; }
 .app-header { position: sticky; top: 0; z-index: 1000; background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .main-content { flex: 1; padding: 20px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
+
+/* LOADING PIZZA */
 .loading-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-.spinner-container { text-align: center; color: var(--primary); font-size: 1.5rem; }
-.btn-force { background: none; border: 1px solid var(--text-light); color: var(--text-light); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-top: 15px; cursor: pointer; }
+.spinner-container { text-align: center; color: var(--primary); font-size: 1.2rem; display: flex; flex-direction: column; align-items: center; }
+.pizza-loader { font-size: 4rem; color: var(--primary); margin-bottom: 20px; animation: spin-pizza 2s infinite linear; }
+@keyframes spin-pizza { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.2); } 100% { transform: rotate(360deg) scale(1); } }
+.btn-force { background: none; border: 1px solid var(--text-light); color: var(--text-light); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-top: 20px; cursor: pointer; }
+
+/* TELA DE ERRO */
+.error-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9990; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 20px; }
+.error-screen i { font-size: 4rem; color: var(--text-light); margin-bottom: 15px; }
+.error-screen h3 { margin: 0 0 10px; color: var(--primary); }
+
 .auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 20px; }
 .auth-box { background: var(--card); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 25px rgba(0,0,0,0.2); text-align: center; }
 .brand h1 { color: var(--primary); margin: 10px 0 5px; font-weight: 800; font-size: 1.8rem; }
@@ -16,7 +26,8 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .input-group { position: relative; margin-bottom: 15px; }
 .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
 .input-group input, .input-group select { width: 100%; padding: 12px 12px 12px 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text); font-size: 1rem; outline: none; }
-.btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+.btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
 .btn-secondary { width: 100%; padding: 14px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 12px; font-weight: 700; cursor: pointer; }
 .btn-danger { width: 100%; padding: 14px; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
 .big-btn { padding: 16px; font-size: 1.1rem; }
@@ -86,7 +97,7 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .h-dest { font-weight: 700; margin-bottom: 5px; }
 .h-body { font-size: 0.85rem; white-space: pre-wrap; color: var(--text); line-height: 1.4; }
 .btn-del-mini { font-size: 0.7rem; color: var(--primary); background: none; border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; margin-top: 5px; cursor: pointer; }
-.terms-text, .help-content { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
+.terms-text { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
 .terms-text h4 { color: var(--text); margin: 15px 0 5px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
 .suggest-badge { position: absolute; top: 10px; right: 10px; background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #FCD34D; animation: pulse 2s infinite; }
 .text-alert { color: #D97706; margin-left: 5px; animation: pulse 2s infinite; }
