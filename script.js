@@ -14,7 +14,8 @@ const app = createApp({
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
             produtos: [], historico: [], historicoMassa: [], 
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            novoProd: { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
+            // NOVO CAMPO: DESCRICAO
+            novoProd: { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
             novoItemExtra: '', itensExtras: [],
             sobraMassa: '', mostrarLotes: false, mostrarHistoricoMassa: false, modoReceita: 'calc', loteSelecionado: '',
@@ -52,17 +53,20 @@ const app = createApp({
             this.itensParaPedir.forEach(p => {
                 if(processados.has(p.id)) return; processados.add(p.id);
                 const calc = this.calculaFalta(p); 
-                // LOGICA DE SEPARAÇÃO: Se não tem destino, agrupa por categoria
                 let dId = p.destinoId ? p.destinoId : '';
                 if (!dId) {
                     if (p.categoria === 'hortifruti') dId = 'Hortifruti';
                     else if (p.categoria === 'bebidas') dId = 'Bebidas';
-                    else dId = 'Geral'; // Geral e Limpeza juntos
+                    else dId = 'Geral'; 
                 }
                 if (!grupos[dId]) grupos[dId] = [];
                 let textoItem = "";
                 if (p.somenteNome) textoItem = `- ${p.nome}`;
                 else textoItem = `- ${calc.qtd} ${p.unC} ${p.nome}`;
+                
+                // NOVO: Adiciona a descrição se existir
+                if (p.descricao) textoItem += ` (${p.descricao})`;
+
                 if(this.analisarHistorico(p)) textoItem += " (⚠️ Acabou rápido!)";
                 grupos[dId].push({ texto: textoItem, id: p.id });
             });
@@ -85,38 +89,38 @@ const app = createApp({
         enviarZap(destId, itens, isSegunda) { 
             let dest = this.config.destinos.find(d => d.id == destId);
             const tel = dest ? dest.telefone : ''; 
-            let nomeDestino = dest ? dest.nome : destId; // Usa o nome do grupo se não for destino cadastrado
+            let nomeDestino = dest ? dest.nome : destId; 
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
             
             let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
             
-            // Adiciona Extras se for Geral
             if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
-                // Adiciona direto na lista sem cabeçalho "Algo mais"
                 this.itensExtras.forEach(e => msg += `- ${e}\n`);
             }
 
-            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
+            // NOVO: Adiciona data e hora exata para o histórico
+            const dataHora = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5);
+            // NOVO: Adiciona o nome do usuário que fez o pedido
+            const quemFez = this.usuarioLogado.nome;
+
+            const h = { id: this.gerarId(), data: dataHora, hora: '', usuario: quemFez, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
             
-            // SE FOR GUARDAR P/ SEGUNDA: Apenas salva historico, NÃO abre zap, NÃO limpa
             if (isSegunda) {
                 alert("Salvo no Rascunho para Segunda!");
                 return;
             }
 
-            // SE FOR ENVIAR AGORA: Abre Zap e LIMPA
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
             
-            // Limpa os itens enviados
             itens.forEach(i => {
                 const prod = this.produtos.find(p => p.id === i.id);
                 if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); }
             });
-            if(nomeDestino === 'Geral') this.itensExtras = []; // Limpa extras se enviou Geral
-            this.mostrandoPreview = false; // Fecha modal
+            if(nomeDestino === 'Geral') this.itensExtras = []; 
+            this.mostrandoPreview = false; 
         },
 
         registrarProducao() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
