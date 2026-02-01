@@ -1,29 +1,45 @@
 :root { --primary: #C41E3A; --primary-dark: #8B0000; --accent: #008C45; --bg: #F3F4F6; --card: #FFFFFF; --text: #1F2937; --text-light: #6B7280; --border: #E5E7EB; --input-bg: #F9FAFB; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-
-/* MODO ESCURO CORRIGIDO */
-body.dark-mode { --primary: #EF4444; --primary-dark: #991B1B; --accent: #10B981; --bg: #111827; --card: #1F2937; --text: #F3F4F6; --text-light: #9CA3AF; --border: #374151; --input-bg: #374151; }
-
+[data-theme="dark"] { --primary: #EF4444; --primary-dark: #991B1B; --accent: #10B981; --bg: #111827; --card: #1F2937; --text: #F3F4F6; --text-light: #9CA3AF; --border: #374151; --input-bg: #374151; }
 [v-cloak] { display: none; }
 * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-
-/* FIX CRÍTICO DE SCROLL NO CELULAR */
 html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg); color: var(--text); transition: background 0.3s; }
 .app-layout { display: flex; flex-direction: column; min-height: 100vh; }
+.app-header { position: sticky; top: 0; z-index: 1000; background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.main-content { flex: 1; padding: 20px; padding-bottom: 100px; -webkit-overflow-scrolling: touch; }
 
-/* CABEÇALHO FIXO (STICKY) - DESTRAVA O CORPO */
-.app-header {
-    position: sticky; top: 0; z-index: 1000;
-    background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+/* CARRINHO (FAB) */
+.fab-cart {
+    position: fixed; bottom: 25px; right: 25px;
+    background: var(--accent); color: white;
+    padding: 15px 20px; border-radius: 50px; border: none;
+    font-weight: 700; font-size: 1rem;
+    box-shadow: 0 10px 20px rgba(0,140,69,0.4);
+    cursor: pointer; z-index: 100;
+    display: flex; align-items: center; gap: 10px;
+    transition: transform 0.2s;
+}
+.fab-cart:active { transform: scale(0.95); }
+.cart-badge {
+    background: var(--primary); color: white;
+    font-size: 0.75rem; padding: 2px 6px;
+    border-radius: 10px; min-width: 20px; text-align: center;
 }
 
-.main-content {
-    flex: 1;
-    padding: 20px;
-    padding-bottom: 100px; /* Espaço para não cobrir o final */
-    /* Removemos overflow hidden/auto daqui para deixar o navegador nativo rolar */
-}
+/* BOX ALGO MAIS */
+.algo-mais-box { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--accent); }
+.algo-mais-box p { margin: 0 0 10px; font-size: 0.9rem; color: var(--text); }
+.btn-add-extra { width: 40px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.extra-list { list-style: none; padding: 0; margin: 10px 0 0; }
+.extra-list li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
 
-/* OUTROS ESTILOS */
+/* BOX DESTAQUE FERIADO */
+.highlight-box {
+    border: 2px solid var(--primary) !important;
+    background: #FFF5F5 !important;
+}
+.highlight-box h4 { color: var(--primary); }
+
+/* RESTO DO CSS (MANTIDO DA V57) */
 .loading-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
 .spinner-container { text-align: center; color: var(--primary); font-size: 1.5rem; }
 .auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 20px; }
@@ -45,7 +61,7 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .action-btn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text-light); cursor: pointer; position: relative; }
 .action-btn.admin { color: var(--primary); border-color: rgba(196,30,58,0.2); background: rgba(196,30,58,0.05); }
 .badge { position: absolute; top: -5px; right: -5px; background: var(--primary); color: white; font-size: 0.7rem; padding: 2px 5px; border-radius: 10px; }
-.holiday-banner { background: #FEF3C7; color: #D97706; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-weight: 700; text-align: center; border: 1px solid #FCD34D; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.holiday-banner { background: #FEF3C7; color: #D97706; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-weight: 700; text-align: center; border: 1px solid #FCD34D; display: flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; }
 .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .dash-card { background: var(--card); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer; }
 .dash-card.producao { background: #FFF7ED; border-color: #FDBA74; grid-column: 1 / -1; }
@@ -70,7 +86,6 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .p-status { text-align: right; margin-top: 8px; font-weight: 700; font-size: 0.8rem; }
 .tag-buy { color: var(--primary); } .tag-ok { color: var(--accent); }
 .local-label { font-size: 0.8rem; font-weight: 800; color: var(--text-light); text-transform: uppercase; margin: 20px 0 10px; letter-spacing: 1px; }
-.fab-send { position: fixed; bottom: 25px; right: 25px; background: var(--accent); color: white; padding: 15px 25px; border-radius: 50px; border: none; font-weight: 700; font-size: 1rem; box-shadow: 0 10px 20px rgba(0,140,69,0.3); cursor: pointer; z-index: 100; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: flex-end; backdrop-filter: blur(2px); }
 .modal-window { background: var(--card); width: 100%; max-height: 90vh; border-radius: 24px 24px 0 0; display: flex; flex-direction: column; animation: slideUp 0.3s; }
 .modal-top { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
@@ -85,8 +100,6 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .text-red { color: var(--primary); }
 .full-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text); margin-bottom: 10px; }
 .row { display: flex; gap: 10px; margin-bottom: 10px; } .row input, .row select { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); }
-.btn-primary.full { width: 100%; margin-top: 10px; }
-.btn-secondary.full { width: 100%; margin-top: 10px; }
 .order-block { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
 .ord-head { display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--primary); }
 .send-options { display: flex; gap: 10px; margin-top: 15px; }
