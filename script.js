@@ -9,18 +9,15 @@ const app = createApp({
         return {
             loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
-            // ADMIN & PERMISSOES
+            // Adicionado 'editarItens' nas permissões padrão para não quebrar
             novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }, 
             editandoUsuarioId: null,
-            // EDITOR
             editandoProdutoId: null,
             
             feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
             produtos: [], historico: [], historicoMassa: [], 
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            
-            // NOVO CAMPO: DESCRICAO
             novoProd: { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
             novoItemExtra: '', itensExtras: [],
@@ -46,12 +43,11 @@ const app = createApp({
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         contagemCarrinho() { return this.itensParaPedir.length; },
         
-        // CORRIGIDO: Sugestões de produto para editar
+        // NOVO: Sugestões seguras
         sugestoesProdutos() {
-            // Proteção contra dados nulos
-            if (!this.novoProd.nome || this.novoProd.nome.length < 2 || this.editandoProdutoId) return [];
-            const termo = this.novoProd.nome.toLowerCase();
-            return this.produtos.filter(p => p.nome && p.nome.toLowerCase().includes(termo)).slice(0, 5); 
+            if (!this.novoProd || !this.novoProd.nome || this.novoProd.nome.length < 2 || this.editandoProdutoId) return [];
+            const t = this.novoProd.nome.toLowerCase();
+            return this.produtos.filter(p => p.nome && p.nome.toLowerCase().includes(t)).slice(0, 5); 
         },
 
         pedidosAgrupados() {
@@ -60,7 +56,11 @@ const app = createApp({
                 if(processados.has(p.id)) return; processados.add(p.id);
                 const calc = this.calculaFalta(p); 
                 let dId = p.destinoId ? p.destinoId : '';
-                if (!dId) { if (p.categoria === 'hortifruti') dId = 'Hortifruti'; else if (p.categoria === 'bebidas') dId = 'Bebidas'; else dId = 'Geral'; }
+                if (!dId) {
+                    if (p.categoria === 'hortifruti') dId = 'Hortifruti';
+                    else if (p.categoria === 'bebidas') dId = 'Bebidas';
+                    else dId = 'Geral'; 
+                }
                 if (!grupos[dId]) grupos[dId] = [];
                 
                 let textoItem = "";
@@ -68,10 +68,9 @@ const app = createApp({
                 if (p.somenteNome) textoItem = `- ${p.nome}`;
                 else textoItem = `- ${calc.qtd} ${p.unC} ${p.nome}`;
                 
-                // Adiciona descrição se houver
                 if (p.descricao) textoItem += ` (${p.descricao})`;
 
-                // Mensagem de cobrança
+                // Mensagem de cobrança atualizada
                 if(this.analisarHistorico(p)) textoItem += " (⚠️ Cobrar pedido anterior: Chegou?)";
                 grupos[dId].push({ texto: textoItem, id: p.id });
             });
@@ -79,11 +78,12 @@ const app = createApp({
         }
     },
     methods: {
+        // Correção no acesso de permissões para evitar crash
         podeAcessar(perm) { 
             if (!this.usuarioLogado || !this.usuarioLogado.permissoes) return false;
-            // Se a permissão não existe no objeto (ex: versões antigas de usuario), considera false
-            const temPermissao = this.usuarioLogado.permissoes[perm] === true;
-            return this.usuarioLogado.permissoes.admin || temPermissao; 
+            if (this.usuarioLogado.permissoes.admin) return true;
+            // Verifica se a propriedade existe antes de ler
+            return this.usuarioLogado.permissoes[perm] === true; 
         },
         
         adicionarExtra() { if(this.novoItemExtra) { this.itensExtras.push(this.novoItemExtra); this.novoItemExtra = ''; } },
@@ -105,31 +105,30 @@ const app = createApp({
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
             
-            // CABEÇALHO FIXO
+            // CABEÇALHO CORRIGIDO
             let msg = `${titulo}${saudacao}\n\n*PEDIDO DE COMPRA - ARTIGIANO*\n----------------\n`; 
             
             itens.forEach(i => { msg += i.texto + '\n'; }); 
             if (nomeDestino === 'Geral' && this.itensExtras.length > 0) { this.itensExtras.forEach(e => msg += `- ${e}\n`); }
             
-            // HISTORICO COM DATA E USUARIO
-            const dataHora = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5);
-            const quemFez = this.usuarioLogado ? this.usuarioLogado.nome : 'Usuario';
-            const h = { id: this.gerarId(), data: dataHora, usuario: quemFez, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
+            // Grava histórico
+            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString().slice(0,5), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
             
             if (isSegunda) { alert("Salvo no Rascunho!"); return; }
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
+            
             itens.forEach(i => { const prod = this.produtos.find(p => p.id === i.id); if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); } });
             if(nomeDestino === 'Geral') this.itensExtras = [];
             this.mostrandoPreview = false;
         },
 
-        registrarProducao() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
+        registrarProducao() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
         
         async importarContatoDoCelular() { if ('contacts' in navigator) { try { const c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
         
         aplicarPermissoesPadrao() { 
-            // PERMISSOES ATUALIZADAS
+            // Permissões com editarItens
             if (this.novoUserAdmin.cargo === 'Gerente') this.novoUserAdmin.permissoes = { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true, producao: true, verHistorico: true, editarItens: true }; 
             else if (this.novoUserAdmin.cargo === 'Pizzaiolo') this.novoUserAdmin.permissoes = { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: false, producao: true, verHistorico: false, editarItens: false }; 
             else this.novoUserAdmin.permissoes = { admin: false, hortifruti: false, geral: false, bebidas: true, limpeza: true, producao: false, verHistorico: false, editarItens: false }; 
@@ -139,11 +138,8 @@ const app = createApp({
         salvarEdicaoUsuario() { if(this.editandoUsuarioId) { this.salvarUsuarioUnitario(this.novoUserAdmin); this.cancelarEdicaoUsuario(); } },
         cancelarEdicaoUsuario() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }; },
         
-        // --- EDITOR DE PRODUTO ---
-        carregarParaEdicao(p) {
-            // CORRIGIDO: Não tenta mais limpar a lista computada manualmente
-            this.prepararEdicaoProduto(p);
-        },
+        // --- EDITOR (Métodos Adicionados) ---
+        carregarParaEdicao(p) { this.prepararEdicaoProduto(p); },
         prepararEdicaoProduto(p) { this.novoProd = JSON.parse(JSON.stringify(p)); if(!this.novoProd.locaisSelecionados) this.novoProd.locaisSelecionados = p.locais || []; this.editandoProdutoId = p.id; this.mostrandoConfig = true; },
         cancelarEdicaoProduto() { this.editandoProdutoId = null; this.novoProd = { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false }; },
         salvarEdicaoProduto() { if(!this.novoProd.nome) return alert("Nome?"); const p = { ...this.novoProd, id: this.editandoProdutoId, locais: this.novoProd.locaisSelecionados }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Atualizado!"); this.cancelarEdicaoProduto(); this.mostrandoConfig = false; },
@@ -179,4 +175,5 @@ const app = createApp({
             db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }); 
             db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
             db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
-            db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCom
+            db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCompare(a.id)); });
+            db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1

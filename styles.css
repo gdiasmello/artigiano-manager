@@ -126,12 +126,10 @@ th { background: var(--input-bg); color: var(--text-light); }
 .animated-up { animation: slideUp 0.4s ease-out; } @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .animated-fade { animation: fadeIn 0.3s ease-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* NOVO: Lista de Sugestões */
+/* AUTOCOMPLETE & SPLIT */
 .suggestions-box { background: white; border: 1px solid var(--primary); border-radius: 0 0 12px 12px; max-height: 150px; overflow-y: auto; position: absolute; width: calc(100% - 22px); z-index: 500; margin-top: -10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); left: 11px; }
 .suggestion-item { padding: 12px; border-bottom: 1px solid #eee; color: var(--text); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .suggestion-item:hover { background-color: #f9f9f9; }
 .suggestion-item small { color: var(--text-light); font-size: 0.75rem; }
-
-/* NOVO: Alinhamento Split */
 .row.split-2 { display: flex; gap: 10px; }
 .row.split-2 input, .row.split-2 select { flex: 1; width: 50%; min-width: 0; }
