@@ -41,9 +41,12 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .btn-back { background: var(--card); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 50%; color: var(--text); cursor: pointer; }
 .search-wrap { background: var(--card); padding: 12px 15px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
 .search-wrap input { border: none; background: transparent; flex: 1; color: var(--text); font-size: 1rem; outline: none; }
-.product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
+.product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; position: relative; }
 .p-info strong { display: block; font-size: 1rem; margin-bottom: 3px; }
 .p-info small { display: block; color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
+.desc-text { display: block; color: var(--text-light); font-style: italic; font-size: 0.75rem; margin-bottom: 4px; }
+.btn-del-item { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-light); cursor: pointer; padding: 5px; }
+.btn-del-item i { font-size: 1.1rem; }
 .p-actions-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .btn-open { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 50px; height: 42px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text-light); font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
 .btn-open.active { background: #FEF3C7; color: #D97706; border-color: #FCD34D; font-weight: bold; }
