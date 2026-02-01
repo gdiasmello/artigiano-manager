@@ -6,12 +6,9 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .app-layout { display: flex; flex-direction: column; min-height: 100vh; }
 .app-header { position: sticky; top: 0; z-index: 1000; background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .main-content { flex: 1; padding: 20px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
-/* LOADING */
-#static-loading { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-.pizza-spin { font-size: 4rem; color: var(--primary); animation: spin 2s infinite linear; margin-bottom: 20px; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
-.btn-force { background: none; border: 1px solid var(--text-light); color: var(--text-light); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-top: 20px; cursor: pointer; }
-/* AUTH */
+.loading-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.spinner-container { text-align: center; color: var(--primary); font-size: 1.5rem; }
+.btn-force { background: none; border: 1px solid var(--text-light); color: var(--text-light); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-top: 15px; cursor: pointer; }
 .auth-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); padding: 20px; }
 .auth-box { background: var(--card); width: 100%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 25px rgba(0,0,0,0.2); text-align: center; }
 .brand h1 { color: var(--primary); margin: 10px 0 5px; font-weight: 800; font-size: 1.8rem; }
@@ -19,14 +16,12 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .input-group { position: relative; margin-bottom: 15px; }
 .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
 .input-group input, .input-group select { width: 100%; padding: 12px 12px 12px 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text); font-size: 1rem; outline: none; }
-.btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+.btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
 .btn-secondary { width: 100%; padding: 14px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); border-radius: 12px; font-weight: 700; cursor: pointer; }
 .btn-danger { width: 100%; padding: 14px; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
 .big-btn { padding: 16px; font-size: 1.1rem; }
 .msg-box { margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 0.9rem; background: #DEF7EC; color: #03543F; }
 .msg-box.error { background: #FDE8E8; color: #9B1C1C; }
-/* UI */
 .user-pill { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .avatar { width: 38px; height: 38px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
 .info .name { font-weight: 700; font-size: 0.9rem; display: block; }
@@ -50,7 +45,6 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .product-card { background: var(--card); padding: 15px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 12px; position: relative; }
 .p-info strong { display: block; font-size: 1rem; margin-bottom: 3px; }
 .p-info small { display: block; color: var(--text-light); font-size: 0.8rem; margin-top: 2px; }
-.desc-text { display: block; color: #6B7280; font-style: italic; font-size: 0.75rem; margin-bottom: 2px; }
 .btn-del-item { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #fee2e2; cursor: pointer; padding: 5px; }
 .btn-del-item i { color: #fca5a5; }
 .p-actions-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
@@ -97,6 +91,8 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .suggest-badge { position: absolute; top: 10px; right: 10px; background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #FCD34D; animation: pulse 2s infinite; }
 .text-alert { color: #D97706; margin-left: 5px; animation: pulse 2s infinite; }
 .cat-tag { display: inline-block; color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+.desc-text { display: block; color: var(--text-light); font-size: 0.75rem; font-style: italic; margin-bottom: 3px; }
+.h-user-row { font-weight: bold; color: var(--primary); font-size: 0.9rem; margin-bottom: 5px; }
 .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .checkbox-grid label { font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; }
 .perm-selector { margin: 15px 0; padding: 10px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border); }

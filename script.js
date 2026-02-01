@@ -1,24 +1,25 @@
 const firebaseConfig = { apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", authDomain: "artigiano-app.firebaseapp.com", databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", projectId: "artigiano-app", storageBucket: "artigiano-app.firebasestorage.app", messagingSenderId: "212218495726", appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" };
 
-let db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error("Erro Firebase", e); }
+let db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
 
 const { createApp } = Vue
 
 const app = createApp({
     data() {
         return {
-            loadingInicial: true, erroGlobal: '', textoErroGlobal: '',
-            temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
+            loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
-            // ADMIN & MIGRAÇÃO
+            // ADMIN
             novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }, 
             editandoUsuarioId: null,
+            // MIGRAÇÃO (Herdado da V60)
             mostrandoMigracao: false, localParaRemover: '', indexLocalRemover: -1, localDestinoMigracao: '', nomeNovoLocalMigracao: '',
             
             feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
             produtos: [], historico: [], historicoMassa: [], 
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
+            
             // NOVO CAMPO: DESCRICAO
             novoProd: { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
@@ -31,8 +32,17 @@ const app = createApp({
         nomeDiaSemana() { const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; return dias[new Date().getDay()]; },
         metaDia() { const d = new Date().getDay(); let base = (d===0||d===5||d===6) ? 100 : 60; if(this.isSemanaFeriado) base = Math.round(base * 1.2); return base; },
         qtdProduzir() { const sobra = this.sobraMassa || 0; return Math.max(0, this.metaDia - sobra); },
-        receitaCalculada() { const q = this.qtdProduzir; const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 }; return { farinha: Math.round(q*r.farinha), aguaLiq: Math.round(q*r.aguaLiq), gelo: Math.round(q*r.gelo), aguaTotal: Math.round(q*(r.aguaLiq+r.gelo)), levain: Math.round(q*r.levain), sal: Math.round(q*r.sal) }; },
-        receitaExibida() { if (this.modoReceita === 'lote' && this.loteSelecionado) { const l = this.lotesPadrao.find(x => x.qtd === this.loteSelecionado); if(l) return { far: l.far, aguaTotal: l.agua, agua: 'Ver tabela', gelo: 'Ver tabela', lev: l.lev, sal: l.sal }; } const c = this.receitaCalculada; return { far: this.formatGramas(c.farinha), aguaTotal: this.formatGramas(c.aguaTotal), agua: this.formatGramas(c.aguaLiq), gelo: this.formatGramas(c.gelo), lev: this.formatGramas(c.levain), sal: this.formatGramas(c.sal) }; },
+        receitaCalculada() {
+            const q = this.qtdProduzir; const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 };
+            return { farinha: Math.round(q*r.farinha), aguaLiq: Math.round(q*r.aguaLiq), gelo: Math.round(q*r.gelo), aguaTotal: Math.round(q*(r.aguaLiq+r.gelo)), levain: Math.round(q*r.levain), sal: Math.round(q*r.sal) };
+        },
+        receitaExibida() {
+            if (this.modoReceita === 'lote' && this.loteSelecionado) {
+                const l = this.lotesPadrao.find(x => x.qtd === this.loteSelecionado); if(l) return { far: l.far, aguaTotal: l.agua, agua: 'Ver tabela', gelo: 'Ver tabela', lev: l.lev, sal: l.sal };
+            }
+            const c = this.receitaCalculada;
+            return { far: this.formatGramas(c.farinha), aguaTotal: this.formatGramas(c.aguaTotal), agua: this.formatGramas(c.aguaLiq), gelo: this.formatGramas(c.gelo), lev: this.formatGramas(c.levain), sal: this.formatGramas(c.sal) };
+        },
         usuariosAtivos() { return this.usuarios.filter(u => u.aprovado === true); },
         usuariosPendentes() { return this.usuarios.filter(u => u.aprovado === false); },
         pendentesCount() { return this.usuariosPendentes.length; },
@@ -51,10 +61,17 @@ const app = createApp({
                 if(processados.has(p.id)) return; processados.add(p.id);
                 const calc = this.calculaFalta(p); 
                 let dId = p.destinoId ? p.destinoId : '';
-                if (!dId) { if (p.categoria === 'hortifruti') dId = 'Hortifruti'; else if (p.categoria === 'bebidas') dId = 'Bebidas'; else dId = 'Geral'; }
+                if (!dId) {
+                    if (p.categoria === 'hortifruti') dId = 'Hortifruti';
+                    else if (p.categoria === 'bebidas') dId = 'Bebidas';
+                    else dId = 'Geral'; 
+                }
                 if (!grupos[dId]) grupos[dId] = [];
-                let textoItem = p.somenteNome ? `- ${p.nome}` : `- ${calc.qtd} ${p.unC} ${p.nome}`;
-                if(p.descricao) textoItem += ` (${p.descricao})`; // ADICIONA DESCRIÇÃO NO ZAP
+                let textoItem = "";
+                if (p.somenteNome) textoItem = `- ${p.nome}`;
+                else textoItem = `- ${calc.qtd} ${p.unC} ${p.nome}`;
+                // INCLUI DESCRIÇÃO NO ZAP SE HOUVER
+                if (p.descricao) textoItem += ` (${p.descricao})`;
                 if(this.analisarHistorico(p)) textoItem += " (⚠️ Acabou rápido!)";
                 grupos[dId].push({ texto: textoItem, id: p.id });
             });
@@ -62,8 +79,12 @@ const app = createApp({
         }
     },
     methods: {
-        podeAcessar(perm) { if (!this.usuarioLogado || !this.usuarioLogado.permissoes) return false; return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
-        tentarReconectar() { window.location.reload(); },
+        // --- SEGURANÇA V68 ---
+        podeAcessar(perm) {
+            if (!this.usuarioLogado || !this.usuarioLogado.permissoes) return false;
+            return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; 
+        },
+
         adicionarExtra() { if(this.novoItemExtra) { this.itensExtras.push(this.novoItemExtra); this.novoItemExtra = ''; } },
         removerExtra(idx) { this.itensExtras.splice(idx, 1); },
         alternarTema() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); if(this.temaEscuro) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); },
@@ -78,19 +99,25 @@ const app = createApp({
         
         enviarZap(destId, itens, isSegunda) { 
             let dest = this.config.destinos.find(d => d.id == destId);
-            const tel = dest ? dest.telefone : ''; let nomeDestino = dest ? dest.nome : destId; 
+            const tel = dest ? dest.telefone : ''; 
+            let nomeDestino = dest ? dest.nome : destId; 
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
+            
             let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
-            if (nomeDestino === 'Geral' && this.itensExtras.length > 0) { this.itensExtras.forEach(e => msg += `- ${e}\n`); }
+            if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
+                this.itensExtras.forEach(e => msg += `- ${e}\n`);
+            }
             
-            // HISTORICO COM DATA/HORA
+            // GRAVA O NOME DE QUEM ENVIOU NA HORA
             const dataHora = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5);
-            const h = { id: this.gerarId(), data: dataHora, hora: '', usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
+            const quemFez = this.usuarioLogado.nome;
+
+            const h = { id: this.gerarId(), data: dataHora, hora: '', usuario: quemFez, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
             
-            if (isSegunda) { alert("Salvo no Rascunho!"); return; }
+            if (isSegunda) { alert("Salvo no Rascunho para Segunda!"); return; }
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
             itens.forEach(i => { const prod = this.produtos.find(p => p.id === i.id); if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); } });
             if(nomeDestino === 'Geral') this.itensExtras = [];
@@ -100,20 +127,52 @@ const app = createApp({
         registrarProducao() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
         
         tentarRemoverLocal(idx) {
-            const local = this.config.rota[idx]; const prodsNoLocal = this.produtos.filter(p => p.locais && p.locais.includes(local));
-            if (prodsNoLocal.length > 0) { this.localParaRemover = local; this.indexLocalRemover = idx; this.mostrandoMigracao = true; } 
-            else { if(confirm(`Excluir local '${local}'?`)) { this.config.rota.splice(idx, 1); this.salvarConfig(); } }
+            const local = this.config.rota[idx];
+            const prodsNoLocal = this.produtos.filter(p => p.locais && p.locais.includes(local));
+            if (prodsNoLocal.length > 0) {
+                this.localParaRemover = local;
+                this.indexLocalRemover = idx;
+                this.mostrandoMigracao = true;
+            } else {
+                if(confirm(`Excluir local '${local}'?`)) {
+                    this.config.rota.splice(idx, 1);
+                    this.salvarConfig();
+                }
+            }
         },
         confirmarMigracao() {
-            let novo = this.localDestinoMigracao; if (!novo) return alert("Escolha um destino!");
-            if (novo === 'novo') { if (!this.nomeNovoLocalMigracao) return alert("Digite o nome!"); novo = this.nomeNovoLocalMigracao; this.config.rota.push(novo); }
-            this.produtos.forEach(p => { if (p.locais && p.locais.includes(this.localParaRemover)) { const i = p.locais.indexOf(this.localParaRemover); p.locais[i] = novo; if (p.contagem && p.contagem[this.localParaRemover]) { p.contagem[novo] = (p.contagem[novo] || 0) + parseFloat(p.contagem[this.localParaRemover]); delete p.contagem[this.localParaRemover]; } this.salvarProdutoUnitario(p); } });
-            this.config.rota.splice(this.indexLocalRemover, 1); this.salvarConfig(); this.mostrandoMigracao = false; this.localParaRemover = ''; alert("Concluído!");
+            let novo = this.localDestinoMigracao;
+            if (!novo) return alert("Escolha um destino!");
+            if (novo === 'novo') {
+                if (!this.nomeNovoLocalMigracao) return alert("Digite o nome do novo local!");
+                novo = this.nomeNovoLocalMigracao;
+                this.config.rota.push(novo); 
+            }
+            this.produtos.forEach(p => {
+                if (p.locais && p.locais.includes(this.localParaRemover)) {
+                    const i = p.locais.indexOf(this.localParaRemover);
+                    p.locais[i] = novo;
+                    if (p.contagem && p.contagem[this.localParaRemover]) {
+                        p.contagem[novo] = (p.contagem[novo] || 0) + parseFloat(p.contagem[this.localParaRemover]);
+                        delete p.contagem[this.localParaRemover];
+                    }
+                    this.salvarProdutoUnitario(p);
+                }
+            });
+            this.config.rota.splice(this.indexLocalRemover, 1);
+            this.salvarConfig();
+            this.mostrandoMigracao = false;
+            this.localParaRemover = '';
+            alert("Migração concluída e local removido!");
         },
         cancelarMigracao() { this.mostrandoMigracao = false; this.localParaRemover = ''; },
 
         async importarContatoDoCelular() { if ('contacts' in navigator) { try { const c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
-        aplicarPermissoesPadrao() { if (this.novoUserAdmin.cargo === 'Gerente') this.novoUserAdmin.permissoes = { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true, producao: true, verHistorico: true, editarItens: true }; else if (this.novoUserAdmin.cargo === 'Pizzaiolo') this.novoUserAdmin.permissoes = { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: false, producao: true, verHistorico: false, editarItens: false }; else this.novoUserAdmin.permissoes = { admin: false, hortifruti: false, geral: false, bebidas: true, limpeza: true, producao: false, verHistorico: false, editarItens: false }; },
+        aplicarPermissoesPadrao() { 
+            if (this.novoUserAdmin.cargo === 'Gerente') this.novoUserAdmin.permissoes = { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true, producao: true, verHistorico: true, editarItens: true }; 
+            else if (this.novoUserAdmin.cargo === 'Pizzaiolo') this.novoUserAdmin.permissoes = { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: false, producao: true, verHistorico: false, editarItens: false }; 
+            else this.novoUserAdmin.permissoes = { admin: false, hortifruti: false, geral: false, bebidas: true, limpeza: true, producao: false, verHistorico: false, editarItens: false }; 
+        },
         adicionarUsuarioAdmin() { if (!this.novoUserAdmin.nome) return alert("Nome?"); const novo = { id: this.gerarId(), ...this.novoUserAdmin, aprovado: true }; this.salvarUsuarioUnitario(novo); this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }; alert("Criado!"); },
         prepararEdicao(u) { this.novoUserAdmin = JSON.parse(JSON.stringify(u)); this.editandoUsuarioId = u.id; },
         salvarEdicaoUsuario() { if(this.editandoUsuarioId) { this.salvarUsuarioUnitario(this.novoUserAdmin); this.cancelarEdicaoUsuario(); } },
@@ -144,11 +203,7 @@ const app = createApp({
         getNomeDestino(id) { const d = this.config.destinos ? this.config.destinos.find(x => x.id === id) : null; return d ? d.nome : id; },
         adicionarLocal() { if(this.novoLocal) { if(!this.config.rota) this.config.rota=[]; this.config.rota.push(this.novoLocal); this.novoLocal=''; this.salvarConfig(); } },
         removerLocal(idx) { if(confirm("Remover?")) { this.config.rota.splice(idx,1); this.salvarConfig(); } },
-        carregarDb() { 
-            if(db) { 
-                db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }, e => { this.erroGlobal = 'server'; this.textoErroGlobal = "Erro de conexão com o servidor."; }); 
-                db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
-                db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
-                db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCompare(a.id)); });
-                db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1',data:'2026-12-10',nome:'Aniv. Londrina'},{id:'2',data:'2026-06-15',nome:'Padroeiro'},{id:'3',data:'2026-12-25',nome:'Natal'},{id:'4',data:'2026-01-01',nome:'Ano Novo'}]; l.forEach(f=>db.ref('system/feriados/'+f.id).set(f)); } }); 
-                db.ref('system/config').on('value', s => { this.config = s.val() || {
+        carregarDb() { if(db) { 
+            db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }); 
+            db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
+            db.ref('store/history
