@@ -46,11 +46,12 @@ const app = createApp({
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         contagemCarrinho() { return this.itensParaPedir.length; },
         
-        // NOVO: Sugestões de produto para editar
+        // CORRIGIDO: Sugestões de produto para editar
         sugestoesProdutos() {
+            // Proteção contra dados nulos
             if (!this.novoProd.nome || this.novoProd.nome.length < 2 || this.editandoProdutoId) return [];
             const termo = this.novoProd.nome.toLowerCase();
-            return this.produtos.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 5); 
+            return this.produtos.filter(p => p.nome && p.nome.toLowerCase().includes(termo)).slice(0, 5); 
         },
 
         pedidosAgrupados() {
@@ -124,6 +125,7 @@ const app = createApp({
         },
 
         registrarProducao() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
+        
         async importarContatoDoCelular() { if ('contacts' in navigator) { try { const c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
         
         aplicarPermissoesPadrao() { 
@@ -139,8 +141,8 @@ const app = createApp({
         
         // --- EDITOR DE PRODUTO ---
         carregarParaEdicao(p) {
+            // CORRIGIDO: Não tenta mais limpar a lista computada manualmente
             this.prepararEdicaoProduto(p);
-            this.sugestoesProdutos = []; // Limpa a lista
         },
         prepararEdicaoProduto(p) { this.novoProd = JSON.parse(JSON.stringify(p)); if(!this.novoProd.locaisSelecionados) this.novoProd.locaisSelecionados = p.locais || []; this.editandoProdutoId = p.id; this.mostrandoConfig = true; },
         cancelarEdicaoProduto() { this.editandoProdutoId = null; this.novoProd = { nome: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false }; },
@@ -177,5 +179,4 @@ const app = createApp({
             db.ref('system/users').on('value', s => { this.usuarios = s.val() ? Object.values(s.val()) : []; this.verificarSessao(); }); 
             db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
             db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
-            db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCompare(a.id)); });
-            db.ref('system/feriados').on('value', s => { this.feriados
+            db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCom
