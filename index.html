@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V65</title>
-    
+    <title>Pizzeria Master V66</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { margin: 0; background-color: #F3F4F6; font-family: 'Inter', sans-serif; }
-        #static-loading { position: fixed; inset: 0; background: #F3F4F6; z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; }
-        #static-error { display: none; position: fixed; inset: 0; background: #FEE2E2; z-index: 100000; padding: 20px; flex-direction: column; align-items: center; justify-content: center; color: #991B1B; text-align: center; }
+        /* ESTILOS DE EMERGÊNCIA (Carregam antes de tudo) */
+        body { margin: 0; background-color: #F3F4F6; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        #static-loading { position: fixed; inset: 0; background: #F3F4F6; z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; transition: opacity 0.5s; }
         .pizza-spin { font-size: 4rem; color: #C41E3A; animation: spin 2s infinite linear; margin-bottom: 20px; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .btn-reset { margin-top: 20px; padding: 10px 20px; border: 1px solid #C41E3A; color: #C41E3A; background: transparent; border-radius: 8px; font-weight: bold; }
-        [v-cloak] { display: none; } /* Esconde o app Vue até carregar */
+        .btn-reset { margin-top: 25px; padding: 12px 25px; border: 2px solid #C41E3A; color: #C41E3A; background: white; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .debug-log { position: fixed; bottom: 10px; left: 10px; right: 10px; font-size: 10px; color: #999; text-align: center; font-family: monospace; z-index: 100000; }
+        [v-cloak] { display: none; }
     </style>
-    <link rel="stylesheet" href="styles.css?v=65">
+    <link rel="stylesheet" href="styles.css?v=66">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -29,37 +29,33 @@
 
 <div id="static-loading">
     <div class="pizza-spin"><i class="fas fa-pizza-slice"></i></div>
-    <h3 style="color:#1F2937">Carregando V65...</h3>
-    <button class="btn-reset" onclick="limparCacheForcado()">Travou? Clique aqui</button>
+    <h3 style="color:#1F2937; margin:0;">Carregando V66...</h3>
+    <p id="loading-status" style="color:#666; font-size:0.9rem; margin-top:5px;">Iniciando...</p>
+    <button class="btn-reset" onclick="hardReset()">Travou? Clique aqui para Resetar</button>
 </div>
 
-<div id="static-error">
-    <i class="fas fa-exclamation-triangle" style="font-size:3rem; margin-bottom:15px;"></i>
-    <h3>Erro de Inicialização</h3>
-    <p id="error-msg">Algo deu errado.</p>
-    <button class="btn-reset" onclick="location.reload()">Recarregar</button>
-</div>
+<div id="debug-area" class="debug-log">Aguardando Scripts...</div>
 
 <div id="app" v-cloak :data-theme="temaEscuro ? 'dark' : 'light'">
     
-    <div v-if="erroGlobal" class="error-screen animated-fade">
+    <div v-if="erroGlobal" class="error-screen animated-fade" style="display: flex;">
         <i class="fas fa-wifi-slash" v-if="erroGlobal === 'offline'"></i>
-        <i class="fas fa-server" v-else></i>
-        <h3>Ops! {{ erroGlobal === 'offline' ? 'Sem Internet' : 'Erro no Banco' }}</h3>
+        <i class="fas fa-bug" v-else></i>
+        <h3>{{ erroGlobal === 'offline' ? 'Sem Conexão' : 'Erro no Sistema' }}</h3>
         <p>{{ textoErroGlobal }}</p>
-        <button class="btn-primary" @click="tentarReconectar">Tentar Novamente</button>
+        <button class="btn-primary" @click="tentarReconectar">Recarregar Página</button>
     </div>
 
     <div v-if="mostrandoMigracao" class="modal-backdrop"><div class="modal-window"><div class="modal-top"><h3>Mover Itens</h3></div><div class="modal-content"><p>O local <strong>{{ localParaRemover }}</strong> tem itens.</p><select v-model="localDestinoMigracao" class="full-input"><option value="" disabled>Para onde?</option><option v-for="l in locaisParaMigrar" :value="l">{{ l }}</option><option value="novo">+ Criar Novo</option></select><input v-if="localDestinoMigracao === 'novo'" v-model="nomeNovoLocalMigracao" placeholder="Nome" class="full-input"><button class="btn-primary full" @click="confirmarMigracao">Confirmar</button><button class="btn-secondary full" @click="cancelarMigracao">Cancelar</button></div></div></div>
 
-    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal"><div class="modal-window large"><div class="modal-top"><h3>Sobre</h3><button @click="mostrandoTermos=false" v-if="sessaoAtiva"><i class="fas fa-times"></i></button></div><div class="modal-content terms-content"><div class="terms-text"><h4>V65 Estável</h4><p>Suporte: Gabriel Dias.</p></div><button v-if="!sessaoAtiva" class="btn-primary full" @click="aceitarTermos">CONCORDO</button></div></div></div>
+    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal"><div class="modal-window large"><div class="modal-top"><h3>Sobre</h3><button @click="mostrandoTermos=false" v-if="sessaoAtiva"><i class="fas fa-times"></i></button></div><div class="modal-content terms-content"><div class="terms-text"><h4>V66 Estável</h4><p>Suporte: Gabriel Dias (Enquanto houver vínculo).</p></div><button v-if="!sessaoAtiva" class="btn-primary full" @click="aceitarTermos">CONCORDO</button></div></div></div>
 
     <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3>Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button class="btn-primary full" @click="mostrandoAjuda = false">OK</button></div></div></div>
 
     <div class="auth-wrapper" v-if="!sessaoAtiva && !erroGlobal">
         <button class="theme-toggle" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
         <div class="auth-box animated-up">
-            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V65</p></div>
+            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V66</p></div>
             <div class="form-group">
                 <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário"></div>
                 <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha"></div>
@@ -106,6 +102,7 @@
                     </div>
                 </div>
                 <div class="std-batches" v-if="podeAcessar('verHistorico')"><h4 @click="mostrarHistoricoMassa = !mostrarHistoricoMassa">Histórico <i class="fas" :class="mostrarHistoricoMassa ? 'fa-chevron-up' : 'fa-chevron-down'"></i></h4><div v-if="mostrarHistoricoMassa && historicoMassa.length > 0" class="table-responsive"><table><thead><tr><th>Data</th><th>Qtd</th><th>Resp.</th></tr></thead><tbody><tr v-for="h in historicoMassa" :key="h.id"><td>{{ h.data }}</td><td>{{ h.qtd }}</td><td>{{ h.user }}</td></tr></tbody></table></div></div>
+                <div class="pop-section"><h3>Processo (POP)</h3><div class="step-card"><div class="step-num">1</div><div class="step-text"><strong>Mistura Inicial</strong><p>Água + Gelo + Sal + 50% Farinha.<br>Bater até homogeneizar.</p></div></div><div class="step-card"><div class="step-num">2</div><div class="step-text"><strong>Ponto de Véu</strong><p>Resto da Farinha + Levain.<br>Bater até ponto de cera.</p></div></div></div>
                 <div style="height: 100px;"></div>
             </div>
 
@@ -144,5 +141,4 @@
     <div class="modal-backdrop" v-if="mostrandoAdmin"><div class="modal-window"><div class="modal-top"><h3>Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div class="config-box"><h4>Usuário</h4><div class="row"><input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input"><select v-model="novoUserAdmin.cargo" class="full-input" @change="aplicarPermissoesPadrao"><option value="" disabled>Cargo</option><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div><div class="row"><input v-model="novoUserAdmin.user" placeholder="Login"><input v-model="novoUserAdmin.pass" placeholder="Senha"></div><div class="perm-selector"><p>Permissões:</p><div class="checkbox-grid"><label><input type="checkbox" v-model="novoUserAdmin.permissoes.admin"> Admin</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.producao"> Massas</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.verHistorico"> Histórico</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.editarItens"> Editar</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.hortifruti"> Horti</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.geral"> Geral</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.bebidas"> Bebidas</label><label><input type="checkbox" v-model="novoUserAdmin.permissoes.limpeza"> Limpeza</label></div></div><button class="btn-primary full" @click="adicionarUsuarioAdmin">Salvar</button></div><div v-for="u in usuariosAtivos" :key="u.id" class="user-item"><div class="user-head"><strong>{{ u.nome }}</strong><button class="btn-edit" @click="prepararEdicao(u)"><i class="fas fa-pencil-alt"></i></button><i class="fas fa-trash text-red" @click="removerUsuario(u.id)" v-if="u.id !== usuarioLogado.id"></i></div></div></div></div></div>
 
     <div class="modal-backdrop" v-if="mostrandoPreview"><div class="modal-window"><div class="modal-top"><h3>Revisar</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div><div class="modal-content">
-        <div class="algo-mais-box"><p><strong>Algo mais?</strong></p><div class="row"><input v-model="novoItemExtra" placeholder="Ex: Lâmpada" @keyup.enter="adicionarExtra"><button class="btn-add-extra" @click="adicionarExtra">+</button></div><ul v-if="itensExtras.length > 0" class="extra-list"><li v-for="(item, idx) in itensExtras" :key="idx">{{ item }} <i class="fas fa-times text-red" @click="removerExtra(idx)"></i></li></ul></div>
-        <div v-for="(g, id) in pedidosAgrupados" :key="id" class="order-block"><div class="ord-head"><strong>{{ getNomeDestino(id) }}</strong><span>{{ g.length }} itens</span></div><ul><li v-for="i in g">{{ i.texto }}</li></ul><div class="sen
+        <div class="algo-mais-box"><p><strong>Algo mais?</strong></p><div class="row"><input v-model="novoItemExtra" placeholder="Ex: Lâmpada" @keyup.enter="adicionarExtra"><button class="btn-add-extra" @click="adicionarExtra">+</button></div><ul v-if="itensExtras.l
