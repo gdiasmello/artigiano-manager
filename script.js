@@ -12,12 +12,10 @@ const app = createApp({
             novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }, 
             editandoUsuarioId: null,
             editandoProdutoId: null,
-            
             feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
             produtos: [], historico: [], historicoMassa: [], 
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            
             novoProd: { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
             novoItemExtra: '', itensExtras: [],
@@ -43,12 +41,9 @@ const app = createApp({
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         contagemCarrinho() { return this.itensParaPedir.length; },
         
-        // MODO DE COMPATIBILIDADE: Evita erro de 'filter' em undefined
         sugestoesProdutos() {
-            if (!this.produtos || !Array.isArray(this.produtos)) return [];
-            if (!this.novoProd || !this.novoProd.nome) return [];
+            if (!this.produtos || !this.novoProd || !this.novoProd.nome) return [];
             if (this.novoProd.nome.length < 2 || this.editandoProdutoId) return [];
-            
             const t = this.novoProd.nome.toLowerCase();
             return this.produtos.filter(p => p.nome && p.nome.toLowerCase().includes(t)).slice(0, 5); 
         },
@@ -66,12 +61,10 @@ const app = createApp({
                 }
                 if (!grupos[dId]) grupos[dId] = [];
                 let textoItem = "";
-                
                 if (p.somenteNome) textoItem = `- ${p.nome}`;
                 else textoItem = `- ${calc.qtd} ${p.unC} ${p.nome}`;
                 
                 if (p.descricao) textoItem += ` (${p.descricao})`;
-
                 if(this.analisarHistorico(p)) textoItem += " (⚠️ Cobrar pedido anterior: Chegou?)";
                 grupos[dId].push({ texto: textoItem, id: p.id });
             });
@@ -100,17 +93,11 @@ const app = createApp({
             
             let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
-            
-            if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
-                this.itensExtras.forEach(e => msg += `- ${e}\n`);
-            }
-
+            if (nomeDestino === 'Geral' && this.itensExtras.length > 0) { this.itensExtras.forEach(e => msg += `- ${e}\n`); }
             const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
-            
             if (isSegunda) { alert("Salvo no Rascunho!"); return; }
             window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank'); 
-            
             itens.forEach(i => { const prod = this.produtos.find(p => p.id === i.id); if(prod) { prod.contagem = {}; prod.temAberto = false; this.salvarProdutoUnitario(prod); } });
             if(nomeDestino === 'Geral') this.itensExtras = [];
             this.mostrandoPreview = false; 
@@ -130,46 +117,12 @@ const app = createApp({
         salvarEdicaoUsuario() { if(this.editandoUsuarioId) { this.salvarUsuarioUnitario(this.novoUserAdmin); this.cancelarEdicaoUsuario(); } },
         cancelarEdicaoUsuario() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }; },
         
-        // --- FUNÇÕES DE EDIÇÃO (MODO CLÁSSICO) ---
-        carregarParaEdicao(p) {
-            this.prepararEdicaoProduto(p);
-        },
-        prepararEdicaoProduto(p) { 
-            this.novoProd = JSON.parse(JSON.stringify(p)); 
-            if(!this.novoProd.locaisSelecionados) this.novoProd.locaisSelecionados = p.locais || []; 
-            this.editandoProdutoId = p.id; 
-            this.mostrandoConfig = true; 
-        },
-        cancelarEdicaoProduto() { 
-            this.editandoProdutoId = null; 
-            this.novoProd = { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false }; 
-        },
-        salvarEdicaoProduto() { 
-            if(!this.novoProd.nome) return alert("Nome?"); 
-            const p = { ...this.novoProd, id: this.editandoProdutoId, locais: this.novoProd.locaisSelecionados }; 
-            delete p.locaisSelecionados; 
-            this.salvarProdutoUnitario(p); 
-            alert("Atualizado!"); 
-            this.cancelarEdicaoProduto(); 
-            this.mostrandoConfig = false; 
-        },
-        adicionarProduto() { 
-            if(!this.novoProd.nome) return alert("Nome?"); 
-            if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?"); 
-            const p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false }; 
-            delete p.locaisSelecionados; 
-            this.salvarProdutoUnitario(p); 
-            alert("Salvo!"); 
-            this.novoProd.nome = ''; 
-            this.novoProd.locaisSelecionados = []; 
-        },
-        excluirProduto(id) { 
-            if(confirm("Excluir item permanentemente?")) { 
-                db.ref('store/products/' + id).remove(); 
-                this.cancelarEdicaoProduto(); 
-                this.mostrandoConfig = false; 
-            } 
-        },
+        carregarParaEdicao(p) { this.prepararEdicaoProduto(p); },
+        prepararEdicaoProduto(p) { this.novoProd = JSON.parse(JSON.stringify(p)); if(!this.novoProd.locaisSelecionados) this.novoProd.locaisSelecionados = p.locais || []; this.editandoProdutoId = p.id; this.mostrandoConfig = true; },
+        cancelarEdicaoProduto() { this.editandoProdutoId = null; this.novoProd = { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false }; },
+        salvarEdicaoProduto() { if(!this.novoProd.nome) return alert("Nome?"); const p = { ...this.novoProd, id: this.editandoProdutoId, locais: this.novoProd.locaisSelecionados }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Atualizado!"); this.cancelarEdicaoProduto(); this.mostrandoConfig = false; },
+        adicionarProduto() { if(!this.novoProd.nome) return alert("Nome?"); if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?"); const p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Salvo!"); this.novoProd.nome = ''; this.novoProd.locaisSelecionados = []; },
+        excluirProduto(id) { if(confirm("Excluir item permanentemente?")) { db.ref('store/products/' + id).remove(); this.cancelarEdicaoProduto(); this.mostrandoConfig = false; } },
 
         migrarProduto(p) { let mudou=false; if(p.local&&!p.locais){p.locais=[p.local];mudou=true;} if(typeof p.contagem!=='object'&&p.locais&&p.locais.length>0){const val=p.contagem;p.contagem={};if(val!==''&&val!==undefined)p.contagem[p.locais[0]]=val;mudou=true;} return mudou?p:null; },
         gerarId() { return 'id_' + Math.random().toString(36).substr(2, 9); },
@@ -189,7 +142,7 @@ const app = createApp({
         removerUsuario(id) { if(confirm("Remover?")) db.ref('system/users/' + id).remove(); },
         abrirModulo(m) { this.moduloAtivo = m; this.termoBusca = ''; },
         podeAcessar(perm) { 
-            // MODO SEGURO: Evita travamento se a permissao nao existir
+            // Modo seguro
             if (!this.usuarioLogado || !this.usuarioLogado.permissoes) return false;
             return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; 
         },
@@ -206,4 +159,12 @@ const app = createApp({
             db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
             db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
             db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCompare(a.id)); });
-            db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1',data:'2026-12-10',nome:'Aniv. Londrina'},{id:'2',data:'2026-06-15',nome:'Padroeiro'},{id
+            db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1',data:'2026-12-10',nome:'Aniv. Londrina'},{id:'2',data:'2026-06-15',nome:'Padroeiro'},{id:'3',data:'2026-12-25',nome:'Natal'},{id:'4',data:'2026-01-01',nome:'Ano Novo'}]; l.forEach(f=>db.ref('system/feriados/'+f.id).set(f)); } }); 
+            db.ref('system/config').on('value', s => { this.config = s.val() || { destinos: [], rota: ['Geral'] }; if(!this.config.cores) this.config.cores = { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' }; if(!this.config.rota) this.config.rota=['Geral']; this.loadingInicial = false; }); 
+        } else { this.loadingInicial = false; } },
+        verificarSessao() { 
+            if(this.usuarioLogado) { 
+                const u = this.usuarios.find(x => x.id === this.usuarioLogado.id); 
+                if(u) { 
+                    this.usuarioLogado = u; 
+                    localS
