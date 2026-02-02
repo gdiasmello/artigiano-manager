@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V60</title>
+    <title>Artigiano Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -13,60 +14,52 @@
 <body :class="{'dark-mode': temaEscuro}">
 <div id="app" v-cloak>
 
-    <div v-if="!sessaoAtiva" class="modal-overlay">
-        <div class="modal-box" style="text-align: center;">
-            <i class="fas fa-pizza-slice fa-3x" style="color: var(--ios-red);"></i>
-            <h2 style="margin: 20px 0;">Artigiano</h2>
-            <input v-model="loginUser" class="btn-main" style="background: #eee; color: #000; margin-bottom: 10px;" placeholder="Usuário">
-            <input v-model="loginPass" type="password" class="btn-main" style="background: #eee; color: #000; margin-bottom: 20px;" placeholder="Senha">
-            <button @click="fazerLogin" class="btn-main btn-red">ENTRAR</button>
+    <header class="app-header" v-if="sessaoAtiva">
+        <div style="font-weight: 800; font-size: 22px;">Artigiano<span style="color:var(--it-red)">.</span></div>
+        <div style="display: flex; gap: 15px;">
+            <i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'" @click="temaEscuro = !temaEscuro"></i>
+            <i class="fas fa-power-off" style="color:var(--it-red)" @click="logout"></i>
         </div>
+    </header>
+
+    <div v-if="!sessaoAtiva" class="login-wrapper" style="padding: 40px; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+        <i class="fas fa-pizza-slice fa-4x" style="color: var(--it-red); margin-bottom: 20px;"></i>
+        <h1 style="font-weight: 800;">Benvenuto!</h1>
+        <input v-model="loginUser" placeholder="Usuário" class="ios-input" style="width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px;">
+        <input v-model="loginPass" type="password" placeholder="Senha" class="ios-input" style="width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px;">
+        <button @click="fazerLogin" style="background: var(--it-red); color: white; padding: 18px; border-radius: 15px; border: none; font-weight: 800;">ACESSAR SISTEMA</button>
     </div>
 
-    <div v-else class="app-layout">
-        <header class="app-header">
-            <div style="font-weight: 800; font-size: 20px;">Artigiano<span>.</span></div>
-            <div style="display: flex; gap: 15px;">
-                <button @click="alternarTema" style="background:none; border:none; color:var(--ios-gray);"><i class="fas fa-moon"></i></button>
-                <button @click="logout" style="background:none; border:none; color:var(--ios-red);"><i class="fas fa-power-off"></i></button>
+    <main v-else>
+        <div v-if="!moduloAtivo" class="dashboard">
+            <div class="menu-card card-green" @click="moduloAtivo = 'producao'">
+                <i class="fas fa-calculator"></i><span>Massas</span>
             </div>
-        </header>
+            <div class="menu-card card-red" @click="moduloAtivo = 'hortifruti'">
+                <i class="fas fa-leaf"></i><span>Horti</span>
+            </div>
+            <div class="menu-card card-green" @click="moduloAtivo = 'geral'">
+                <i class="fas fa-boxes-stacked"></i><span>Estoque</span>
+            </div>
+            <div class="menu-card card-red" @click="moduloAtivo = 'bebidas'">
+                <i class="fas fa-wine-bottle"></i><span>Bebidas</span>
+            </div>
+        </div>
 
-        <main>
-            <div v-if="!moduloAtivo" class="dashboard-grid">
-                <div class="menu-card card-green" @click="moduloAtivo = 'producao'">
-                    <i class="fas fa-calculator"></i>
-                    <strong>Massas</strong>
-                </div>
-                <div class="menu-card card-red" @click="moduloAtivo = 'hortifruti'">
-                    <i class="fas fa-carrot"></i>
-                    <strong>Hortifruti</strong>
-                </div>
-                <div class="menu-card card-green" @click="moduloAtivo = 'geral'">
-                    <i class="fas fa-boxes-stacked"></i>
-                    <strong>Geral</strong>
-                </div>
-                <div class="menu-card card-red" @click="moduloAtivo = 'bebidas'">
-                    <i class="fas fa-wine-bottle"></i>
-                    <strong>Bebidas</strong>
-                </div>
+        <div v-else>
+            <div style="padding: 20px;">
+                <button @click="moduloAtivo = null" style="background: none; border: none; color: var(--it-red); font-weight: 600;"><i class="fas fa-chevron-left"></i> Categorias</button>
+                <h2 style="margin-top: 10px; font-weight: 800; text-transform: capitalize;">{{ moduloAtivo }}</h2>
             </div>
 
-            <div v-else class="inventory-view">
-                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
-                    <button @click="moduloAtivo = null" style="background:none; border:none; color:var(--ios-blue); font-size: 16px;">
-                        <i class="fas fa-chevron-left"></i> Voltar
-                    </button>
-                    <h2 style="margin: 0; text-transform: capitalize;">{{ moduloAtivo }}</h2>
-                </div>
-
+            <div class="inventory-container">
                 <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
-                    <div class="item-row">
-                        <strong>{{ item.nome }}</strong>
-                        <span style="color: var(--ios-gray); font-size: 12px;">Meta: {{ item.meta }}</span>
+                    <div class="item-header">
+                        <b>{{ item.nome }}</b>
+                        <span style="font-size: 12px; color: var(--text-muted)">Meta: {{ item.meta }} {{ item.unC }}</span>
                     </div>
-                    <div class="locations-grid">
-                        <div v-for="loc in config.rota" :key="loc" class="input-group">
+                    <div class="inputs-grid">
+                        <div v-for="loc in config.rota" :key="loc" class="input-box">
                             <label>{{ loc }}</label>
                             <input type="number" 
                                    :value="item.contagem ? item.contagem[loc] : ''"
@@ -74,15 +67,13 @@
                         </div>
                     </div>
                 </div>
-
-                <div style="padding: 20px;">
-                    <button v-for="d in config.destinos" @click="enviarZap(d)" class="btn-main btn-green" style="margin-bottom: 10px;">
-                        <i class="fab fa-whatsapp"></i> Pedir para {{ d.nome }}
-                    </button>
-                </div>
             </div>
-        </main>
-    </div>
+
+            <button v-for="d in config.destinos" @click="enviarZap(d)" class="footer-btn">
+                <i class="fab fa-whatsapp"></i> Enviar Pedido para {{ d.nome }}
+            </button>
+        </div>
+    </main>
 </div>
 <script src="script.js"></script>
 </body>

@@ -1,79 +1,69 @@
 :root {
-    --ios-green: #008C45;
-    --ios-red: #C41E3A;
-    --ios-bg: #F2F2F7;
-    --ios-card: #FFFFFF;
-    --ios-text: #1C1C1E;
-    --ios-gray: #8E8E93;
-    --ios-blue: #007AFF;
+    --it-green: #008C45;
+    --it-red: #C41E3A;
+    --bg-light: #F2F2F7;
+    --card-white: #FFFFFF;
+    --text-main: #1C1C1E;
+    --text-muted: #8E8E93;
+    --border-color: #D1D1D6;
 }
 
 body.dark-mode {
-    --ios-bg: #000000;
-    --ios-card: #1C1C1E;
-    --ios-text: #FFFFFF;
+    --bg-light: #000000;
+    --card-white: #1C1C1E;
+    --text-main: #F2F2F7;
+    --border-color: #38383A;
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
-body { margin: 0; background: var(--ios-bg); color: var(--ios-text); }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-light); color: var(--text-main); transition: 0.3s; }
 
-/* Header Fixo e Alinhado */
+/* Header Profissional */
 .app-header {
-    background: rgba(255,255,255,0.8); backdrop-filter: blur(15px);
-    position: sticky; top: 0; z-index: 1000;
-    padding: 15px 20px; border-bottom: 0.5px solid #d1d1d6;
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+    position: sticky; top: 0; z-index: 1000; padding: 20px;
+    border-bottom: 0.5px solid var(--border-color);
     display: flex; justify-content: space-between; align-items: center;
 }
 
-/* Grid de Menu Simétrico */
-.dashboard-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 15px; padding: 20px;
+/* Dashboard Simétrico */
+.dashboard {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px;
 }
 
 .menu-card {
-    background: var(--ios-card); border-radius: 16px; padding: 20px;
-    display: flex; flex-direction: column; align-items: flex-start;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: none;
+    background: var(--card-white); border-radius: 20px; padding: 25px 15px;
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: none; transition: 0.2s;
 }
-
-.menu-card i { font-size: 24px; margin-bottom: 12px; }
-.card-green i { color: var(--ios-green); }
-.card-red i { color: var(--ios-red); }
+.menu-card:active { transform: scale(0.96); }
+.menu-card i { font-size: 28px; margin-bottom: 12px; }
+.card-green i { color: var(--it-green); }
+.card-red i { color: var(--it-red); }
+.menu-card span { font-weight: 700; font-size: 16px; }
 
 /* Cards de Inventário Alinhados */
+.inventory-container { padding: 0 15px 100px; }
 .item-card {
-    background: var(--ios-card); border-radius: 14px;
-    padding: 16px; margin: 0 15px 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: var(--card-white); border-radius: 16px; padding: 18px;
+    margin-bottom: 15px; border: 1px solid var(--border-color);
 }
 
-.item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.item-row strong { font-size: 17px; }
+.item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.item-header b { font-size: 18px; }
 
-/* Inputs Lado a Lado */
-.locations-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.input-group { background: var(--ios-bg); padding: 8px 12px; border-radius: 10px; }
-.input-group label { display: block; font-size: 10px; color: var(--ios-gray); text-transform: uppercase; }
-.input-group input { 
+.inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.input-box { background: var(--bg-light); padding: 10px; border-radius: 12px; }
+.input-box label { display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+.input-box input {
     width: 100%; border: none; background: transparent; 
-    font-size: 16px; color: var(--ios-text); padding: 4px 0;
+    font-size: 18px; font-weight: 600; color: var(--text-main); text-align: center;
 }
 
-/* Botões Estilo iOS */
-.btn-main {
-    width: 100%; padding: 16px; border-radius: 14px; border: none;
-    font-size: 17px; font-weight: 600; cursor: pointer;
-}
-.btn-green { background: var(--ios-green); color: white; }
-.btn-red { background: var(--ios-red); color: white; }
-
-/* Modais Alinhados */
-.modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    display: flex; align-items: center; justify-content: center; z-index: 2000;
-}
-.modal-box {
-    background: var(--ios-card); width: 90%; max-height: 80%;
-    border-radius: 20px; padding: 20px; overflow-y: auto;
+/* Botões de Ação */
+.footer-btn {
+    position: fixed; bottom: 20px; left: 15px; right: 15px;
+    background: var(--it-green); color: white; border: none;
+    padding: 18px; border-radius: 15px; font-size: 17px; font-weight: 700;
+    box-shadow: 0 10px 20px rgba(0,140,69,0.3);
 }

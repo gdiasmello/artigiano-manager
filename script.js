@@ -1,4 +1,4 @@
-var firebaseConfig = { 
+const firebaseConfig = { 
     apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", 
     authDomain: "artigiano-app.firebaseapp.com", 
     databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", 
@@ -8,60 +8,55 @@ var firebaseConfig = {
     appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" 
 };
 
-var db;
-try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch(e) { console.error(e); }
+let db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
 
-var app = Vue.createApp({
-    data: function() {
+Vue.createApp({
+    data() {
         return {
             sessaoAtiva: false, moduloAtivo: null, temaEscuro: false,
             loginUser: '', loginPass: '', usuarioLogado: null,
-            itens: [], usuarios: [], config: { destinos: [], rota: ['Geral'] }
-        };
+            itens: [], usuarios: [], feriados: [],
+            config: { destinos: [], rota: ['Freezer', 'Geladeira'] }
+        }
     },
     computed: {
-        itensFiltrados: function() {
-            var self = this;
-            return this.itens.filter(function(i) { return i.categoria === self.moduloAtivo; });
+        itensFiltrados() {
+            const self = this;
+            return this.itens.filter(i => i.categoria === self.moduloAtivo);
         }
     },
     methods: {
-        carregarDados: function() {
-            var self = this;
-            db.ref('store/products').on('value', function(s) {
-                var list = [];
-                s.forEach(function(c) { var item = c.val(); item.id = c.key; list.push(item); });
-                self.itens = list;
+        carregarDados() {
+            db.ref('store/products').on('value', s => {
+                const list = [];
+                s.forEach(c => { const item = c.val(); item.id = c.key; list.push(item); });
+                this.itens = list;
             });
-            db.ref('system/users').on('value', function(s) {
-                var u = []; s.forEach(function(c){ u.push(c.val()); });
-                self.usuarios = u;
+            db.ref('system/users').on('value', s => {
+                const u = []; s.forEach(c => u.push(c.val()));
+                this.usuarios = u;
             });
-            db.ref('system/config').on('value', function(s) { if(s.val()) self.config = s.val(); });
+            db.ref('system/config').on('value', s => { if(s.val()) this.config = s.val(); });
         },
-        fazerLogin: function() {
-            var self = this;
-            var u = this.usuarios.find(function(x){ return x.user === self.loginUser && x.pass === self.loginPass; });
-            if(u) { self.sessaoAtiva = true; self.usuarioLogado = u; } else { alert("Erro de acesso!"); }
+        fazerLogin() {
+            const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
+            if(user) { this.sessaoAtiva = true; this.usuarioLogado = user; } else { alert("Acesso Negado!"); }
         },
-        salvarContagem: function(id, local, valor) {
-            db.ref('store/products/' + id + '/contagem/' + local).set(valor);
+        salvarContagem(id, local, valor) {
+            db.ref(`store/products/${id}/contagem/${local}`).set(valor);
         },
-        enviarZap: function(destino) {
-            var self = this;
-            var texto = "*PEDIDO ARTIGIANO*\n\n";
-            this.itensFiltrados.forEach(function(i) {
-                var estoque = 0;
-                for (var l in i.contagem) { estoque += parseFloat(i.contagem[l] || 0); }
-                if (estoque < i.meta) {
-                    texto += "• " + i.nome + ": " + (i.meta - estoque) + " " + i.unC + "\n";
+        enviarZap(destino) {
+            let texto = `*ARTIGIANO - PEDIDO ${this.moduloAtivo.toUpperCase()}*\n\n`;
+            this.itensFiltrados.forEach(i => {
+                let estoque = 0;
+                for(let l in i.contagem) { estoque += parseFloat(i.contagem[l] || 0); }
+                if(estoque < i.meta) {
+                    texto += `• ${i.nome}: ${i.meta - estoque} ${i.unC}\n`;
                 }
             });
-            window.open("https://api.whatsapp.com/send?phone=" + destino.numero + "&text=" + encodeURIComponent(texto));
+            window.open(`https://api.whatsapp.com/send?phone=${destino.numero}&text=${encodeURIComponent(texto)}`);
         },
-        alternarTema: function() { this.temaEscuro = !this.temaEscuro; },
-        logout: function() { location.reload(); }
+        logout() { location.reload(); }
     },
-    mounted: function() { this.carregarDados(); }
-});
-app.mount('#app');
+    mounted() { this.carregarDados(); }
+}).mount('#app');
