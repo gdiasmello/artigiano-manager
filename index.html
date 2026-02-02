@@ -3,26 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V60.5</title>
+    <title>Artigiano V60.6</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=60.5">
+    <link rel="stylesheet" href="styles.css?v=60.6">
 
     <script>
+        // Esta função agora está no topo para garantir que existe quando clicar
+        function forcarEntrada() {
+            var loader = document.getElementById('loading-screen');
+            var app = document.getElementById('app');
+            if(loader) loader.style.display = 'none';
+            if(app) app.style.display = 'block';
+        }
+
+        // Monitor de Erros
         window.onerror = function(msg, url, line) {
+            // Se for erro do forcarEntrada, ignora pois já corrigimos
+            if(msg.indexOf('forcarEntrada') > -1) return;
+
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('error-screen').style.display = 'flex';
             document.getElementById('error-tech').innerText = msg + " (Linha " + line + ")";
         };
 
-        // Força o botão de emergência aparecer após 5 segundos
+        // Temporizador para mostrar o botão se travar
         setTimeout(function() {
             var btn = document.getElementById('btn-emergency');
             if(btn) btn.style.display = 'block';
-        }, 5000);
+        }, 5000); // 5 segundos
     </script>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -34,7 +46,7 @@
     <div id="loading-screen" class="loading-screen">
         <div class="spinner-container">
             <i class="fas fa-pizza-slice fa-spin"></i>
-            <p>Carregando V60.5...</p>
+            <p>Carregando V60.6...</p>
             <button id="btn-emergency" class="btn-force-enter" style="display:none;" onclick="forcarEntrada()">ENTRAR MESMO ASSIM</button>
         </div>
     </div>
@@ -43,15 +55,18 @@
         <div class="error-box">
             <i class="fas fa-bug error-icon"></i>
             <h2>Erro no Carregamento</h2>
-            <p>O sistema encontrou um problema.</p>
+            <p>Ocorreu um erro técnico.</p>
             <div class="tech-details">
-                <strong>Erro:</strong> <span id="error-tech">Aguardando detalhes...</span>
+                <strong>Detalhe:</strong> <span id="error-tech">Carregando...</span>
             </div>
-            <button onclick="window.location.reload()" class="btn-retry">Recarregar Página</button>
+            <button onclick="window.location.reload()" class="btn-retry">Recarregar</button>
+            <button onclick="forcarEntrada()" class="btn-retry secondary" style="margin-top:10px;">Tentar Entrar</button>
         </div>
     </div>
 
-    <div id="app" style="display: none;"> <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3>Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button class="btn-primary full" @click="mostrandoAjuda = false">OK</button></div></div></div>
+    <div id="app" style="display: none;">
+        
+        <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3>Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button class="btn-primary full" @click="mostrandoAjuda = false">OK</button></div></div></div>
         
         <div v-if="mostrandoTermos" class="modal-backdrop terms-modal">
             <div class="modal-window large">
@@ -69,7 +84,7 @@
         <div class="auth-wrapper" v-if="!sessaoAtiva && !mostrandoTermos">
             <button class="theme-toggle" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
             <div class="auth-box animated-up">
-                <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V60.5</p></div>
+                <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V60.6</p></div>
                 <div class="form-group">
                     <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
                     <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin"></div>
@@ -203,4 +218,4 @@
             <div class="config-box"><h4>👤 Perfil</h4><input v-model="usuarioLogado.nome" placeholder="Nome" class="full-input"><div class="row"><input v-model="usuarioLogado.user" placeholder="User"><input v-model="usuarioLogado.pass" placeholder="Senha"></div><button class="btn-primary full" @click="salvarMeuPerfil">Atualizar</button></div><button class="btn-danger full" @click="logout">Sair</button>
         </div></div></div>
         
-        <div class="modal-backdrop" v-if="mostrandoAdmin"><div class="modal-window"><div class="modal-top"><h3>Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas fa-times"></i></button></div><div class="modal-content"><div class="config-box"><h4>Usuário</h4><div class="row"><input v-model="novoUserAdmin.nome" placeholder="Nome" class="full-input"><select v-model="novoUserAdmin.cargo" class="full-input" @change="aplicarPermissoesPadrao"><option value="" disabled>Cargo (Padrão)</option><option>Pizzaiolo</option><option>Gerente</option><option>Atendente</option></select></div><div class="row"><input v-model="novoUserAdmin.user" placeholder="Login"><input v-model="novoUserAdmin.pass" placeholder="Senha"></div><div class="perm-selector"><p>Acesso:</p><div class="checkbox-grid"><label><inp
+        <div class="modal-backdrop" v-if="mostrandoAdmin"><div class="modal-window"><div class="modal-top"><h3>Equipe</h3><button @click="mostrandoAdmin = false"><i class="fas

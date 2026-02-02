@@ -1,10 +1,10 @@
-const firebaseConfig = { apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", authDomain: "artigiano-app.firebaseapp.com", databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", projectId: "artigiano-app", storageBucket: "artigiano-app.firebasestorage.app", messagingSenderId: "212218495726", appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" };
+var firebaseConfig = { apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", authDomain: "artigiano-app.firebaseapp.com", databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", projectId: "artigiano-app", storageBucket: "artigiano-app.firebasestorage.app", messagingSenderId: "212218495726", appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" };
 
-let db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
+var db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
 
-const { createApp } = Vue
+var { createApp } = Vue
 
-const app = createApp({
+var app = createApp({
     data: function() {
         return {
             loadingInicial: true, temaEscuro: false, mostrandoTermos: false, mostrandoAjuda: false, tituloAjuda: '', textoAjuda: '',
@@ -26,10 +26,10 @@ const app = createApp({
         }
     },
     computed: {
-        nomeDiaSemana: function() { const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; return dias[new Date().getDay()]; },
-        metaDia: function() { const d = new Date().getDay(); let base = (d===0||d===5||d===6) ? 100 : 60; if(this.isSemanaFeriado) base = Math.round(base * 1.2); return base; },
-        qtdProduzir: function() { const sobra = this.sobraMassa || 0; return Math.max(0, this.metaDia - sobra); },
-        receitaCalculada: function() { const q = this.qtdProduzir; const r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 }; return { farinha: Math.round(q*r.farinha), aguaLiq: Math.round(q*r.aguaLiq), gelo: Math.round(q*r.gelo), aguaTotal: Math.round(q*(r.aguaLiq+r.gelo)), levain: Math.round(q*r.levain), sal: Math.round(q*r.sal) }; },
+        nomeDiaSemana: function() { var dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']; return dias[new Date().getDay()]; },
+        metaDia: function() { var d = new Date().getDay(); var base = (d===0||d===5||d===6) ? 100 : 60; if(this.isSemanaFeriado) base = Math.round(base * 1.2); return base; },
+        qtdProduzir: function() { var sobra = this.sobraMassa || 0; return Math.max(0, this.metaDia - sobra); },
+        receitaCalculada: function() { var q = this.qtdProduzir; var r = { farinha: 133.3, aguaLiq: 58.2, gelo: 24.9, levain: 6, sal: 4 }; return { farinha: Math.round(q*r.farinha), aguaLiq: Math.round(q*r.aguaLiq), gelo: Math.round(q*r.gelo), aguaTotal: Math.round(q*(r.aguaLiq+r.gelo)), levain: Math.round(q*r.levain), sal: Math.round(q*r.sal) }; },
         receitaExibida: function() { 
             var self = this;
             if (this.modoReceita === 'lote' && this.loteSelecionado) { 
@@ -41,7 +41,7 @@ const app = createApp({
         usuariosAtivos: function() { return this.usuarios.filter(function(u){ return u.aprovado === true; }); },
         usuariosPendentes: function() { return this.usuarios.filter(function(u){ return u.aprovado === false; }); },
         pendentesCount: function() { return this.usuariosPendentes.length; },
-        nomeModulo: function() { const n = { hortifruti:'Hortifruti', geral:'Geral', bebidas:'Bebidas', limpeza:'Limpeza', producao:'Produção de Massas' }; return n[this.moduloAtivo] || ''; },
+        nomeModulo: function() { var n = { hortifruti:'Hortifruti', geral:'Geral', bebidas:'Bebidas', limpeza:'Limpeza', producao:'Produção de Massas' }; return n[this.moduloAtivo] || ''; },
         feriadosOrdenados: function() { return this.feriados.slice().sort(function(a,b){ return a.data.localeCompare(b.data); }).map(function(f){ return { id: f.id, data: f.data, nome: f.nome, dataFormatted: f.data.split('-').reverse().join('/') }; }); },
         isSemanaFeriado: function() { 
             var h = new Date(); var i = new Date(h); i.setDate(h.getDate()-h.getDay()); var f = new Date(h); f.setDate(h.getDate()+(6-h.getDay())); 
@@ -111,9 +111,9 @@ const app = createApp({
         alternarTema: function() { this.temaEscuro = !this.temaEscuro; localStorage.setItem('artigiano_theme', this.temaEscuro ? 'dark' : 'light'); if(this.temaEscuro) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); },
         formatGramas: function(g) { if(g >= 1000) return (g/1000).toFixed(2).replace('.', ',') + ' kg'; return g + ' g'; },
         getCorCategoria: function(cat) { return this.config.cores ? (this.config.cores[cat] || '#ccc') : '#ccc'; },
-        sugestaoDia: function(mod) { const dia = new Date().getDay(); if(dia === 1) return mod === 'geral' || mod === 'limpeza'; return mod === 'hortifruti'; },
-        getContagemTotal: function(p) { if(!p.contagem || typeof p.contagem !== 'object') return 0; let total = 0; Object.values(p.contagem).forEach(function(val){ total += (parseFloat(val) || 0); }); if(p.temAberto) total += 0.5; return total; },
-        calculaFalta: function(p) { let total = this.getContagemTotal(p); if (total === 0 && !p.temAberto) return { qtd: 0 }; let estoqueReal = 0; if (p.tipoConversao === 'multiplicar') estoqueReal = total * (p.fator || 1); else estoqueReal = total / (p.fator || 1); let metaAjustada = parseFloat(p.meta); if (this.isSemanaFeriado) metaAjustada = metaAjustada * 1.2; const falta = metaAjustada - estoqueReal; return { qtd: Math.max(0, Math.ceil(falta * 10) / 10) }; },
+        sugestaoDia: function(mod) { var dia = new Date().getDay(); if(dia === 1) return mod === 'geral' || mod === 'limpeza'; return mod === 'hortifruti'; },
+        getContagemTotal: function(p) { if(!p.contagem || typeof p.contagem !== 'object') return 0; var total = 0; Object.values(p.contagem).forEach(function(val){ total += (parseFloat(val) || 0); }); if(p.temAberto) total += 0.5; return total; },
+        calculaFalta: function(p) { var total = this.getContagemTotal(p); if (total === 0 && !p.temAberto) return { qtd: 0 }; var estoqueReal = 0; if (p.tipoConversao === 'multiplicar') estoqueReal = total * (p.fator || 1); else estoqueReal = total / (p.fator || 1); var metaAjustada = parseFloat(p.meta); if (this.isSemanaFeriado) metaAjustada = metaAjustada * 1.2; var falta = metaAjustada - estoqueReal; return { qtd: Math.max(0, Math.ceil(falta * 10) / 10) }; },
         statusItem: function(p) { if(p.ignorar) return 'ignored'; if(this.getContagemTotal(p) === 0 && !p.temAberto) return 'pending'; return this.calculaFalta(p).qtd > 0 ? 'buy' : 'ok'; },
         toggleAberto: function(p) { p.temAberto = !p.temAberto; this.salvarProdutoUnitario(p); },
         toggleIgnorar: function(p) { p.ignorar = !p.ignorar; if(p.ignorar) p.contagem={}; this.salvarProdutoUnitario(p); },
@@ -147,16 +147,16 @@ const app = createApp({
             this.mostrandoPreview = false; 
         },
 
-        registrarProducao: function() { const qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; const h = { id: this.gerarId(), data: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
+        registrarProducao: function() { var qtd = this.modoReceita === 'calc' ? this.qtdProduzir : this.loteSelecionado; var h = { id: this.gerarId(), data: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0,5), qtd: qtd, user: this.usuarioLogado.nome }; if(db) db.ref('store/dough_history/' + h.id).set(h); alert("Produção Registrada!"); },
         
-        importarContatoDoCelular: async function() { if ('contacts' in navigator) { try { const c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
+        importarContatoDoCelular: async function() { if ('contacts' in navigator) { try { var c = await navigator.contacts.select(['name', 'tel'], {multiple:false}); if(c[0]) { this.novoDestino.nome = c[0].name[0]; this.novoDestino.telefone = c[0].tel[0].replace(/\D/g,''); } } catch(e){} } else alert("Navegador não suporta."); },
         
         aplicarPermissoesPadrao: function() { 
             if (this.novoUserAdmin.cargo === 'Gerente') this.novoUserAdmin.permissoes = { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true, producao: true, verHistorico: true, editarItens: true }; 
             else if (this.novoUserAdmin.cargo === 'Pizzaiolo') this.novoUserAdmin.permissoes = { admin: false, hortifruti: true, geral: true, bebidas: false, limpeza: false, producao: true, verHistorico: false, editarItens: false }; 
             else this.novoUserAdmin.permissoes = { admin: false, hortifruti: false, geral: false, bebidas: true, limpeza: true, producao: false, verHistorico: false, editarItens: false }; 
         },
-        adicionarUsuarioAdmin: function() { if (!this.novoUserAdmin.nome) return alert("Nome?"); const novo = { id: this.gerarId(), ...this.novoUserAdmin, aprovado: true }; this.salvarUsuarioUnitario(novo); this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }; alert("Criado!"); },
+        adicionarUsuarioAdmin: function() { if (!this.novoUserAdmin.nome) return alert("Nome?"); var novo = { id: this.gerarId(), ...this.novoUserAdmin, aprovado: true }; this.salvarUsuarioUnitario(novo); this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }; alert("Criado!"); },
         prepararEdicao: function(u) { this.novoUserAdmin = JSON.parse(JSON.stringify(u)); this.editandoUsuarioId = u.id; },
         salvarEdicaoUsuario: function() { if(this.editandoUsuarioId) { this.salvarUsuarioUnitario(this.novoUserAdmin); this.cancelarEdicaoUsuario(); } },
         cancelarEdicaoUsuario: function() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false, verHistorico: false, editarItens: false } }; },
@@ -164,11 +164,11 @@ const app = createApp({
         carregarParaEdicao: function(p) { this.prepararEdicaoProduto(p); },
         prepararEdicaoProduto: function(p) { this.novoProd = JSON.parse(JSON.stringify(p)); if(!this.novoProd.locaisSelecionados) this.novoProd.locaisSelecionados = p.locais || []; this.editandoProdutoId = p.id; this.mostrandoConfig = true; },
         cancelarEdicaoProduto: function() { this.editandoProdutoId = null; this.novoProd = { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false }; },
-        salvarEdicaoProduto: function() { if(!this.novoProd.nome) return alert("Nome?"); const p = { ...this.novoProd, id: this.editandoProdutoId, locais: this.novoProd.locaisSelecionados }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Atualizado!"); this.cancelarEdicaoProduto(); this.mostrandoConfig = false; },
-        adicionarProduto: function() { if(!this.novoProd.nome) return alert("Nome?"); if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?"); const p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Salvo!"); this.novoProd.nome = ''; this.novoProd.locaisSelecionados = []; },
+        salvarEdicaoProduto: function() { if(!this.novoProd.nome) return alert("Nome?"); var p = { ...this.novoProd, id: this.editandoProdutoId, locais: this.novoProd.locaisSelecionados }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Atualizado!"); this.cancelarEdicaoProduto(); this.mostrandoConfig = false; },
+        adicionarProduto: function() { if(!this.novoProd.nome) return alert("Nome?"); if(this.novoProd.locaisSelecionados.length === 0) return alert("Locais?"); var p = { id: this.gerarId(), ...this.novoProd, locais: this.novoProd.locaisSelecionados, contagem: {}, ignorar: false, temAberto: false }; delete p.locaisSelecionados; this.salvarProdutoUnitario(p); alert("Salvo!"); this.novoProd.nome = ''; this.novoProd.locaisSelecionados = []; },
         excluirProduto: function(id) { if(confirm("Excluir item permanentemente?")) { db.ref('store/products/' + id).remove(); this.cancelarEdicaoProduto(); this.mostrandoConfig = false; } },
 
-        migrarProduto: function(p) { let mudou=false; if(p.local&&!p.locais){p.locais=[p.local];mudou=true;} if(typeof p.contagem!=='object'&&p.locais&&p.locais.length>0){const val=p.contagem;p.contagem={};if(val!==''&&val!==undefined)p.contagem[p.locais[0]]=val;mudou=true;} return mudou?p:null; },
+        migrarProduto: function(p) { var mudou=false; if(p.local&&!p.locais){p.locais=[p.local];mudou=true;} if(typeof p.contagem!=='object'&&p.locais&&p.locais.length>0){var val=p.contagem;p.contagem={};if(val!==''&&val!==undefined)p.contagem[p.locais[0]]=val;mudou=true;} return mudou?p:null; },
         gerarId: function() { return 'id_' + Math.random().toString(36).substr(2, 9); },
         verificarTermos: function() { if (!localStorage.getItem('artigiano_tos_accepted')) this.mostrandoTermos = true; },
         aceitarTermos: function() { localStorage.setItem('artigiano_tos_accepted', 'true'); this.mostrandoTermos = false; },
@@ -177,12 +177,12 @@ const app = createApp({
             this.loadingAuth = true; this.msgAuth = ''; 
             var self = this;
             setTimeout(function() { 
-                const li = self.loginUser.trim().toLowerCase(); const pi = self.loginPass.trim(); 
+                var li = self.loginUser.trim().toLowerCase(); var pi = self.loginPass.trim(); 
                 if (li === 'gabriel' && pi === '21gabriel') { 
-                    const u = self.usuarios.find(function(x){ return x.user.toLowerCase() === 'gabriel'; }) || { id: 'admin_gabriel_master', nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true, permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true, producao: true, verHistorico: true, editarItens: true } }; 
+                    var u = self.usuarios.find(function(x){ return x.user.toLowerCase() === 'gabriel'; }) || { id: 'admin_gabriel_master', nome: 'Gabriel Master', cargo: 'Gerente', user: 'Gabriel', pass: '21gabriel', aprovado: true, permissoes: { admin: true, hortifruti: true, geral: true, bebidas: true, limpeza: true, producao: true, verHistorico: true, editarItens: true } }; 
                     self.salvarUsuarioUnitario(u); self.logar(u); return; 
                 } 
-                const user = self.usuarios.find(function(u){ return u.user.toLowerCase() === li && u.pass === pi; }); 
+                var user = self.usuarios.find(function(u){ return u.user.toLowerCase() === li && u.pass === pi; }); 
                 if (user && user.aprovado) self.logar(user); 
                 else { self.msgAuth = "Acesso negado."; self.isError = true; self.loadingAuth = false; } 
             }, 800); 
@@ -190,7 +190,7 @@ const app = createApp({
         logar: function(user) { this.usuarioLogado = user; this.sessaoAtiva = true; localStorage.setItem('artigiano_session', JSON.stringify(user)); this.loadingAuth = false; },
         logout: function() { this.sessaoAtiva = false; this.usuarioLogado = null; localStorage.removeItem('artigiano_session'); },
         salvarMeuPerfil: function() { this.salvarUsuarioUnitario(this.usuarioLogado); localStorage.setItem('artigiano_session', JSON.stringify(this.usuarioLogado)); alert("Salvo!"); },
-        adicionarFeriado: function() { if(!this.novoFeriado.data) return; const novo = { id: this.gerarId(), ...this.novoFeriado }; if(db) db.ref('system/feriados/' + novo.id).set(novo); this.novoFeriado = { data: '', nome: '' }; },
+        adicionarFeriado: function() { if(!this.novoFeriado.data) return; var novo = { id: this.gerarId(), ...this.novoFeriado }; if(db) db.ref('system/feriados/' + novo.id).set(novo); this.novoFeriado = { data: '', nome: '' }; },
         removerFeriado: function(id) { if(db) db.ref('system/feriados/' + id).remove(); },
         salvarUsuarioUnitario: function(u) { if(db) db.ref('system/users/' + u.id).set(u); },
         salvarProdutoUnitario: function(p) { if(db) db.ref('store/products/' + p.id).set(p); },
@@ -208,4 +208,4 @@ const app = createApp({
         apagarHistorico: function(id) { if(confirm("Apagar?")) db.ref('store/history/' + id).remove(); },
         adicionarDestino: function() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:'', msgPersonalizada:''}; } },
         removerDestino: function(idx) { this.config.destinos.splice(idx,1); this.salvarConfig(); },
-        getNomeDestino: function(id) { 
+        getNomeDestino: function(id) { var d = this.config.destinos ? this.config.des
