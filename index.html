@@ -21,16 +21,18 @@
 <body>
 
 <div id="app" v-cloak>
-    <div v-if="loadingInicial" class="loading-screen"><div class="spinner"></div><p>Carregando Artigiano...</p></div>
+    <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3>Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button @click="mostrandoAjuda=false" class="btn-primary">Entendi</button></div></div></div>
+    
+    <div v-if="mostrandoTermos" class="modal-backdrop"><div class="modal-window"><div class="modal-top"><h3>Termos de Uso</h3></div><div class="modal-content"><p>Este software é uma ferramenta de gestão interna para a Artigiano...</p><button @click="aceitarTermos" class="btn-primary">Aceitar</button></div></div></div>
+
+    <div v-if="loadingInicial" class="loading-screen"><div class="spinner"></div><p>Sincronizando Artigiano...</p></div>
 
     <div v-if="!sessaoAtiva && !loadingInicial" class="login-container">
         <div class="card login-card">
             <div class="logo-area"><h1>ARTIGIANO</h1><p>PIZZERIA MASTER V60</p></div>
             <div class="input-group"><label>Usuário</label><input v-model="loginUser" type="text" placeholder="Seu usuário"></div>
             <div class="input-group"><label>Senha</label><input v-model="loginPass" type="password" placeholder="Sua senha"></div>
-            <button @click="fazerLogin" class="btn-primary" :disabled="loadingAuth">
-                <span v-if="!loadingAuth">ENTRAR</span><span v-else>VERIFICANDO...</span>
-            </button>
+            <button @click="fazerLogin" class="btn-primary" :disabled="loadingAuth"><span v-if="!loadingAuth">ENTRAR</span><span v-else>VERIFICANDO...</span></button>
             <p v-if="msgAuth" :class="['auth-msg', { error: isError }]">{{ msgAuth }}</p>
         </div>
     </div>
@@ -50,35 +52,47 @@
         <main class="app-main">
             <div v-if="abaAtual === 'produção'" class="tab-content fade-in">
                 <div class="card">
-                    <h3>Cálculo de Massas</h3>
-                    <div class="input-group"><label>Sobra de Hoje (Bolas)</label><input type="number" v-model="sobraMassa" @input="calcularProducao"></div>
+                    <h3>Produção Diária</h3>
+                    <div class="input-group"><label>Sobra de hoje (bolas)</label><input type="number" v-model="sobraMassa" @input="calcularProducao"></div>
                     
                     <div v-if="fichaTecnica" class="ficha-tec-container">
-                        <div class="send-options">
-                            <button @click="gerarPDFProducao" class="btn-zap" style="background: #374151;">
-                                <i class="fas fa-file-pdf"></i> Salvar PDF de Produção
-                            </button>
-                        </div>
+                        <button @click="gerarPDFProducao" class="btn-zap" style="background: #374151; margin-bottom: 10px;">
+                            <i class="fas fa-file-pdf"></i> Salvar PDF de Produção
+                        </button>
                         <div class="ficha-tec">
-                            <div class="ficha-row"><span>Farinha:</span><strong>{{ fichaTecnica.farinha }}g</strong></div>
-                            <div class="ficha-row"><span>Água:</span><strong>{{ fichaTecnica.agua }}ml</strong></div>
-                            <div class="ficha-row"><span>Gelo:</span><strong>{{ fichaTecnica.gelo }}g</strong></div>
-                            <div class="ficha-row"><span>Levain:</span><strong>{{ fichaTecnica.levain }}g</strong></div>
-                            <div class="ficha-row"><span>Sal:</span><strong>{{ fichaTecnica.sal }}g</strong></div>
+                            <div class="ficha-row"><span>Farinha:</span><strong>{{fichaTecnica.farinha}}g</strong></div>
+                            <div class="ficha-row"><span>Água:</span><strong>{{fichaTecnica.agua}}ml</strong></div>
+                            <div class="ficha-row"><span>Gelo:</span><strong>{{fichaTecnica.gelo}g</strong></div>
+                            <div class="ficha-row"><span>Levain:</span><strong>{{fichaTecnica.levain}}g</strong></div>
+                            <div class="ficha-row"><span>Sal:</span><strong>{{fichaTecnica.sal}}g</strong></div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <div v-if="abaAtual === 'estoque'" class="tab-content fade-in">
+                <div class="cat-filter">
+                    <button v-for="c in categorias" @click="filtroCat = c" :class="{active: filtroCat === c}">{{c}}</button>
+                </div>
+                <div class="items-list">
+                    <div v-for="i in itensFiltrados" class="item-row" :class="{falta: i.falta}">
+                        <span>{{i.nome}}</span>
+                        <div class="item-actions">
+                            <button @click="toggleFalta(i)"><i class="fas fa-check"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             </main>
 
         <div class="modal-backdrop" v-if="mostrandoHistorico">
             <div class="modal-window">
-                <div class="modal-top"><h3>Histórico de Atividades</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
+                <div class="modal-top"><h3>Histórico de Auditoria</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
                 <div class="modal-content">
-                    <div v-for="(log, idx) in historicoAuditoria" :key="idx" class="history-card">
-                        <div class="h-header"><span>{{ log.data }}</span><span class="h-user" style="color:var(--accent)">{{ log.usuario }}</span></div>
-                        <div class="h-body"><strong>{{ log.acao }}:</strong> {{ log.detalhe }}</div>
+                    <div v-for="(h, idx) in historicoAuditoria" :key="idx" class="history-card">
+                        <div class="h-header"><span>{{ h.data }}</span><span class="h-user">{{ h.usuario }}</span></div>
+                        <div class="h-body"><strong>{{ h.acao }}:</strong> {{ h.detalhe }}</div>
                     </div>
                 </div>
             </div>
@@ -86,7 +100,7 @@
 
         <nav class="app-nav">
             <button v-if="usuarioLogado?.permissoes?.admin" @click="abaAtual = 'admin'" :class="{active: abaAtual==='admin'}"><i class="fas fa-user-shield"></i><span>Admin</span></button>
-            <button v-if="usuarioLogado?.permissoes?.producao" @click="abaAtual = 'produção'" :class="{active: abaAtual==='produção'}"><i class="fas fa-mortar-pestle"></i><span>Produção</span></button>
+            <button @click="abaAtual = 'produção'" :class="{active: abaAtual==='produção'}"><i class="fas fa-mortar-pestle"></i><span>Massa</span></button>
             <button @click="abaAtual = 'estoque'" :class="{active: abaAtual==='estoque'}"><i class="fas fa-boxes"></i><span>Estoque</span></button>
             <button @click="mostrandoHistorico = true"><i class="fas fa-history"></i><span>Logs</span></button>
             <button @click="abaAtual = 'config'" :class="{active: abaAtual==='config'}"><i class="fas fa-cog"></i><span>Ajustes</span></button>
