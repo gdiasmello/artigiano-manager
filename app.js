@@ -1,24 +1,19 @@
 var app = Vue.createApp({
     data: function() {
         return {
-            logado: false,
             usuario: '',
-            senha: '',
-            abaAtual: 'producao',
-            // ... outros dados (produtos, etc)
+            senha: ''
         };
     },
     methods: {
         fazerLogin: function() {
-            // Lógica simples para teste ou integração Firebase Auth futura
-            if (this.usuario !== '' && this.senha !== '') {
-                this.logado = true;
-                if (window.navigator.vibrate) window.navigator.vibrate(100);
+            if (this.usuario === "admin" && this.senha === "123") { // Exemplo simples
+                alert("Login realizado!");
+                // Aqui você redireciona para a tela de estoque
             } else {
-                alert("Preencha os campos!");
+                alert("Usuário ou senha incorretos.");
             }
-        },
-        // ... outros métodos
+        }
     }
 });
 app.mount('#app');
