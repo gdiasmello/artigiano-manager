@@ -1,6 +1,20 @@
+// COLE AQUI SUAS CREDENCIAIS DO FIREBASE
+const firebaseConfig = {
+    apiKey: "SUA_API_KEY",
+    authDomain: "artigiano-master.firebaseapp.com",
+    databaseURL: "https://artigiano-master-default-rtdb.firebaseio.com",
+    projectId: "artigiano-master",
+    storageBucket: "artigiano-master.appspot.com",
+    appId: "SEU_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 const app = Vue.createApp({
     data() {
         return {
+            loading: true,
             authenticated: false,
             userSelected: '',
             pinInput: '',
@@ -8,14 +22,14 @@ const app = Vue.createApp({
             currentTab: 'home',
             setorAtivo: 'Ver Tudo',
             menuAberto: null,
-            backupCode: '',
+            buscaCatalogo: '',
+            novoLocalNome: '',
 
-            // DADOS DO SISTEMA
+            // DADOS CLOUD
             equipe: [],
             estoque: [],
-            historico: [],
             fornecedores: [],
-            rota: ['Geladeira 1', 'Geladeira 2', 'Freezer', 'Estoque', 'Limpeza'],
+            rota: [],
             config: { modoFeriado: false },
 
             // FORMS
@@ -25,140 +39,120 @@ const app = Vue.createApp({
         }
     },
     computed: {
-        dataAtual() { return new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }); },
         isAdmin() { return this.userSelected && (this.userSelected.cargo === 'ADM' || this.userSelected.cargo === 'Gerente'); },
+        
         insumosFiltrados() {
             return this.estoque.filter(i => {
-                const forn = this.getFornecedor(i.destinoId);
-                if (this.setorAtivo === 'Sacolão') return forn && (forn.nome.includes('Sacolão') || forn.nome.includes('Horti'));
-                if (this.setorAtivo === 'Limpeza') return i.local === 'Limpeza' || i.nome.toLowerCase().includes('limpeza');
+                const f = this.fornecedores.find(x => x.id === i.destinoId);
+                if (this.setorAtivo === 'Sacolão') return f && f.nome.includes('Sacolão');
+                if (this.setorAtivo === 'Limpeza') return i.local === 'Limpeza';
+                if (this.setorAtivo === 'Gelo') return i.local === 'Gelo' || i.nome.includes('Gelo');
                 return true;
             });
+        },
+
+        totalItensNoCarrinho() {
+            return this.estoque.filter(i => this.calcularFalta(i) > 0).length;
+        },
+
+        fornecedoresComPedido() {
+            const ids = [...new Set(this.estoque.filter(i => this.calcularFalta(i) > 0).map(i => i.destinoId))];
+            return this.fornecedores.filter(f => ids.includes(f.id));
+        },
+
+        produtosSugeridos() {
+            if (!this.buscaCatalogo) return [];
+            return this.estoque.filter(p => p.nome.toLowerCase().includes(this.buscaCatalogo.toLowerCase()));
         }
     },
     methods: {
-        // PERMISSÃO DE VISUALIZAÇÃO
+        // SINCRONIZAÇÃO EM TEMPO REAL (FIREBASE)
+        fetchData() {
+            db.ref('artigiano_v4').on('value', (snap) => {
+                const d = snap.val();
+                if (d) {
+                    this.equipe = d.equipe || [{ id: 1821, nome: 'Gabriel', pin: '1821', cargo: 'ADM', modulos: ['Sacolão', 'Limpeza', 'Gelo', 'Geral'] }];
+                    this.estoque = d.estoque || [];
+                    this.fornecedores = d.fornecedores || [{ id: 1, nome: 'Sacolão', zap: '5543...', saudacao: 'Olá, segue pedido:' }];
+                    this.rota = d.rota || ['Geladeira 1', 'Freezer', 'Limpeza', 'Gelo'];
+                    this.config = d.config || { modoFeriado: false };
+                }
+                this.loading = false;
+            });
+        },
+        saveData() {
+            this.loading = true;
+            db.ref('artigiano_v4').set({
+                equipe: this.equipe,
+                estoque: this.estoque,
+                fornecedores: this.fornecedores,
+                rota: this.rota,
+                config: this.config
+            });
+        },
+
+        // LÓGICA DE ARREDONDAMENTO (CEIL)
+        calcularFalta(item) {
+            const meta = parseFloat(item.meta) || 0;
+            const estoqueAtual = parseFloat(item.contagem) || 0;
+            const faltaUnidade = meta - estoqueAtual;
+
+            if (faltaUnidade <= 0) return 0;
+
+            // Arredonda SEMPRE para cima para não faltar produto
+            // Ex: Falta 1.1 caixa -> Pede 2 caixas
+            return Math.ceil(faltaUnidade / (item.fator || 1));
+        },
+
+        // ACESSOS
         podeVer(bloco) {
             if (this.userSelected.cargo === 'ADM') return true;
             return this.userSelected.modulos && this.userSelected.modulos.includes(bloco);
         },
-
-        // PERSISTÊNCIA & BACKUP
-        save() {
-            const data = {
-                equipe: this.equipe,
-                estoque: this.estoque,
-                historico: this.historico,
-                fornecedores: this.fornecedores,
-                rota: this.rota,
-                config: this.config
-            };
-            const stringData = JSON.stringify(data);
-            localStorage.setItem('artigiano_db_v3', stringData);
-            this.backupCode = btoa(unescape(encodeURIComponent(stringData))); // Gera código de backup
-        },
-        load() {
-            const db = localStorage.getItem('artigiano_db_v3');
-            if (db) {
-                const p = JSON.parse(db);
-                this.equipe = p.equipe || [{ id: 1821, nome: 'Gabriel', pin: '1821', cargo: 'ADM', modulos: ['Sacolão', 'Limpeza', 'Geral', 'Histórico'] }];
-                this.estoque = p.estoque || [];
-                this.historico = p.historico || [];
-                this.fornecedores = p.fornecedores || [];
-                this.rota = p.rota || ['Geladeira 1', 'Geladeira 2', 'Freezer', 'Estoque', 'Limpeza'];
-                this.config = p.config || { modoFeriado: false };
-                this.save(); // Atualiza o backupCode
-            } else {
-                // Caso seja a primeira vez abrindo o app
-                this.equipe = [{ id: 1821, nome: 'Gabriel', pin: '1821', cargo: 'ADM', modulos: ['Sacolão', 'Limpeza', 'Geral', 'Histórico'] }];
-                this.save();
-            }
-        },
-        importarDados() {
-            const code = prompt("Cole aqui o código de backup do outro navegador:");
-            if (code) {
-                try {
-                    const decoded = decodeURIComponent(escape(atob(code)));
-                    localStorage.setItem('artigiano_db_v3', decoded);
-                    location.reload();
-                } catch(e) { alert("Código de backup inválido."); }
-            }
+        abrirSetor(setor) {
+            this.setorAtivo = setor;
+            this.currentTab = 'insumos';
         },
 
-        // WHATSAPP TÉCNICO
-        enviarWhatsApp() {
-            const pedidos = {};
-            this.insumosFiltrados.forEach(i => {
-                const f = this.calcularFalta(i);
-                if (f > 0) {
-                    if (!pedidos[i.destinoId]) pedidos[i.destinoId] = [];
-                    pedidos[i.destinoId].push(`- ${f} ${i.unC} de ${i.nome}`);
-                }
-            });
-
-            for (let id in pedidos) {
-                const forn = this.getFornecedor(parseInt(id));
-                const texto = `${forn.saudacao}\n\n${pedidos[id].join('\n')}`;
-                
-                this.historico.unshift({ data: new Date().toLocaleString(), fornecedor: forn.nome, conteudo: texto });
-                if (this.historico.length > 50) this.historico.pop();
-                
-                this.save();
-                window.open(`https://api.whatsapp.com/send?phone=${forn.zap}&text=${encodeURIComponent(texto)}`);
-            }
+        // PRODUTOS
+        carregarProduto(p) {
+            this.novoProd = { ...p, id: null };
+            this.buscaCatalogo = '';
         },
-
-        // CÁLCULOS
-        getMetaAjustada(item) {
-            let meta = parseFloat(item.meta);
-            const forn = this.getFornecedor(item.destinoId);
-            if (new Date().getDay() === 5 && forn?.triplicaSexta) meta *= 3;
-            if (this.config.modoFeriado) meta *= 1.5;
-            return meta;
-        },
-        calcularFalta(item) {
-            const meta = this.getMetaAjustada(item);
-            const falta = meta - (item.contagem || 0);
-            return falta > 0 ? (falta / (item.fator || 1)).toFixed(1) : 0;
-        },
-        statusEstoque(item) { return this.calcularFalta(item) > 0 ? 'PEDIR' : 'OK'; },
-        getFornecedor(id) { return this.fornecedores.find(f => f.id === id); },
-
-        // GESTÃO
-        mudarCargo(u, cargo) { u.cargo = cargo; this.save(); },
-        adicionarFuncionario() {
-            if (this.novoUser.nome) {
-                this.equipe.push({ id: Date.now(), ...this.novoUser });
-                this.novoUser = { nome: '', pin: '', cargo: 'Colaborador', modulos: ['Geral'] };
-                this.save();
-            }
-        },
-        removerFuncionario(id) { this.equipe = this.equipe.filter(u => u.id !== id); this.save(); },
         adicionarProduto() {
             if (this.novoProd.nome && this.novoProd.destinoId) {
-                this.estoque.push({ id: Date.now(), ...this.novoProd });
-                this.novoProd = { nome: '', local: '', destinoId: '', unQ: 'un', unC: 'cx', fator: 1, meta: 0, contagem: 0 };
-                this.save();
-                alert("Salvo!");
+                this.estoque.push({ ...this.novoProd, id: Date.now(), contagem: 0 });
+                this.saveData();
+                alert("Cadastrado com sucesso!");
             }
         },
-        adicionarFornecedor() {
-            if(this.novoForn.nome && this.novoForn.zap) {
-                this.fornecedores.push({ id: Date.now(), ...this.novoForn });
-                this.novoForn = { nome: '', zap: '', saudacao: '', triplicaSexta: false };
-                this.save();
+        adicionarLocal() {
+            if (this.novoLocalNome && !this.rota.includes(this.novoLocalNome)) {
+                this.rota.push(this.novoLocalNome);
+                this.novoLocalNome = '';
+                this.saveData();
             }
+        },
+
+        // WHATSAPP LIMPO (APENAS SAUDAÇÃO + LISTA)
+        getPedidosPorFornecedor(fornId) {
+            return this.estoque.filter(i => i.destinoId === fornId && this.calcularFalta(i) > 0);
+        },
+        dispararWhatsApp(forn) {
+            const itens = this.getPedidosPorFornecedor(forn.id);
+            const lista = itens.map(i => `- ${this.calcularFalta(i)} ${i.unC} de ${i.nome}`).join('\n');
+            const texto = `${forn.saudacao}\n\n${lista}`;
+            window.open(`https://api.whatsapp.com/send?phone=${forn.zap}&text=${encodeURIComponent(texto)}`);
         },
 
         login() {
-            if (this.userSelected && this.pinInput === this.userSelected.pin) {
-                this.authenticated = true;
-            } else {
+            if (this.userSelected && this.pinInput === this.userSelected.pin) this.authenticated = true;
+            else {
                 this.loginError = true;
                 setTimeout(() => { this.loginError = false; this.pinInput = ''; }, 600);
             }
         },
         logout() { this.authenticated = false; this.pinInput = ''; }
     },
-    mounted() { this.load(); }
+    mounted() { this.fetchData(); }
 }).mount('#app');
