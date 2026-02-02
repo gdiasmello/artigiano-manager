@@ -2,38 +2,32 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Artigiano Gestão</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
-  }
-}
-</script>
 </head>
-<body class="antialiased">
+<body class="antialiased overflow-x-hidden">
     <div id="root"></div>
 
-    <!-- Watchdog Loader (Círculo de Carregamento) -->
+    <!-- Watchdog Loader (Overlay Premium) -->
     <div id="watchdog" class="watchdog-overlay">
-        <div class="pizza-loader mb-6"></div>
+        <div class="pizza-loader-container mb-8">
+            <div class="pizza-loader"></div>
+            <i class="fa-solid fa-pizza-slice loader-icon"></i>
+        </div>
         <h2 class="text-3xl font-black text-gray-800 dark:text-gray-100 tracking-tighter uppercase italic">ARTIGIANO</h2>
-        <p class="text-gray-500 mt-2 font-bold tracking-widest uppercase text-xs">Preparando o Forno...</p>
-        <button id="force-entry" class="mt-8 text-[10px] font-black uppercase tracking-widest text-red-500 hidden" onclick="document.getElementById('watchdog').remove()">Entrada Forçada</button>
+        <p class="text-gray-400 mt-2 font-bold tracking-[0.3em] uppercase text-[10px]">Preparando o Forno...</p>
+        
+        <button id="force-entry" class="mt-12 px-6 py-2 rounded-full border border-red-500/20 text-[10px] font-black uppercase tracking-widest text-red-500 hidden active:bg-red-500/10 transition-colors" onclick="const w=document.getElementById('watchdog'); if(w) w.remove()">
+            Entrada Forçada
+        </button>
     </div>
 
-    <!-- Script principal como módulo -->
-    <script type="module" src="script.js"></script>
-    
     <script>
-        // Watchdog de segurança: se o JS falhar, mostra botão de emergência após 4s
+        // Watchdog de segurança: exibe botão se o app não carregar em 4 segundos
         setTimeout(() => {
             const btn = document.getElementById('force-entry');
             if (btn) btn.classList.remove('hidden');
