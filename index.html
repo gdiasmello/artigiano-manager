@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano Gestão V60.6</title>
+    <title>Artigiano V60.6</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -12,73 +12,65 @@
 </head>
 <body>
 <div id="app" v-cloak>
-    <div v-if="loadingInicial" class="loading-screen">
-        <div class="spinner-container">
-            <i class="fas fa-pizza-slice fa-spin"></i>
-            <p>Conectando Artigiano...</p>
-            <button @click="loadingInicial = false" class="btn-force">Entrar à Força</button>
-        </div>
-    </div>
-
-    <div v-else-if="!sessaoAtiva" class="auth-wrapper">
+    
+    <div v-if="!sessaoAtiva" class="auth-wrapper">
         <div class="auth-box">
-            <h1>Artigiano</h1>
-            <div class="form">
-                <input v-model="loginUser" placeholder="Usuário">
-                <input v-model="loginPass" type="password" placeholder="Senha">
-                <button @click="fazerLogin" class="btn-primary">ENTRAR</button>
-            </div>
+            <i class="fas fa-pizza-slice fa-3x" style="color: var(--ios-red);"></i>
+            <h1 style="margin: 10px 0;">Artigiano</h1>
+            <p style="color: var(--ios-gray); margin-bottom: 30px;">Gestão de Stock V60.6</p>
+            <input v-model="loginUser" class="input-ios" placeholder="Utilizador">
+            <input v-model="loginPass" type="password" class="input-ios" placeholder="Palavra-passe">
+            <button @click="fazerLogin" class="btn-primary">ENTRAR</button>
         </div>
     </div>
 
     <div v-else class="app-layout">
         <header class="app-header">
-            <span>Artigiano 6.6</span>
-            <div class="header-btns">
-                <button @click="exportarBackup"><i class="fas fa-database"></i></button>
-                <button @click="logout"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
+            <div class="brand-name">L'Artigiano<span>.</span></div>
+            <button @click="logout" style="background:none; border:none; color:var(--ios-red);"><i class="fas fa-power-off"></i></button>
         </header>
 
-        <main class="main-content">
+        <main>
             <div v-if="!moduloAtivo" class="dashboard">
-                <div class="dash-card" @click="moduloAtivo = 'producao'"><i class="fas fa-calculator"></i> Massas</div>
-                <div class="dash-card" @click="moduloAtivo = 'hortifruti'"><i class="fas fa-carrot"></i> Hortifruti</div>
-                <div class="dash-card" @click="moduloAtivo = 'geral'"><i class="fas fa-boxes-stacked"></i> Geral</div>
-                <div class="dash-card" @click="moduloAtivo = 'bebidas'"><i class="fas fa-wine-bottle"></i> Bebidas</div>
+                <div class="dash-card verde" @click="moduloAtivo = 'producao'">
+                    <i class="fas fa-weight-hanging"></i><span>Massas</span>
+                </div>
+                <div class="dash-card vermelho" @click="moduloAtivo = 'hortifruti'">
+                    <i class="fas fa-leaf"></i><span>Horti</span>
+                </div>
+                <div class="dash-card verde" @click="moduloAtivo = 'geral'">
+                    <i class="fas fa-boxes-stacked"></i><span>Geral</span>
+                </div>
+                <div class="dash-card vermelho" @click="moduloAtivo = 'bebidas'">
+                    <i class="fas fa-wine-glass"></i><span>Bebidas</span>
+                </div>
             </div>
 
-            <div v-else class="module-view">
-                <div class="view-header">
-                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</button>
-                </div>
+            <div v-else class="inventory-list">
+                <button @click="moduloAtivo = null" style="background:none; border:none; color:var(--ios-gray); padding: 10px 0;">
+                    <i class="fas fa-chevron-left"></i> Voltar ao Menu
+                </button>
+                
+                <h2 style="margin: 10px 0 20px;">Stock de {{ moduloAtivo }}</h2>
 
-                <div v-if="moduloAtivo === 'producao'" class="calc-box">
-                    <div class="card">
-                        <label>Sobra de hoje:</label>
-                        <input type="number" v-model.number="sobraMassa">
-                        <div class="res">Fazer: <strong>{{ qtdProduzir }}</strong> bolinhas</div>
-                    </div>
-                </div>
-
-                <div v-else class="inventory">
-                    <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
+                <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
+                    <div class="item-head">
                         <strong>{{ item.nome }}</strong>
-                        <div class="locais">
-                            <div v-for="local in config.rota" :key="local" class="loc-row">
-                                <label>{{ local }}:</label>
-                                <input type="number" 
-                                       :value="item.contagem ? item.contagem[local] : ''"
-                                       @input="salvarContagem(item.id, local, $event.target.value)">
-                            </div>
+                        <span style="font-size: 12px; color: var(--ios-gray);">Meta: {{ item.meta }}</span>
+                    </div>
+                    <div class="locais-grid">
+                        <div v-for="local in config.rota" :key="local" class="local-input">
+                            <label>{{ local }}</label>
+                            <input type="number" 
+                                   :value="item.contagem ? item.contagem[local] : ''"
+                                   @input="salvarContagem(item.id, local, $event.target.value)">
                         </div>
                     </div>
-                    <div class="footer-zap">
-                        <button v-for="d in config.destinos" @click="enviarZap(d)" class="btn-zap">
-                            Enviar para {{ d.nome }}
-                        </button>
-                    </div>
                 </div>
+
+                <button v-for="d in config.destinos" @click="enviarZap(d)" class="btn-zap">
+                    <i class="fab fa-whatsapp"></i> Pedir para {{ d.nome }}
+                </button>
             </div>
         </main>
     </div>

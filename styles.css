@@ -1,21 +1,114 @@
-:root { --p: #C41E3A; --bg: #F3F4F6; }
-body { margin: 0; font-family: sans-serif; background: var(--bg); }
+:root {
+    --ios-green: #008C45;
+    --ios-white: #F2F2F7;
+    --ios-red: #C41E3A;
+    --ios-text: #1C1C1E;
+    --ios-card: #FFFFFF;
+    --ios-gray: #8E8E93;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body { 
+    margin: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background-color: var(--ios-white); 
+    color: var(--ios-text);
+}
+
 [v-cloak] { display: none; }
 
-.loading-screen { position: fixed; inset: 0; background: var(--p); color: white; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 1000; }
-.fa-spin { font-size: 3rem; margin-bottom: 1rem; }
+/* Barra Superior Estilo iOS */
+.app-header {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: 15px 20px;
+    border-bottom: 1px solid #d1d1d6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-.app-header { background: var(--p); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-.header-btns button { background: none; border: none; color: white; font-size: 1.2rem; margin-left: 10px; }
+.brand-name { font-weight: 800; font-size: 20px; color: var(--ios-green); }
+.brand-name span { color: var(--ios-red); }
 
-.dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-.dash-card { background: white; padding: 25px 10px; border-radius: 10px; text-align: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.dash-card i { display: block; font-size: 1.5rem; margin-bottom: 5px; color: var(--p); }
+/* Cartões de Dashboard */
+.dashboard { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.dash-card {
+    background: var(--ios-card);
+    border-radius: 20px;
+    padding: 25px 15px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+}
+.dash-card:active { transform: scale(0.95); }
+.dash-card i { font-size: 28px; margin-bottom: 10px; display: block; }
+.dash-card.verde i { color: var(--ios-green); }
+.dash-card.vermelho i { color: var(--ios-red); }
 
-.item-card { background: white; margin: 10px; padding: 15px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.loc-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-.loc-row input { width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 5px; text-align: center; }
+/* Lista de Inventário Estilo iOS */
+.inventory-list { padding: 15px; }
+.item-card {
+    background: var(--ios-card);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
 
-.btn-zap { width: 100%; padding: 15px; background: #25D366; color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
-.btn-primary { width: 100%; padding: 15px; background: var(--p); color: white; border: none; border-radius: 5px; margin-top: 10px; }
-.btn-force { background: none; border: 1px solid white; color: white; padding: 5px; margin-top: 20px; }
+.item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.item-head strong { font-size: 17px; }
+
+.locais-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.local-input label { display: block; font-size: 11px; color: var(--ios-gray); text-transform: uppercase; margin-bottom: 4px; }
+.local-input input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e5e5ea;
+    border-radius: 10px;
+    background: #f2f2f7;
+    font-size: 16px;
+    text-align: center;
+}
+
+/* Botões Estilo iOS */
+.btn-zap {
+    background: var(--ios-green);
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 18px;
+    border-radius: 15px;
+    font-size: 17px;
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+.btn-primary {
+    background: var(--ios-red);
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+/* Tela de Login */
+.auth-wrapper { height: 100vh; display: flex; align-items: center; justify-content: center; padding: 30px; }
+.auth-box { width: 100%; max-width: 350px; text-align: center; }
+.auth-logo { width: 80px; margin-bottom: 20px; }
+.input-ios {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 1px solid #d1d1d6;
+    border-radius: 12px;
+    background: white;
+    font-size: 16px;
+}
