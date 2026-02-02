@@ -11,14 +11,13 @@ const app = createApp({
             loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null, msgAuth: '', isError: false, loadingAuth: false,
             novoUserAdmin: { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }, 
             editandoUsuarioId: null,
-            // Controle de Edicao
             editandoProdutoId: null,
             
             feriados: [], novoFeriado: { data: '', nome: '' }, usuarios: [], 
             config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: { hortifruti: '#10B981', geral: '#3B82F6', bebidas: '#EF4444', limpeza: '#8B5CF6' } },
             produtos: [], historico: [], historicoMassa: [], 
             moduloAtivo: null, termoBusca: '', mostrandoAdmin: false, mostrandoConfig: false, mostrandoPreview: false, mostrandoHistorico: false,
-            // Novo campo descricao
+            
             novoProd: { nome: '', descricao: '', categoria: 'geral', locaisSelecionados: [], unQ: 'Un', unC: 'Cx', fator: 1, meta: 0, destinoId: '', tipoConversao: 'dividir', somenteNome: false },
             novoDestino: { nome: '', telefone: '', msgPersonalizada: '' }, novoLocal: '',
             novoItemExtra: '', itensExtras: [],
@@ -44,19 +43,14 @@ const app = createApp({
         itensParaPedir() { return this.produtosFiltrados.filter(p => !p.ignorar && this.statusItem(p) === 'buy'); },
         contagemCarrinho() { return this.itensParaPedir.length; },
         
-        // --- NOVO: BUSCA SEGURA (COM TRY CATCH) ---
+        // MODO DE COMPATIBILIDADE: Evita erro de 'filter' em undefined
         sugestoesProdutos() {
-            try {
-                // Se não tem produtos ou não está digitando, retorna vazio
-                if (!this.produtos || !this.novoProd || !this.novoProd.nome) return [];
-                if (this.novoProd.nome.length < 2 || this.editandoProdutoId) return [];
-                
-                const t = this.novoProd.nome.toLowerCase();
-                // Filtra com segurança
-                return this.produtos.filter(p => p.nome && p.nome.toLowerCase().includes(t)).slice(0, 5); 
-            } catch(e) {
-                return []; // Se der erro, não trava o app
-            }
+            if (!this.produtos || !Array.isArray(this.produtos)) return [];
+            if (!this.novoProd || !this.novoProd.nome) return [];
+            if (this.novoProd.nome.length < 2 || this.editandoProdutoId) return [];
+            
+            const t = this.novoProd.nome.toLowerCase();
+            return this.produtos.filter(p => p.nome && p.nome.toLowerCase().includes(t)).slice(0, 5); 
         },
 
         pedidosAgrupados() {
@@ -104,14 +98,14 @@ const app = createApp({
             let saudacao = dest && dest.msgPersonalizada ? dest.msgPersonalizada : "Olá, segue pedido:"; 
             let titulo = isSegunda ? "*PARA SEGUNDA-FEIRA*\n" : ""; 
             
-            let msg = `${titulo}${saudacao}\n\n*PEDIDO DE COMPRA - ARTIGIANO*\n----------------\n`; 
+            let msg = `${titulo}${saudacao}\n\n*Pedido (${nomeDestino}):*\n----------------\n`; 
             itens.forEach(i => { msg += i.texto + '\n'; }); 
             
             if (nomeDestino === 'Geral' && this.itensExtras.length > 0) {
                 this.itensExtras.forEach(e => msg += `- ${e}\n`);
             }
 
-            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString().slice(0,5), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
+            const h = { id: this.gerarId(), data: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(), usuario: this.usuarioLogado.nome, destino: nomeDestino, itens: (isSegunda ? "[2ª] " : "") + itens.map(i=>i.texto.replace('- ','')).join(', ') }; 
             this.salvarHistoricoUnitario(h); 
             
             if (isSegunda) { alert("Salvo no Rascunho!"); return; }
@@ -136,7 +130,7 @@ const app = createApp({
         salvarEdicaoUsuario() { if(this.editandoUsuarioId) { this.salvarUsuarioUnitario(this.novoUserAdmin); this.cancelarEdicaoUsuario(); } },
         cancelarEdicaoUsuario() { this.editandoUsuarioId = null; this.novoUserAdmin = { nome: '', cargo: '', user: '', pass: '', permissoes: { admin: false, hortifruti: false, geral: false, bebidas: false, limpeza: false, producao: false } }; },
         
-        // --- FUNÇÕES DE EDIÇÃO DE PRODUTO (NOVO) ---
+        // --- FUNÇÕES DE EDIÇÃO (MODO CLÁSSICO) ---
         carregarParaEdicao(p) {
             this.prepararEdicaoProduto(p);
         },
@@ -194,7 +188,11 @@ const app = createApp({
         salvarConfig() { if(db) db.ref('system/config').set(this.config); },
         removerUsuario(id) { if(confirm("Remover?")) db.ref('system/users/' + id).remove(); },
         abrirModulo(m) { this.moduloAtivo = m; this.termoBusca = ''; },
-        podeAcessar(perm) { return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; },
+        podeAcessar(perm) { 
+            // MODO SEGURO: Evita travamento se a permissao nao existir
+            if (!this.usuarioLogado || !this.usuarioLogado.permissoes) return false;
+            return this.usuarioLogado.permissoes.admin || this.usuarioLogado.permissoes[perm]; 
+        },
         analisarHistorico(p) { const d = new Date(); d.setDate(d.getDate()-5); const rec = this.historico.find(h => new Date(h.data.split('/').reverse().join('-')) >= d && h.itens.includes(p.nome)); return !!rec; },
         apagarHistorico(id) { if(confirm("Apagar?")) db.ref('store/history/' + id).remove(); },
         adicionarDestino() { if(this.novoDestino.nome) { if(!this.config.destinos) this.config.destinos=[]; this.config.destinos.push({id: this.gerarId(), ...this.novoDestino}); this.salvarConfig(); this.novoDestino={nome:'', telefone:'', msgPersonalizada:''}; } },
@@ -208,4 +206,4 @@ const app = createApp({
             db.ref('store/products').on('value', s => { const raw = s.val() ? Object.values(s.val()) : []; this.produtos = raw.map(p => { const migrado = this.migrarProduto(p); if(migrado) this.salvarProdutoUnitario(migrado); return migrado || p; }); }); 
             db.ref('store/history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historico = h.sort((a,b) => b.id.localeCompare(a.id)); }); 
             db.ref('store/dough_history').on('value', s => { const h = s.val() ? Object.values(s.val()) : []; this.historicoMassa = h.sort((a,b) => b.id.localeCompare(a.id)); });
-            db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1',data:'2026-12-10'
+            db.ref('system/feriados').on('value', s => { this.feriados = s.val() ? Object.values(s.val()) : []; if(this.feriados.length===0) { const l=[{id:'1',data:'2026-12-10',nome:'Aniv. Londrina'},{id:'2',data:'2026-06-15',nome:'Padroeiro'},{id
