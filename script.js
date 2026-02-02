@@ -9,80 +9,83 @@ var db = firebase.database();
 var app = Vue.createApp({
     data: function() {
         return {
-            loading: true,
-            showForcedEnter: false,
             authenticated: false,
+            currentTab: 'home',
+            userSelected: '',
             pinInput: '',
             loginError: false,
-            modalTermos: false,
-            setores: { adm: false },
-            fornecedores: ['Sacolão Central', 'Atacadão'],
+            searchQuery: '',
+            
+            usuarios: [
+                { id: 1, nome: 'Gabriel', cargo: 'ADM', pin: '1821' },
+                { id: 2, nome: 'Gerente', cargo: 'Operacional', pin: '2024' }
+            ],
+
+            fornecedores: ['Sacolão', 'Atacadão', 'Distribuidora Roma'],
+
             estoque: [
-                { id: 1, nome: 'Massa Pizza', unidade: 'un', fatorConversao: 1, fornecedor: 'Atacadão', locais: { geladeira: 0, freezer: 0 } },
-                { id: 2, nome: 'Tomate', unidade: 'kg', fatorConversao: 1.5, fornecedor: 'Sacolão Central', locais: { geladeira: 0, freezer: 0 } }
+                { id: 1, nome: 'Farinha de Trigo', fornecedor: 'Atacadão', meta: 20, contato: '5511999999999', locais: { geladeira: 0, freezer: 0 } },
+                { id: 2, nome: 'Tomate Pelati', fornecedor: 'Sacolão', meta: 12, contato: '5511888888888', locais: { geladeira: 0, freezer: 0 } }
             ]
         };
     },
     computed: {
-        dataAtualFormatada: function() {
-            return new Date().toLocaleDateString('pt-BR');
-        },
-        metaHoje: function() {
-            var hoje = new Date();
-            var dia = hoje.getDay(); // 5 = Sexta
-            // Lógica de Metas solicitada
-            if (dia === 5) return "300% (Triplicada Sexta)";
-            return "150% (Padrão/Feriado)";
+        filteredInsumos: function() {
+            var self = this;
+            if (!this.searchQuery) return this.estoque;
+            return this.estoque.filter(function(item) {
+                return item.nome.toLowerCase().indexOf(self.searchQuery.toLowerCase()) > -1;
+            });
         }
-    },
-    mounted: function() {
-        var self = this;
-        setTimeout(function() { self.showForcedEnter = true; }, 6000);
-        setTimeout(function() { self.loading = false; }, 1500);
-        
-        var rascunho = localStorage.getItem('artigiano_draft');
-        if (rascunho) this.estoque = JSON.parse(rascunho);
     },
     methods: {
         login: function() {
             var self = this;
-            if (this.pinInput === '1821') { // PIN ADM
+            if (this.userSelected && this.pinInput === this.userSelected.pin) {
                 this.authenticated = true;
-                if (navigator.vibrate) navigator.vibrate(30);
+                if (navigator.vibrate) navigator.vibrate(40);
             } else {
                 this.loginError = true;
-                if (navigator.vibrate) navigator.vibrate([50, 40, 50]);
+                if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
                 setTimeout(function() { 
                     self.loginError = false; 
                     self.pinInput = '';
                 }, 500);
             }
         },
-        toggleSetor: function(n) { this.setores[n] = !this.setores[n]; },
-        somarUnidades: function(item) {
-            return (parseFloat(item.locais.geladeira) || 0) + (parseFloat(item.locais.freezer) || 0);
-        },
-        calcularCompra: function(item) {
-            // Lógica de Fator de Conversão
-            var total = this.somarUnidades(item);
-            return (total * item.fatorConversao).toFixed(2) + ' ' + item.unidade;
-        },
-        salvarFirebase: function() {
-            var self = this;
-            db.ref('contagens/' + Date.now()).set(this.estoque, function(err) {
-                if (!err) {
-                    if (navigator.vibrate) navigator.vibrate(40);
-                    localStorage.setItem('artigiano_draft', JSON.stringify(self.estoque));
-                    alert('Sincronizado com Firebase!');
-                }
+        adicionarItem: function() {
+            this.estoque.push({
+                id: Date.now(),
+                nome: 'Novo Insumo',
+                fornecedor: 'Atacadão',
+                meta: 0,
+                contato: '',
+                locais: { geladeira: 0, freezer: 0 }
             });
         },
-        abrirTermos: function() { this.modalTermos = true; },
-        removerItem: function(item) {
-            if (confirm('Tem certeza? Esta ação não pode ser desfeita')) {
-                var idx = this.estoque.indexOf(item);
-                this.estoque.splice(idx, 1);
+        gerarListaWhatsApp: function() {
+            var self = this;
+            var mensagens = {};
+
+            // Lógica: Se o que tem na loja é menor que a meta, pede a diferença
+            this.estoque.forEach(function(item) {
+                var total = parseFloat(item.locais.geladeira) + parseFloat(item.locais.freezer);
+                if (total < item.meta && item.contato) {
+                    var qtdPedir = item.meta - total;
+                    if (!mensagens[item.contato]) {
+                        mensagens[item.contato] = "Ciao! Pedido Artigiano:\n";
+                    }
+                    mensagens[item.contato] += "* " + item.nome + ": " + qtdPedir + " un\n";
+                }
+            });
+
+            // Dispara um WhatsApp por vez (ou mostra lista)
+            for (var contato in mensagens) {
+                var texto = encodeURIComponent(mensagens[contato]);
+                window.open("https://api.whatsapp.com/send?phone=" + contato + "&text=" + texto);
             }
+            
+            if (navigator.vibrate) navigator.vibrate(100);
         }
     }
 }).mount('#app');

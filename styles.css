@@ -1,79 +1,70 @@
 :root {
     --basil: #008C45;
     --pomodoro: #CD212A;
-    --ios-radius: 22px;
+    --cream: #F8F8F8;
+    --ios-radius: 28px;
 }
 
 [v-cloak] { display: none; }
 
 body {
-    font-family: -apple-system, system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background-color: var(--cream);
+    color: #1c1c1e;
     user-select: none;
 }
 
-.glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+/* Blocos Estilo Apple (Tiles) */
+.tile-apple {
+    height: 140px;
     border-radius: var(--ios-radius);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-nav {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
+.tile-apple:active {
+    transform: scale(0.92);
+}
+
+/* Glassmorphism */
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--ios-radius);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 .ios-input {
     width: 100%;
-    padding: 18px;
-    background: #f1f1f1;
-    border-radius: 14px;
-    border: 2px solid transparent;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ios-input-small {
-    width: 100%;
-    padding: 10px;
-    background: #f8f8f8;
-    border-radius: 10px;
-    border: 1px solid #e5e5e5;
-}
-
-.error-border {
-    border-color: var(--pomodoro) !important;
-    background-color: #fff5f5 !important;
+    padding: 16px;
+    background: #FFFFFF;
+    border-radius: 18px;
+    border: 1px solid #E5E5E5;
+    outline: none;
+    font-weight: 500;
 }
 
 .ios-btn {
-    padding: 16px;
-    border-radius: 16px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    transition: transform 0.1s;
+    padding: 20px;
+    border-radius: 22px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 14px;
 }
 
-.ios-btn:active { transform: scale(0.96); }
-
-/* Animação Erro Login */
-.shake-error {
-    animation: shake 0.4s both;
-}
-
+/* Animações */
+.shake-error { animation: shake 0.4s both; }
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-6px); }
-    40%, 80% { transform: translateX(6px); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
 }
 
-.loader-italy {
-    width: 50px; height: 50px;
-    border: 5px solid var(--basil);
-    border-bottom-color: var(--pomodoro);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+.error-border { border-color: var(--pomodoro) !important; color: var(--pomodoro); }
