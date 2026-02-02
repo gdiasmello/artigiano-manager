@@ -7,12 +7,13 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .app-header { position: sticky; top: 0; z-index: 1000; background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 .main-content { flex: 1; padding: 20px; padding-bottom: 120px; -webkit-overflow-scrolling: touch; }
 
-/* LOADING SCREEN (FORA DO VUE) */
+/* LOADING SCREEN */
 .loading-screen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
 .spinner-container { text-align: center; color: var(--primary); font-size: 1.5rem; }
 .btn-force { background: none; border: 1px solid var(--text-light); color: var(--text-light); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; margin-top: 15px; cursor: pointer; }
+.btn-force-enter { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; margin-top: 20px; cursor: pointer; animation: fadeIn 0.5s; }
 
-/* ERROR SCREEN (NOVO) */
+/* ERROR SCREEN */
 .error-screen { position: fixed; inset: 0; background: #FEF2F2; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .error-box { background: white; padding: 30px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 2px solid #EF4444; width: 100%; max-width: 350px; }
 .error-icon { font-size: 3rem; color: #EF4444; margin-bottom: 15px; display: block; }
@@ -96,6 +97,7 @@ html, body { min-height: 100%; margin: 0; padding: 0; background-color: var(--bg
 .h-user { color: var(--primary); font-weight: 700; }
 .h-dest { font-weight: 700; margin-bottom: 5px; }
 .h-body { font-size: 0.85rem; white-space: pre-wrap; color: var(--text); line-height: 1.4; }
+.btn-del-mini { font-size: 0.7rem; color: var(--primary); background: none; border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; margin-top: 5px; cursor: pointer; }
 .terms-text, .help-content { flex: 1; overflow-y: auto; background: var(--input-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.5; text-align: left; }
 .terms-text h4 { color: var(--text); margin: 15px 0 5px; font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
 .suggest-badge { position: absolute; top: 10px; right: 10px; background: #FEF3C7; color: #D97706; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #FCD34D; animation: pulse 2s infinite; }
