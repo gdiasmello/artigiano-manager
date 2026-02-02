@@ -1,0 +1,18 @@
+{
+  "short_name": "PizzeriaMaster",
+  "name": "Pizzeria Master - Gestão Artigiano",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3595/3595455.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#F2F2F7",
+  "display": "standalone",
+  "scope": "./",
+  "theme_color": "#008C45",
+  "description": "Sistema de Gestão de Insumos e Logística Pizzeria Master"
+}

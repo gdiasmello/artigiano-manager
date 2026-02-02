@@ -1,71 +1,70 @@
 :root {
     --basil: #008C45;
     --pomodoro: #CD212A;
-    --apple-bg: #F2F2F7;
+    --cream: #F2F2F7;
+    --apple-radius: 24px;
 }
 
 [v-cloak] { display: none; }
 
 body {
-    font-family: -apple-system, system-ui, sans-serif;
-    background-color: var(--apple-bg);
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background-color: var(--cream);
+    color: #1c1c1e;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .glass-card {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-radius: 28px;
-    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
 }
 
 .tile-apple {
-    height: 140px;
-    border-radius: 26px;
+    height: 160px;
+    border-radius: var(--apple-radius);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: 0.2s;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tile-apple:active { transform: scale(0.94); }
+.tile-apple:active { transform: scale(0.92); filter: brightness(0.9); }
 
 .ios-input {
-    width: 100%; padding: 16px; background: #E9E9EB;
-    border-radius: 16px; border: none; outline: none;
+    width: 100%;
+    padding: 18px;
+    background: #E9E9EB;
+    border-radius: 18px;
+    border: 2px solid transparent;
+    transition: 0.3s;
+    font-weight: 600;
 }
 
-.ios-input-small {
-    width: 100%; padding: 12px; background: white;
-    border-radius: 14px; border: 1px solid #E5E5E7;
-}
+.ios-input:focus { background: #FFFFFF; border-color: var(--basil); }
 
 .ios-btn {
-    padding: 18px; border-radius: 20px; font-weight: 800;
-    text-transform: uppercase; font-size: 13px;
+    padding: 20px;
+    border-radius: 22px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 14px;
 }
 
-.glass-section {
-    background: white; border-radius: 22px; overflow: hidden;
-}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade { animation: fadeIn 0.4s ease-out; }
 
-.section-header {
-    padding: 18px; font-weight: 900; display: flex;
-    justify-content: space-between; cursor: pointer;
-}
-
-.shake-error { animation: shake 0.4s both; }
+.shake-error { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25%, 75% { transform: translateX(-6px); }
-    50% { transform: translateX(6px); }
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
 }
-
-.animate-fade { animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-.animate-slide { animation: slideUp 0.3s ease-out; }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

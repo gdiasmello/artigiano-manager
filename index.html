@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Artigiano Master</title>
+    <link rel="manifest" href="manifest.json">
+    <title>Pizzeria Master</title>
     
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,113 +18,67 @@
     <div id="app" v-cloak>
         
         <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-6">
-            <div class="w-full max-w-sm glass-card p-8 text-center" :class="{ 'shake-error': loginError }">
-                <h1 class="text-3xl font-black text-[#008C45] mb-2">ARTIGIANO</h1>
-                <p class="text-[10px] tracking-[3px] text-gray-400 uppercase mb-8">Gestão de Insumos</p>
+            <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
+                <div class="mb-8">
+                    <h1 class="text-4xl font-black text-[#008C45]">PIZZERIA</h1>
+                    <h1 class="text-4xl font-black text-[#CD212A] mt-[-10px]">MASTER</h1>
+                    <p class="text-[9px] tracking-[4px] text-gray-400 uppercase mt-2">Gestão de Insumos</p>
+                </div>
                 
-                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center">
-                    <option value="" disabled>QUEM ESTÁ ACESSANDO?</option>
+                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center appearance-none">
+                    <option value="" disabled>SELECIONE UTILIZADOR</option>
                     <option v-for="u in equipe" :value="u">{{ u.nome }}</option>
                 </select>
-                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px] mb-6" maxlength="4" inputmode="numeric">
-                <button @click="login" class="ios-btn bg-[#008C45] w-full text-white">Entrar</button>
+
+                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-3xl tracking-[10px] mb-8" maxlength="4" inputmode="numeric">
+                
+                <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-lg">Entrar</button>
             </div>
         </div>
 
         <main v-if="authenticated && currentTab === 'home'" class="p-6 pt-12 animate-fade">
-            <header class="mb-8">
-                <h2 class="text-2xl font-black">Ciao, {{ userSelected.nome }}</h2>
-                <p class="text-sm text-gray-400">Pizzaria Artigiano | {{ dataAtual }}</p>
+            <header class="mb-10 flex justify-between items-start">
+                <div>
+                    <h2 class="text-3xl font-black text-gray-800 italic">Ciao, {{ userSelected.nome }}!</h2>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter">{{ dataAtual }}</p>
+                </div>
+                <div class="bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                    <span class="text-[10px] font-black text-[#008C45]">P. MASTER v1.0</span>
+                </div>
             </header>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-5">
                 <div v-if="podeVer('insumos')" @click="currentTab = 'insumos'" class="tile-apple bg-[#008C45] text-white">
-                    <span class="text-3xl mb-1">📦</span><span class="font-bold text-[10px] uppercase">Insumos</span>
+                    <span class="text-4xl mb-2">📦</span>
+                    <span class="font-black uppercase text-[11px] tracking-widest">Insumos</span>
                 </div>
-                <div v-if="podeVer('historico')" @click="currentTab = 'historico'" class="tile-apple bg-white text-gray-800 border">
-                    <span class="text-3xl mb-1">📜</span><span class="font-bold text-[10px] uppercase">Histórico</span>
+                
+                <div v-if="podeVer('historico')" @click="currentTab = 'historico'" class="tile-apple bg-white text-gray-800 border-2 border-gray-50">
+                    <span class="text-4xl mb-2">📜</span>
+                    <span class="font-black uppercase text-[11px] tracking-widest text-gray-400">Histórico</span>
                 </div>
+
                 <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-[#CD212A] text-white">
-                    <span class="text-3xl mb-1">⚙️</span><span class="font-bold text-[10px] uppercase">Ajustes</span>
+                    <span class="text-4xl mb-2">⚙️</span>
+                    <span class="font-black uppercase text-[11px] tracking-widest">Ajustes</span>
                 </div>
-                <div @click="logout" class="tile-apple bg-gray-200 text-gray-500">
-                    <span class="text-3xl mb-1">🚪</span><span class="font-bold text-[10px] uppercase">Sair</span>
+
+                <div @click="logout" class="tile-apple bg-gray-100 text-gray-400">
+                    <span class="text-4xl mb-2">🚪</span>
+                    <span class="font-black uppercase text-[11px] tracking-widest">Sair</span>
                 </div>
             </div>
         </main>
 
-        <section v-if="currentTab === 'insumos'" class="min-h-screen pb-24 animate-slide">
-            <header class="p-6 bg-white/80 backdrop-blur sticky top-0 z-30 border-b flex justify-between items-center">
-                <button @click="currentTab = 'home'" class="text-[#008C45] font-bold">← Voltar</button>
-                <h3 class="font-black text-sm uppercase">Contagem Física</h3>
-                <div class="w-8"></div>
-            </header>
-            <div class="p-4">
-                <input v-model="searchQuery" placeholder="🔍 Buscar produto..." class="ios-input-small mb-4">
-                <div v-for="item in filteredInsumos" :key="item.id" class="glass-card p-4 mb-4">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="font-bold text-gray-800">{{ item.nome }}</span>
-                        <span class="text-[9px] bg-gray-100 p-1 rounded font-bold uppercase text-gray-400">{{ item.fornecedor }}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-50 p-2 rounded-xl text-center">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-1">GELADEIRA</label>
-                            <input type="number" v-model="item.locais.geladeira" class="w-full bg-transparent text-center font-bold">
-                        </div>
-                        <div class="bg-gray-50 p-2 rounded-xl text-center">
-                            <label class="text-[9px] font-bold text-gray-400 block mb-1">FREEZER</label>
-                            <input type="number" v-model="item.locais.freezer" class="w-full bg-transparent text-center font-bold">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="fixed bottom-6 inset-x-4 flex gap-2">
-                <button @click="gerarPedido('rascunho')" class="ios-btn bg-gray-200 text-gray-800 flex-1">Guardar</button>
-                <button @click="gerarPedido('whatsapp')" class="ios-btn bg-[#008C45] text-white flex-[2] shadow-xl">Enviar WhatsApp</button>
-            </div>
-        </section>
-
-        <section v-if="currentTab === 'historico'" class="min-h-screen animate-slide">
-            <header class="p-6 bg-white/80 backdrop-blur sticky top-0 z-30 border-b flex justify-between">
-                <button @click="currentTab = 'home'" class="text-[#008C45] font-bold">← Voltar</button>
-                <h3 class="font-black text-sm uppercase">Pedidos Enviados</h3>
-                <div class="w-8"></div>
-            </header>
-            <div class="p-4 space-y-4">
-                <div v-for="(h, idx) in historico" :key="idx" class="glass-card p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold text-gray-400">{{ h.data }}</span>
-                        <span v-if="h.rascunho" class="text-[9px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold uppercase">Rascunho</span>
-                        <button v-if="isAdmin" @click="removerHistorico(idx)" class="text-red-300">🗑️</button>
-                    </div>
-                    <p class="font-black text-xs mb-2">{{ h.fornecedor }}</p>
-                    <div class="bg-gray-100 p-3 rounded-xl text-[11px] text-gray-600 leading-relaxed whitespace-pre-line">
-                        {{ h.conteudo }}
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section v-if="currentTab === 'config'" class="min-h-screen pb-20 animate-slide">
-            <header class="p-6 border-b flex justify-between items-center bg-white">
-                <button @click="currentTab = 'home'" class="text-[#008C45] font-bold">← Voltar</button>
-                <h3 class="font-black text-sm uppercase">Painel ADM</h3>
-                <div class="w-8"></div>
-            </header>
-            <div class="p-4 space-y-4">
-                <div class="glass-section" v-for="(val, key) in sub" :key="key">
-                    <div @click="toggleSub(key)" class="section-header">
-                        <span class="uppercase text-[11px] tracking-wider">{{ key }}</span>
-                        <span>{{ val ? '−' : '+' }}</span>
-                    </div>
-                    <div v-show="val" class="p-4">
-                        <p class="text-[10px] text-gray-400 italic">Área de edição rápida do banco de dados.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </div>
+        </div>
     <script src="script.js"></script>
+    <script>
+        // CÓDIGO PARA INSTALAR NA TELA INICIAL (SERVICE WORKER)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').then(function() {
+                console.log('Pizzeria Master: Service Worker Ativo');
+            });
+        }
+    </script>
 </body>
 </html>
