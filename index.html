@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     <title>Pizzeria Master</title>
     <link rel="stylesheet" href="styles.css">
@@ -17,36 +16,30 @@
         <div v-if="mostrarTermos" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
             <div class="bg-white w-full max-w-lg rounded-[30px] max-h-[85vh] flex flex-col shadow-2xl animate-fade">
                 <div class="p-6 border-b text-center">
-                    <h2 class="font-black text-xl text-[#008C45]">Termos de Responsabilidade</h2>
+                    <h2 class="font-black text-xl text-[#008C45]">Termos de Uso</h2>
                     <p class="text-[10px] text-gray-400 uppercase tracking-widest">Pizzeria Master - v1.0</p>
                 </div>
-                <div class="p-6 overflow-y-auto text-[12px] text-gray-600 space-y-4 leading-relaxed">
-                    <h4 class="font-bold text-black">Cláusulas Principais:</h4>
-                    <p>1. O desenvolvedor é isento de qualquer responsabilidade sobre erros em pedidos, falta de stock ou prejuízos financeiros da pizzaria.</p>
-                    <p>2. O suporte técnico é limitado e prestado apenas presencialmente enquanto o desenvolvedor estiver na pizzaria.</p>
-                    <p>3. Este software não possui vínculo societário com a Artigiano, sendo uma ferramenta de auxílio logístico independente.</p>
-                    <p>4. Em conformidade com a LGPD e o Marco Civil da Internet, os dados de acesso são protegidos por PIN individual.</p>
-                    <p>[... As 15 Cláusulas completas estão registadas no sistema ...]</p>
+                <div class="p-6 overflow-y-auto text-[11px] text-gray-600 space-y-4 leading-relaxed">
+                    <p><strong>1. Suporte:</strong> Limitado à presença física do desenvolvedor na pizzaria.</p>
+                    <p><strong>2. Responsabilidade:</strong> O app é uma ferramenta de auxílio. Toda a responsabilidade sobre a precisão dos pedidos e gestão do estoque é do usuário. O desenvolvedor não responde por falhas de compra ou prejuízos.</p>
+                    <p><strong>3. Vínculo:</strong> Este software é independente e não possui vínculo jurídico com a Artigiano Pizzaria.</p>
                 </div>
                 <div class="p-6 bg-gray-50 rounded-b-[30px] flex flex-col gap-3">
                     <button @click="aceitarTermos" class="ios-btn bg-[#008C45] text-white w-full">Aceito e Compreendo</button>
-                    <button @click="mostrarTermos = false; authenticated = false" class="text-xs text-red-500 font-bold p-2">Recusar</button>
+                    <button @click="mostrarTermos = false; logout()" class="text-xs text-red-500 font-bold p-2 text-center">Recusar</button>
                 </div>
             </div>
         </div>
 
         <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F2F2F7] p-6">
             <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
-                <h1 class="text-3xl font-black text-[#008C45] mb-2 uppercase italic tracking-tighter">Pizzeria</h1>
-                <h1 class="text-3xl font-black text-[#CD212A] mb-8 mt-[-10px] uppercase italic tracking-tighter">Master</h1>
-                
-                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center appearance-none">
-                    <option value="" disabled>SELECIONAR UTILIZADOR</option>
-                    <option v-for="u in equipe" :key="u.id" :value="u">{{ u.nome }}</option>
+                <h1 class="text-4xl font-black text-[#008C45] italic uppercase">Pizzeria</h1>
+                <h1 class="text-4xl font-black text-[#CD212A] mb-8 mt-[-10px] italic uppercase">Master</h1>
+                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center">
+                    <option value="" disabled>QUEM É VOCÊ?</option>
+                    <option v-for="u in equipe" :value="u">{{ u.nome }}</option>
                 </select>
-
                 <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px] mb-8" maxlength="4" inputmode="numeric">
-                
                 <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-lg">Entrar</button>
             </div>
         </div>
@@ -56,12 +49,12 @@
                 <button @click="currentTab = 'home'" class="flex items-center text-[#008C45] font-black uppercase text-[10px]">
                     <span class="text-2xl mr-1">‹</span> Início
                 </button>
-                <h3 class="font-black text-[10px] uppercase tracking-[3px] text-gray-300">{{ currentTab }}</h3>
+                <h3 class="font-black text-[10px] uppercase tracking-[3px] text-gray-400">{{ currentTab }}</h3>
                 <div class="w-10"></div>
             </header>
 
             <main v-if="currentTab === 'home'" class="p-6 pt-12 animate-fade">
-                <div class="mb-10 text-left">
+                <div class="mb-10">
                     <h2 class="text-3xl font-black text-gray-800">Ciao, {{ userSelected.nome }}!</h2>
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">{{ dataAtual }}</p>
                 </div>
@@ -79,6 +72,10 @@
                         <span class="text-3xl mb-2">📦</span>
                         <span class="font-black text-[10px] uppercase text-gray-400 tracking-widest">Geral / Insumos</span>
                     </div>
+                    <div @click="currentTab = 'histórico'" class="tile-apple bg-gray-800 text-white">
+                        <span class="text-3xl mb-2">📜</span>
+                        <span class="font-black text-[10px] uppercase">Histórico</span>
+                    </div>
                     <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-red-600 text-white">
                         <span class="text-3xl mb-2">⚙️</span>
                         <span class="font-black text-[10px] uppercase">Ajustes</span>
@@ -89,6 +86,59 @@
                     </div>
                 </div>
             </main>
+
+            <div v-if="currentTab === 'insumos'" class="p-4 space-y-4 animate-fade">
+                <div v-for="item in insumosFiltrados" :key="item.id" class="glass-card p-5 border-l-8" :class="statusEstoque(item) === 'PEDIR' ? 'border-red-500' : 'border-green-500'">
+                    <div class="flex justify-between">
+                        <h4 class="font-black uppercase text-sm">{{ item.nome }}</h4>
+                        <span class="text-[10px] font-black" :class="statusEstoque(item) === 'PEDIR' ? 'text-red-500' : 'text-green-500'">{{ statusEstoque(item) }}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <input type="number" v-model="item.contagem" class="ios-input text-center" placeholder="Qtd">
+                        <div class="text-center flex flex-col justify-center">
+                            <span class="text-[9px] uppercase font-bold text-gray-400">Falta ({{ item.unC }})</span>
+                            <span class="text-xl font-black">{{ calcularFalta(item) }}</span>
+                        </div>
+                    </div>
+                </div>
+                <button @click="enviarPedido" class="ios-btn bg-[#008C45] w-full text-white sticky bottom-6 shadow-2xl">Finalizar e Enviar</button>
+            </div>
+
+            <div v-if="currentTab === 'histórico'" class="p-6 space-y-4 animate-fade">
+                <div v-if="historico.length === 0" class="text-center text-gray-400 py-20">Nenhum pedido realizado.</div>
+                <div v-for="(h, idx) in historico" :key="idx" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-black text-xs text-[#008C45]">{{ h.fornecedor }}</span>
+                        <span class="text-[9px] font-bold text-gray-300">{{ h.data }}</span>
+                    </div>
+                    <p class="text-[10px] text-gray-500 whitespace-pre-wrap">{{ h.conteudo }}</p>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'config'" class="p-6 space-y-6 animate-fade">
+                <div class="glass-card p-6">
+                    <h3 class="font-black mb-4 uppercase text-xs">Adicionar Novo Insumo</h3>
+                    <input v-model="novoInsumo.nome" placeholder="Nome do Produto" class="ios-input mb-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input v-model="novoInsumo.unC" placeholder="Unid. Compra (cx, kg)" class="ios-input">
+                        <input v-model="novoInsumo.meta" type="number" placeholder="Meta" class="ios-input">
+                    </div>
+                    <input v-model="novoInsumo.fornecedor" placeholder="Fornecedor (Ex: Sacolão)" class="ios-input mt-2">
+                    <button @click="adicionarProduto" class="ios-btn bg-gray-800 text-white w-full mt-4">Salvar no Catálogo</button>
+                </div>
+                
+                <div class="bg-white p-6 rounded-[30px] border">
+                    <h3 class="font-black mb-2 uppercase text-xs">Modo Feriado</h3>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Aumentar metas em 50%</span>
+                        <input type="checkbox" v-model="config.modoFeriado" class="w-6 h-6">
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button @click="currentTab = 'termos'" class="text-[10px] font-bold text-gray-400 underline">VER TERMOS DE USO</button>
+                </div>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
