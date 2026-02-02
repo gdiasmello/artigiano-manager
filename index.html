@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="manifest.json">
     <title>Pizzeria Master</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,133 +11,85 @@
 <body class="bg-[#F2F2F7]">
     <div id="app" v-cloak>
         
-        <div v-if="mostrarTermos" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
-            <div class="bg-white w-full max-w-lg rounded-[30px] max-h-[85vh] flex flex-col shadow-2xl animate-fade">
-                <div class="p-6 border-b text-center">
-                    <h2 class="font-black text-xl text-[#008C45]">Termos de Uso</h2>
-                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">Pizzeria Master - v1.0</p>
+        <header v-if="authenticated && currentTab !== 'home'" class="p-4 bg-white/80 backdrop-blur-lg sticky top-0 z-50 border-b flex justify-between items-center">
+            <button @click="currentTab = 'home'" class="text-[#008C45] font-bold flex items-center">‹ Voltar</button>
+            <h1 class="font-black text-[10px] uppercase tracking-widest text-gray-400">{{ currentTab }}</h1>
+            <div class="w-10"></div>
+        </header>
+
+        <main v-if="authenticated && currentTab === 'home'" class="p-6 pt-10 animate-fade">
+            <h2 class="text-3xl font-black mb-8 italic">Pizzeria Master</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div @click="currentTab = 'insumos'; setorAtivo = 'Sacolão'" class="tile-apple bg-[#008C45] text-white">
+                    <span class="text-3xl mb-1">🍎</span>
+                    <span class="font-bold text-[10px] uppercase">Sacolão</span>
                 </div>
-                <div class="p-6 overflow-y-auto text-[11px] text-gray-600 space-y-4 leading-relaxed">
-                    <p><strong>1. Suporte:</strong> Limitado à presença física do desenvolvedor na pizzaria.</p>
-                    <p><strong>2. Responsabilidade:</strong> O app é uma ferramenta de auxílio. Toda a responsabilidade sobre a precisão dos pedidos e gestão do estoque é do usuário. O desenvolvedor não responde por falhas de compra ou prejuízos.</p>
-                    <p><strong>3. Vínculo:</strong> Este software é independente e não possui vínculo jurídico com a Artigiano Pizzaria.</p>
+                <div @click="currentTab = 'insumos'; setorAtivo = 'Limpeza'" class="tile-apple bg-blue-500 text-white">
+                    <span class="text-3xl mb-1">🧼</span>
+                    <span class="font-bold text-[10px] uppercase">Limpeza</span>
                 </div>
-                <div class="p-6 bg-gray-50 rounded-b-[30px] flex flex-col gap-3">
-                    <button @click="aceitarTermos" class="ios-btn bg-[#008C45] text-white w-full">Aceito e Compreendo</button>
-                    <button @click="mostrarTermos = false; logout()" class="text-xs text-red-500 font-bold p-2 text-center">Recusar</button>
+                <div @click="currentTab = 'historico'" class="tile-apple bg-gray-800 text-white col-span-2">
+                    <span class="text-2xl mb-1">📜 Histórico de Pedidos</span>
+                </div>
+                <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-white border-2 border-gray-100 text-gray-400">
+                    <span class="text-2xl mb-1">⚙️ Ajustes Master</span>
                 </div>
             </div>
-        </div>
+        </main>
 
-        <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F2F2F7] p-6">
-            <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
-                <h1 class="text-4xl font-black text-[#008C45] italic uppercase">Pizzeria</h1>
-                <h1 class="text-4xl font-black text-[#CD212A] mb-8 mt-[-10px] italic uppercase">Master</h1>
-                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center">
-                    <option value="" disabled>QUEM É VOCÊ?</option>
-                    <option v-for="u in equipe" :value="u">{{ u.nome }}</option>
-                </select>
-                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px] mb-8" maxlength="4" inputmode="numeric">
-                <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-lg">Entrar</button>
+        <div v-if="currentTab === 'config'" class="p-4 space-y-4">
+            
+            <div class="glass-card overflow-hidden">
+                <div @click="menuAberto = menuAberto === 'equipe' ? null : 'equipe'" class="p-5 flex justify-between items-center font-bold">
+                    <span>👥 Gestão de Equipa</span>
+                    <span>{{ menuAberto === 'equipe' ? '−' : '+' }}</span>
+                </div>
+                <div v-if="menuAberto === 'equipe'" class="p-5 bg-gray-50/50 border-t space-y-3">
+                    <input v-model="novoUser.nome" placeholder="Nome" class="ios-input">
+                    <input v-model="novoUser.pin" placeholder="PIN (4 dígitos)" class="ios-input" maxlength="4">
+                    <button class="ios-btn bg-black text-white w-full">Salvar Funcionário</button>
+                    
+                    <div v-for="u in equipe" :key="u.id" class="flex justify-between items-center p-3 bg-white rounded-2xl shadow-sm">
+                        <span class="font-bold">{{ u.nome }} ({{ u.cargo }})</span>
+                        <button class="text-red-500 font-bold">Remover</button>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div v-if="authenticated">
-            <header v-if="currentTab !== 'home'" class="p-6 bg-white/90 backdrop-blur sticky top-0 z-40 border-b flex justify-between items-center">
-                <button @click="currentTab = 'home'" class="flex items-center text-[#008C45] font-black uppercase text-[10px]">
-                    <span class="text-2xl mr-1">‹</span> Início
-                </button>
-                <h3 class="font-black text-[10px] uppercase tracking-[3px] text-gray-400">{{ currentTab }}</h3>
-                <div class="w-10"></div>
-            </header>
-
-            <main v-if="currentTab === 'home'" class="p-6 pt-12 animate-fade">
-                <div class="mb-10">
-                    <h2 class="text-3xl font-black text-gray-800">Ciao, {{ userSelected.nome }}!</h2>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">{{ dataAtual }}</p>
+            <div class="glass-card overflow-hidden">
+                <div @click="menuAberto = menuAberto === 'rota' ? null : 'rota'" class="p-5 flex justify-between items-center font-bold">
+                    <span>📍 Rota de Contagem</span>
+                    <span>{{ menuAberto === 'rota' ? '−' : '+' }}</span>
                 </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div @click="currentTab = 'insumos'; setorAtivo = 'Sacolão'" class="tile-apple bg-green-600 text-white">
-                        <span class="text-3xl mb-2">🍎</span>
-                        <span class="font-black text-[10px] uppercase">Sacolão</span>
-                    </div>
-                    <div @click="currentTab = 'insumos'; setorAtivo = 'Limpeza'" class="tile-apple bg-blue-600 text-white">
-                        <span class="text-3xl mb-2">🧼</span>
-                        <span class="font-black text-[10px] uppercase">Limpeza</span>
-                    </div>
-                    <div @click="currentTab = 'insumos'; setorAtivo = 'Ver Tudo'" class="tile-apple bg-white col-span-2 border-2 border-gray-100">
-                        <span class="text-3xl mb-2">📦</span>
-                        <span class="font-black text-[10px] uppercase text-gray-400 tracking-widest">Geral / Insumos</span>
-                    </div>
-                    <div @click="currentTab = 'histórico'" class="tile-apple bg-gray-800 text-white">
-                        <span class="text-3xl mb-2">📜</span>
-                        <span class="font-black text-[10px] uppercase">Histórico</span>
-                    </div>
-                    <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-red-600 text-white">
-                        <span class="text-3xl mb-2">⚙️</span>
-                        <span class="font-black text-[10px] uppercase">Ajustes</span>
-                    </div>
-                    <div @click="logout" class="tile-apple bg-gray-200 text-gray-400">
-                        <span class="text-3xl mb-2">🚪</span>
-                        <span class="font-black text-[10px] uppercase">Sair</span>
-                    </div>
-                </div>
-            </main>
-
-            <div v-if="currentTab === 'insumos'" class="p-4 space-y-4 animate-fade">
-                <div v-for="item in insumosFiltrados" :key="item.id" class="glass-card p-5 border-l-8" :class="statusEstoque(item) === 'PEDIR' ? 'border-red-500' : 'border-green-500'">
-                    <div class="flex justify-between">
-                        <h4 class="font-black uppercase text-sm">{{ item.nome }}</h4>
-                        <span class="text-[10px] font-black" :class="statusEstoque(item) === 'PEDIR' ? 'text-red-500' : 'text-green-500'">{{ statusEstoque(item) }}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <input type="number" v-model="item.contagem" class="ios-input text-center" placeholder="Qtd">
-                        <div class="text-center flex flex-col justify-center">
-                            <span class="text-[9px] uppercase font-bold text-gray-400">Falta ({{ item.unC }})</span>
-                            <span class="text-xl font-black">{{ calcularFalta(item) }}</span>
+                <div v-if="menuAberto === 'rota'" class="p-5 bg-gray-50/50 border-t space-y-2">
+                    <div v-for="(r, idx) in rota" :key="idx" class="flex justify-between items-center p-4 bg-white rounded-2xl">
+                        <span class="font-bold">{{ r }}</span>
+                        <div class="flex gap-2">
+                            <button @click="moverRota(idx, -1)">⬆️</button>
+                            <button @click="moverRota(idx, 1)">⬇️</button>
                         </div>
                     </div>
                 </div>
-                <button @click="enviarPedido" class="ios-btn bg-[#008C45] w-full text-white sticky bottom-6 shadow-2xl">Finalizar e Enviar</button>
             </div>
 
-            <div v-if="currentTab === 'histórico'" class="p-6 space-y-4 animate-fade">
-                <div v-if="historico.length === 0" class="text-center text-gray-400 py-20">Nenhum pedido realizado.</div>
-                <div v-for="(h, idx) in historico" :key="idx" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-black text-xs text-[#008C45]">{{ h.fornecedor }}</span>
-                        <span class="text-[9px] font-bold text-gray-300">{{ h.data }}</span>
-                    </div>
-                    <p class="text-[10px] text-gray-500 whitespace-pre-wrap">{{ h.conteudo }}</p>
-                </div>
             </div>
 
-            <div v-if="currentTab === 'config'" class="p-6 space-y-6 animate-fade">
-                <div class="glass-card p-6">
-                    <h3 class="font-black mb-4 uppercase text-xs">Adicionar Novo Insumo</h3>
-                    <input v-model="novoInsumo.nome" placeholder="Nome do Produto" class="ios-input mb-2">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input v-model="novoInsumo.unC" placeholder="Unid. Compra (cx, kg)" class="ios-input">
-                        <input v-model="novoInsumo.meta" type="number" placeholder="Meta" class="ios-input">
-                    </div>
-                    <input v-model="novoInsumo.fornecedor" placeholder="Fornecedor (Ex: Sacolão)" class="ios-input mt-2">
-                    <button @click="adicionarProduto" class="ios-btn bg-gray-800 text-white w-full mt-4">Salvar no Catálogo</button>
+        <div v-if="currentTab === 'historico'" class="p-4 space-y-4">
+            <div v-for="(h, idx) in historico" :key="idx" class="glass-card p-5 animate-fade">
+                <div class="flex justify-between mb-2">
+                    <span class="font-black text-green-700 uppercase text-[10px]">{{ h.fornecedor }}</span>
+                    <span class="text-[9px] text-gray-400 font-bold">{{ h.data }}</span>
                 </div>
-                
-                <div class="bg-white p-6 rounded-[30px] border">
-                    <h3 class="font-black mb-2 uppercase text-xs">Modo Feriado</h3>
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-gray-500">Aumentar metas em 50%</span>
-                        <input type="checkbox" v-model="config.modoFeriado" class="w-6 h-6">
-                    </div>
+                <div class="bg-gray-100 p-4 rounded-2xl text-[11px] text-gray-600 font-mono">
+                    {{ h.conteudo }}
                 </div>
-
-                <div class="text-center">
-                    <button @click="currentTab = 'termos'" class="text-[10px] font-bold text-gray-400 underline">VER TERMOS DE USO</button>
+                <div v-if="isAdmin" class="mt-3 flex justify-end">
+                    <button class="text-red-500 text-xs font-bold">🗑️ Apagar Registo</button>
                 </div>
             </div>
         </div>
+
     </div>
     <script src="script.js"></script>
 </body>
