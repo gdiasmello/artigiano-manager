@@ -1,91 +1,115 @@
 :root {
     --primary: #C41E3A;
-    --success: #008C45;
-    --horti: #10B981;
-    --geral: #3B82F6;
-    --bebidas: #EF4444;
-    --bg: #F3F4F6;
-    --card: #FFFFFF;
-    --text: #1F2937;
-}
-
-body.dark-mode {
-    --bg: #121212;
-    --card: #1E1E1E;
-    --text: #F3F4F6;
+    --dark-bg: #121212;
+    --card-bg: #1E1E1E;
+    --text-white: #F3F4F6;
+    --input-bg: #2A2A2A;
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg);
-    color: var(--text);
     margin: 0;
+    padding: 0;
+    background-color: var(--dark-bg);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-white);
+    height: 100vh;
+}
+
+/* Centralização do Login */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.login-card {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 350px;
+    padding: 40px 30px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border-top: 4px solid var(--primary);
+}
+
+.login-header h1 {
+    margin: 10px 0 5px 0;
+    font-size: 2.2rem;
+    letter-spacing: 1px;
+}
+
+.login-header span {
+    color: #888;
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 30px;
+}
+
+.logo-icon {
+    font-size: 3rem;
+    color: var(--primary);
+}
+
+/* Estilo dos Inputs */
+.input-field {
+    background: var(--input-bg);
+    margin-bottom: 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    border: 1px solid transparent;
     transition: 0.3s;
 }
 
-[v-cloak] { display: none; }
-
-#watchdog {
-    position: fixed; inset: 0; background: #1a1a1a;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 9999; color: white;
+.input-field:focus-within {
+    border-color: var(--primary);
 }
 
-.main-header {
-    background: var(--primary);
-    padding: 20px;
-    text-align: center;
+.input-field i {
+    color: #666;
+    margin-right: 10px;
+}
+
+.input-field input {
+    background: transparent;
+    border: none;
     color: white;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 15px 0;
+    width: 100%;
+    outline: none;
+    font-size: 1rem;
 }
 
-.card {
-    background: var(--card);
-    margin: 12px;
-    padding: 16px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-left: 6px solid var(--primary);
+/* Botão de Acesso */
+.btn-login {
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.2s, background 0.3s;
 }
 
-.card.horti { border-left-color: var(--horti); }
-.card.geral { border-left-color: var(--geral); }
-.card.bebidas { border-left-color: var(--bebidas); }
-
-.receita-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 15px;
+.btn-login:active {
+    transform: scale(0.98);
+    background: #a0182f;
 }
 
-.ingrediente {
-    background: rgba(0,0,0,0.05);
-    padding: 8px;
-    border-radius: 6px;
+.fade-in {
+    animation: fadeIn 0.8s ease-in;
 }
 
-.navbar {
-    position: fixed; bottom: 0; width: 100%;
-    background: var(--card);
-    display: flex; height: 65px;
-    border-top: 1px solid rgba(0,0,0,0.1);
-}
-
-.navbar button {
-    flex: 1; border: none; background: none;
-    color: #888; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; font-size: 12px;
-}
-
-.navbar button.active { color: var(--primary); }
-
-.input-contagem {
-    width: 60px; padding: 8px; border-radius: 6px;
-    border: 1px solid #ddd; text-align: center;
-}
-
-.btn-circle {
-    width: 40px; height: 40px; border-radius: 50%;
-    border: none; background: var(--primary); color: white;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }

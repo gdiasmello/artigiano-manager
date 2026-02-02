@@ -4,83 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artigiano Gestão - V60</title>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="dark-mode">
 
-    <div id="watchdog">
-        <h2 id="status-msg">Iniciando Sistema...</h2>
-        <p id="error-log"></p>
-        <button id="btn-force" style="display:none" class="btn btn-primary">Entrada Forçada</button>
-    </div>
-
     <div id="app" v-cloak>
-        <header class="main-header">
-            <h1>Artigiano Gestão</h1>
-            <div class="badge-hoje">{{ dataHoje }}</div>
-        </header>
+        <div class="login-container" v-if="!logado">
+            <div class="login-card fade-in">
+                <div class="login-header">
+                    <i class="fas fa-pizza-slice logo-icon"></i>
+                    <h1>Artigiano</h1>
+                    <span>Gestão V60</span>
+                </div>
 
-        <main class="content">
-            <section v-if="abaAtual === 'producao'" class="fade-in">
-                <div class="card">
-                    <h3><i class="fas fa-calculator"></i> Produção de Massa</h3>
-                    <div class="meta-controls">
-                        <button class="btn" @click="metaMassa = 60">Semana (60)</button>
-                        <button class="btn" @click="metaMassa = 100">FDS (100)</button>
-                    </div>
-                    <div class="input-group">
-                        <label>Meta de Bolinhas:</label>
-                        <input type="number" v-model.number="metaMassa">
+                <div class="login-form">
+                    <div class="input-field">
+                        <i class="fas fa-user"></i>
+                        <input type="text" v-model="usuario" placeholder="Usuário">
                     </div>
                     
-                    <div class="receita-grid">
-                        <div class="ingrediente"><strong>Farinha:</strong> {{ (metaMassa * 133.3 / 1000).toFixed(2) }} kg</div>
-                        <div class="ingrediente"><strong>Água:</strong> {{ (metaMassa * 83.1 / 1000).toFixed(2) }} L</div>
-                        <div class="ingrediente"><strong>Levain:</strong> {{ (metaMassa * 6).toFixed(0) }} g</div>
-                        <div class="ingrediente"><strong>Sal:</strong> {{ (metaMassa * 4).toFixed(0) }} g</div>
+                    <div class="input-field">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" v-model="senha" placeholder="Senha">
                     </div>
-                </div>
-            </section>
 
-            <section v-if="abaAtual === 'estoque'" class="fade-in">
-                <div class="search-bar">
-                    <input type="text" v-model="busca" placeholder="Buscar produto...">
+                    <button class="btn-login" @click="fazerLogin">
+                        ACESSAR
+                    </button>
                 </div>
+            </div>
+        </div>
 
-                <div v-for="item in produtosFiltrados" :key="item.id" :class="['card', item.categoria]">
-                    <div class="card-header">
-                        <span class="prod-nome">{{ item.nome }}</span>
-                        <span class="prod-meta">Meta: {{ item.meta }}</span>
-                    </div>
-                    <div class="card-body">
-                        <button class="btn-circle" @click="item.contagem = (item.contagem || 0) + 0.5">+0.5</button>
-                        <input type="number" v-model.number="item.contagem" class="input-contagem">
-                        <button class="btn btn-success" @click="salvarEstoque(item)">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <nav class="navbar">
-            <button :class="{active: abaAtual === 'producao'}" @click="abaAtual = 'producao'">
-                <i class="fas fa-pizza-slice"></i><span>Produção</span>
-            </button>
-            <button :class="{active: abaAtual === 'estoque'}" @click="abaAtual = 'estoque'">
-                <i class="fas fa-boxes"></i><span>Estoque</span>
-            </button>
-            <button @click="enviarWhatsApp()">
-                <i class="fab fa-whatsapp"></i><span>Pedido</span>
-            </button>
-        </nav>
+        <div v-else>
+            <header class="main-header">
+                <h1>Artigiano</h1>
+            </header>
+            </div>
     </div>
 
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
