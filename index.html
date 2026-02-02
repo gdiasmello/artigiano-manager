@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano Master Cloud</title>
+    <title>Artigiano Manager v5</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -14,35 +14,37 @@
     <div id="app" v-cloak>
         
         <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F2F2F7] p-6">
-            <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
+            <div class="w-full max-w-sm glass-card p-10 text-center shadow-2xl" :class="{ 'shake-error': loginError }">
                 <h1 class="text-4xl font-black text-[#008C45] italic uppercase tracking-tighter leading-none">Artigiano</h1>
                 <h1 class="text-4xl font-black text-[#CD212A] mb-8 italic uppercase tracking-tighter leading-none">Manager</h1>
                 
-                <select v-model="userSelected" class="ios-input mb-4 text-center">
-                    <option value="" disabled>QUEM ESTÁ OPERANDO?</option>
-                    <option v-for="u in equipe" :key="u.id" :value="u">{{ u.nome }}</option>
-                </select>
-
-                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px] mb-8" maxlength="4" inputmode="numeric">
-                
-                <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-xl">Autenticar</button>
+                <div class="space-y-4">
+                    <input type="text" v-model="loginNome" placeholder="SEU NOME" class="ios-input text-center uppercase font-bold" @input="tocarSom('click')">
+                    <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px]" maxlength="4" inputmode="numeric">
+                    
+                    <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-xl mt-4">Aceder ao Sistema</button>
+                    
+                    <button @click="limparTudoEResetar" class="text-[8px] font-black text-gray-300 uppercase tracking-widest mt-10 hover:text-red-500 transition-colors">
+                        ⚠️ Limpar Cache e Resetar App
+                    </button>
+                </div>
             </div>
         </div>
 
         <div v-if="authenticated">
             <header class="p-5 bg-white/90 backdrop-blur-xl sticky top-0 z-40 border-b flex justify-between items-center">
-                <button v-if="currentTab !== 'home'" @click="currentTab = 'home'" class="text-[#008C45] font-black uppercase text-[10px] flex items-center">
+                <button v-if="currentTab !== 'home'" @click="irPara('home')" class="text-[#008C45] font-black uppercase text-[10px] flex items-center">
                     <span class="text-2xl mr-1">‹</span> Início
                 </button>
                 <div v-else class="w-10"></div>
                 
                 <div class="flex flex-col items-center">
-                    <span class="font-black text-[10px] uppercase tracking-[2px] text-gray-400">Artigiano Manager</span>
-                    <span v-if="loading" class="text-[7px] text-blue-500 font-bold animate-pulse">SALVANDO NO SERVIDOR...</span>
-                    <span v-else class="text-[7px] text-green-500 font-bold">● DADOS SINCRONIZADOS</span>
+                    <span class="font-black text-[10px] uppercase tracking-[2px] text-gray-400">Master Cloud</span>
+                    <span v-if="loading" class="text-[7px] text-blue-500 font-bold animate-pulse uppercase">Sincronizando...</span>
+                    <span v-else class="text-[7px] text-green-500 font-bold uppercase">● Online</span>
                 </div>
 
-                <button @click="currentTab = 'carrinho'" class="relative p-2">
+                <button @click="irPara('carrinho')" class="relative p-2">
                     <span class="text-2xl">🛒</span>
                     <span v-if="totalItensNoCarrinho > 0" class="absolute top-0 right-0 bg-red-600 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                         {{ totalItensNoCarrinho }}
@@ -51,28 +53,30 @@
             </header>
 
             <main v-if="currentTab === 'home'" class="p-6 pt-10 animate-fade">
-                <h2 class="text-3xl font-black text-gray-800 mb-8 italic">Ciao, {{ userSelected.nome }}!</h2>
+                <div class="mb-10">
+                    <h2 class="text-3xl font-black text-gray-800 italic leading-tight">Ciao,<br>{{ userSelected.nome }}!</h2>
+                </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div v-if="podeVer('Sacolão')" @click="abrirSetor('Sacolão')" class="tile-apple bg-green-600 text-white shadow-lg">
+                    <div v-if="podeVer('Sacolão')" @click="abrirSetor('Sacolão')" class="tile-apple bg-green-600 text-white">
                         <span class="text-4xl mb-2">🍎</span>
                         <span class="font-black text-[10px] uppercase">Sacolão</span>
                     </div>
-                    <div v-if="podeVer('Limpeza')" @click="abrirSetor('Limpeza')" class="tile-apple bg-blue-600 text-white shadow-lg">
+                    <div v-if="podeVer('Limpeza')" @click="abrirSetor('Limpeza')" class="tile-apple bg-blue-600 text-white">
                         <span class="text-4xl mb-2">🧼</span>
                         <span class="font-black text-[10px] uppercase">Limpeza</span>
                     </div>
-                    <div v-if="podeVer('Gelo')" @click="abrirSetor('Gelo')" class="tile-apple bg-cyan-500 text-white shadow-lg">
+                    <div v-if="podeVer('Gelo')" @click="abrirSetor('Gelo')" class="tile-apple bg-cyan-500 text-white">
                         <span class="text-4xl mb-2">🧊</span>
                         <span class="font-black text-[10px] uppercase">Gelo</span>
                     </div>
                     <div v-if="podeVer('Geral')" @click="abrirSetor('Ver Tudo')" class="tile-apple bg-white col-span-2 border-2 border-gray-100">
                         <span class="text-3xl mb-1">📦</span>
-                        <span class="font-black text-[10px] uppercase text-gray-400 tracking-widest">Insumos Geral</span>
+                        <span class="font-black text-[10px] uppercase text-gray-400">Todos os Insumos</span>
                     </div>
-                    <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-red-600 text-white">
+                    <div v-if="isAdmin" @click="irPara('config')" class="tile-apple bg-red-600 text-white">
                         <span class="text-3xl mb-1">⚙️</span>
-                        <span class="font-black text-[10px] uppercase">Ajustes Master</span>
+                        <span class="font-black text-[10px] uppercase">Painel Master</span>
                     </div>
                     <div @click="logout" class="tile-apple bg-gray-200 text-gray-400">
                         <span class="text-3xl mb-1">🚪</span>
@@ -89,31 +93,24 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="relative">
-                            <input type="number" v-model.number="item.contagem" @change="saveData" class="ios-input text-center text-xl" placeholder="0">
+                            <input type="number" v-model.number="item.contagem" @change="saveData" class="ios-input text-center text-xl" @focus="tocarSom('click')">
                             <span class="absolute -top-2 left-3 bg-white px-1 text-[8px] font-bold text-gray-400 uppercase">Estoque ({{ item.unQ }})</span>
                         </div>
                         <div class="flex flex-col items-center justify-center bg-gray-50 rounded-2xl">
-                            <span class="text-[8px] font-bold text-gray-400 uppercase">A Pedir ({{ item.unC }})</span>
+                            <span class="text-[8px] font-bold text-gray-400 uppercase">Falta ({{ item.unC }})</span>
                             <span class="text-xl font-black" :class="calcularFalta(item) > 0 ? 'text-red-600' : 'text-green-600'">
                                 {{ calcularFalta(item) }}
                             </span>
                         </div>
                     </div>
                 </div>
-                <div class="fixed bottom-8 left-4 right-4 flex gap-2">
-                    <button @click="currentTab = 'carrinho'" class="ios-btn bg-black text-white flex-1 text-xs">Revisar Carrinho</button>
-                </div>
             </div>
 
-            <div v-if="currentTab === 'carrinho'" class="p-4 space-y-4 animate-fade">
-                <h3 class="text-xl font-black text-gray-800 p-2 italic uppercase">🛒 Itens no Carrinho</h3>
-                <div v-if="totalItensNoCarrinho === 0" class="text-center py-20 text-gray-400 font-bold uppercase text-xs">
-                    Nenhum item abaixo da meta.
-                </div>
+            <div v-if="currentTab === 'carrinho'" class="p-4 space-y-4 animate-fade pb-20">
+                <h3 class="text-xl font-black text-gray-800 p-2 italic uppercase">🛒 Revisão de Pedidos</h3>
                 <div v-for="forn in fornecedoresComPedido" :key="forn.id" class="glass-card p-6 border-t-4 border-green-600">
                     <div class="flex justify-between mb-4">
                         <span class="font-black text-sm uppercase text-green-700">{{ forn.nome }}</span>
-                        <span class="text-[10px] font-bold text-gray-300 italic">WhatsApp: {{ forn.zap }}</span>
                     </div>
                     <ul class="space-y-2 mb-6">
                         <li v-for="p in getPedidosPorFornecedor(forn.id)" class="text-[11px] font-bold text-gray-600 flex justify-between border-b border-dashed pb-1">
@@ -121,102 +118,53 @@
                             <span class="text-black font-black">{{ calcularFalta(p) }} {{ p.unC }}</span>
                         </li>
                     </ul>
-                    <button @click="dispararWhatsApp(forn)" class="ios-btn bg-[#25D366] text-white w-full text-[10px]">Mandar para {{ forn.nome }}</button>
+                    <button @click="dispararWhatsApp(forn)" class="ios-btn bg-[#25D366] text-white w-full text-[10px] font-black shadow-lg">FINALIZAR E ENVIAR</button>
                 </div>
             </div>
 
             <div v-if="currentTab === 'config'" class="p-4 space-y-4 pb-24">
-                
-                <div class="glass-card overflow-hidden">
-                    <div @click="menuAberto = menuAberto === 'rota' ? null : 'rota'" class="p-5 flex justify-between items-center font-bold bg-white">
-                        <span class="text-xs uppercase tracking-widest">📍 Gerenciar Estoques (Locais)</span>
-                        <span>{{ menuAberto === 'rota' ? '−' : '+' }}</span>
-                    </div>
-                    <div v-if="menuAberto === 'rota'" class="p-5 bg-gray-50 border-t space-y-2">
-                        <div class="flex gap-2">
-                            <input v-model="novoLocalNome" placeholder="Ex: Geladeira 1" class="ios-input bg-white">
-                            <button @click="adicionarLocal" class="ios-btn bg-black text-white px-6">+</button>
-                        </div>
-                        <div v-for="(r, idx) in rota" :key="idx" class="flex justify-between items-center p-3 bg-white rounded-xl">
-                            <span class="text-xs font-bold">{{ r }}</span>
-                            <button @click="removerLocal(idx)" class="text-red-500 text-[10px]">EXCLUIR</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-card overflow-hidden">
-                    <div @click="menuAberto = menuAberto === 'prod' ? null : 'prod'" class="p-5 flex justify-between items-center font-bold bg-white">
-                        <span class="text-xs uppercase tracking-widest">📦 Catálogo de Insumos</span>
-                        <span>{{ menuAberto === 'prod' ? '−' : '+' }}</span>
-                    </div>
-                    <div v-if="menuAberto === 'prod'" class="p-5 bg-gray-50 border-t space-y-4">
-                        
+                <div class="glass-card p-6">
+                    <h3 class="text-[10px] font-black uppercase mb-4 text-gray-400">Novo Insumo</h3>
+                    <div class="space-y-3">
                         <div class="relative">
-                            <input v-model="buscaCatalogo" placeholder="Buscar produto já cadastrado..." class="ios-input bg-white">
-                            <div v-if="buscaCatalogo && produtosSugeridos.length" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-gray-100">
-                                <div v-for="s in produtosSugeridos" @click="carregarProduto(s)" class="p-4 border-b last:border-0 font-bold text-[11px] text-gray-500 cursor-pointer">
-                                    {{ s.nome }} <span class="text-[8px] text-blue-400 ml-2">(CLIQUE PARA COPIAR DADOS)</span>
+                            <input v-model="buscaCatalogo" placeholder="Buscar existente para copiar..." class="ios-input bg-gray-50 text-xs">
+                            <div v-if="buscaCatalogo && produtosSugeridos.length" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-1 border border-gray-100 max-h-40 overflow-y-auto">
+                                <div v-for="s in produtosSugeridos" @click="carregarProduto(s)" class="p-4 border-b last:border-0 font-bold text-[10px] text-gray-500 cursor-pointer">
+                                    {{ s.nome }}
                                 </div>
                             </div>
                         </div>
-
-                        <div class="space-y-3 bg-white p-4 rounded-3xl border border-gray-100 shadow-inner">
-                            <input v-model="novoProd.nome" placeholder="Nome (Ex: Presunto Cru)" class="ios-input bg-gray-50">
-                            
-                            <div class="grid grid-cols-2 gap-2">
-                                <select v-model="novoProd.destinoId" class="ios-input bg-gray-50 text-[10px] font-black">
-                                    <option value="" disabled>FORNECEDOR</option>
-                                    <option v-for="f in fornecedores" :value="f.id">{{ f.nome }}</option>
-                                </select>
-                                <select v-model="novoProd.local" class="ios-input bg-gray-50 text-[10px] font-black">
-                                    <option value="" disabled>ESTOQUE/LOCAL</option>
-                                    <option v-for="r in rota" :value="r">{{ r }}</option>
-                                </select>
-                            </div>
-
-                            <div class="p-4 bg-blue-50 rounded-2xl space-y-2 border border-blue-100">
-                                <p class="text-[9px] font-black text-blue-800 uppercase italic">Regra de Conversão:</p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <input v-model="novoProd.unQ" placeholder="Unid. Contagem (Ex: un)" class="ios-input bg-white text-xs">
-                                    <input v-model="novoProd.unC" placeholder="Unid. Compra (Ex: cx)" class="ios-input bg-white text-xs">
-                                </div>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div class="relative">
-                                        <input v-model.number="novoProd.meta" type="number" class="ios-input bg-white text-xs" placeholder="Meta Mínima">
-                                        <span class="absolute -top-1 left-2 text-[7px] font-black text-gray-400">META EM {{ novoProd.unQ }}</span>
-                                    </div>
-                                    <div class="relative">
-                                        <input v-model.number="novoProd.fator" type="number" class="ios-input bg-white text-xs" placeholder="Qtd por Caixa">
-                                        <span class="absolute -top-1 left-2 text-[7px] font-black text-gray-400">UNID POR {{ novoProd.unC }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button @click="adicionarProduto" class="ios-btn bg-[#008C45] text-white w-full text-xs shadow-lg">Cadastrar no Sistema</button>
+                        <input v-model="novoProd.nome" placeholder="Nome do Produto" class="ios-input">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select v-model="novoProd.destinoId" class="ios-input text-[10px]">
+                                <option value="" disabled>FORNECEDOR</option>
+                                <option v-for="f in fornecedores" :value="f.id">{{ f.nome }}</option>
+                            </select>
+                            <select v-model="novoProd.local" class="ios-input text-[10px]">
+                                <option value="" disabled>LOCAL</option>
+                                <option v-for="r in rota" :value="r">{{ r }}</option>
+                            </select>
                         </div>
+                        <div class="grid grid-cols-2 gap-2 p-3 bg-gray-50 rounded-2xl">
+                            <input v-model.number="novoProd.meta" type="number" placeholder="Meta" class="ios-input bg-white text-xs">
+                            <input v-model.number="novoProd.fator" type="number" placeholder="Qtd p/ Caixa" class="ios-input bg-white text-xs">
+                        </div>
+                        <button @click="adicionarProduto" class="ios-btn bg-[#008C45] text-white w-full text-xs">Salvar Insumo</button>
                     </div>
                 </div>
 
-                <div class="glass-card overflow-hidden">
-                    <div @click="menuAberto = menuAberto === 'equipe' ? null : 'equipe'" class="p-5 flex justify-between items-center font-bold bg-white">
-                        <span class="text-xs uppercase tracking-widest">👥 Gestão de Equipa</span>
-                        <span>{{ menuAberto === 'equipe' ? '−' : '+' }}</span>
-                    </div>
-                    <div v-if="menuAberto === 'equipe'" class="p-5 bg-gray-50 border-t space-y-4">
-                        <div v-for="u in equipe" :key="u.id" class="p-4 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-3">
-                            <div class="flex justify-between items-center">
-                                <span class="font-black text-sm uppercase italic">{{ u.nome }}</span>
-                                <span class="text-[8px] font-black text-gray-300 uppercase">PIN: {{ u.pin }}</span>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1">
-                                <label v-for="b in ['Sacolão', 'Limpeza', 'Gelo', 'Geral']" class="flex flex-col items-center justify-center p-2 bg-gray-50 rounded-xl">
-                                    <span class="text-[7px] font-black uppercase mb-1">{{ b }}</span>
-                                    <input type="checkbox" :value="b" v-model="u.modulos" @change="saveData" class="w-3 h-3 accent-green-600">
-                                </label>
-                            </div>
-                            <div class="flex gap-2">
-                                <button v-for="c in ['Colaborador', 'Gerente', 'ADM']" @click="mudarCargo(u, c)" :class="u.cargo === c ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'" class="flex-1 py-1 rounded-lg text-[7px] font-black uppercase">{{ c }}</button>
-                            </div>
+                <div class="glass-card p-6">
+                    <h3 class="text-[10px] font-black uppercase mb-4 text-gray-400">Equipa e Acessos</h3>
+                    <div v-for="u in equipe" :key="u.id" class="p-4 bg-gray-50 rounded-2xl mb-2 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-black text-xs">{{ u.nome }}</span>
+                            <span class="text-[8px] bg-white px-2 py-1 rounded-full border">{{ u.cargo }}</span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <label v-for="b in ['Sacolão', 'Limpeza', 'Gelo', 'Geral']" class="flex flex-col items-center justify-center p-1 bg-white rounded-lg border">
+                                <span class="text-[6px] font-black uppercase">{{ b }}</span>
+                                <input type="checkbox" :value="b" v-model="u.modulos" @change="saveData" class="w-3 h-3 accent-green-600">
+                            </label>
                         </div>
                     </div>
                 </div>
