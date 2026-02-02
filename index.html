@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/008C45/FFFFFF?text=Artigiano">
     <title>Artigiano Gestão</title>
     
     <link rel="stylesheet" href="styles.css">
@@ -13,89 +14,88 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
-<body class="bg-cream">
+<body class="bg-[#F4F4F4]">
     <div id="app" v-cloak>
         
-        <div id="watchdog" v-if="loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
+        <div v-if="loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
             <div class="loader-italy"></div>
-            <p class="mt-4 text-gray-500 italic">Carregando Artigiano...</p>
             <button v-if="showForcedEnter" @click="loading = false" class="mt-8 px-6 py-2 bg-red-600 text-white rounded-full font-bold">ENTRAR FORÇADO</button>
         </div>
 
         <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-6">
-            <div class="w-full max-w-sm glass-card p-8 text-center">
-                <h1 class="text-2xl font-bold text-basil mb-6">Artigiano <span class="text-pomodoro">Gestão</span></h1>
-                <input type="password" v-model="pinInput" placeholder="PIN ADM" class="ios-input mb-4 text-center text-2xl tracking-widest" maxlength="4">
-                <button @click="login" class="ios-btn bg-basil w-full text-white">Acessar Sistema</button>
+            <div class="w-full max-w-sm glass-card p-8 text-center" :class="{ 'shake-error': loginError }">
+                <h1 class="text-2xl font-bold text-[#008C45] mb-6">Artigiano <span class="text-[#CD212A]">Gestão</span></h1>
+                <input type="password" v-model="pinInput" placeholder="••••" class="ios-input text-center text-3xl tracking-[15px] mb-4" :class="{ 'error-border': loginError }" maxlength="4" inputmode="numeric">
+                <button @click="login" class="ios-btn bg-[#008C45] w-full text-white">Acessar Painel</button>
             </div>
         </div>
 
-        <main v-if="authenticated" class="pb-20">
-            <header class="p-6 pt-12 glass-nav sticky top-0 z-40 mb-6">
-                <h2 class="text-2xl font-bold">Benvenuti, Gabriel</h2>
-                <p class="text-sm opacity-70">Controle de Estoque e Logística</p>
+        <main v-if="authenticated" class="pb-24">
+            <header class="p-6 pt-12 glass-nav sticky top-0 z-40 mb-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold">📦 Gestão de Estoque</h2>
+                <p class="text-xs opacity-60">{{ dataAtualFormatada }} | Meta: {{ metaHoje }}</p>
             </header>
 
-            <div class="px-4 space-y-6">
-                <section class="glass-card p-4">
-                    <h3 class="font-bold text-lg mb-4 flex justify-between items-center">
-                        Contagem de Itens
-                        <span class="text-xs bg-basil text-white px-2 py-1 rounded-full">Total Consolidado</span>
-                    </h3>
-                    <div v-for="item in estoque" :key="item.id" class="mb-4 border-b border-gray-100 pb-4">
-                        <div class="flex justify-between font-medium">
-                            <span>{{ item.nome }}</span>
-                            <span class="text-pomodoro font-bold">{{ calcularSoma(item) }} {{ item.unidade }}</span>
+            <div class="px-4 space-y-4">
+                <div class="glass-card p-4">
+                    <h3 class="font-bold mb-4 flex justify-between">Contagem Multi-Local</h3>
+                    <div v-for="item in estoque" :key="item.id" class="mb-6 p-3 bg-white/50 rounded-xl">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold text-gray-800">{{ item.nome }}</span>
+                            <span class="text-sm px-2 py-1 bg-gray-100 rounded-lg">Fator: {{ item.fatorConversao }}x</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div class="grid grid-cols-2 gap-3">
                             <input type="number" v-model="item.locais.geladeira" placeholder="Geladeira" class="ios-input-small">
                             <input type="number" v-model="item.locais.freezer" placeholder="Freezer" class="ios-input-small">
                         </div>
-                    </div>
-                    <button @click="confirmarContagem" class="ios-btn bg-basil w-full text-white mt-4">Confirmar e Vibrar</button>
-                </section>
-
-                <section class="glass-card overflow-hidden">
-                    <div @click="toggleSetor('config')" class="p-4 bg-gray-50 flex justify-between items-center cursor-pointer">
-                        <span class="font-bold">Painel de Configurações</span>
-                        <span>{{ setores.config ? '−' : '+' }}</span>
-                    </div>
-                    
-                    <div v-show="setores.config" class="p-4 space-y-4">
-                        <div class="border-l-4 border-basil pl-3">
-                            <h4 class="font-bold text-sm uppercase">Editar Produtos</h4>
-                            <div v-for="item in estoque" class="mt-3 flex gap-2">
-                                <input v-model="item.nome" class="ios-input-small flex-1 text-xs">
-                                <select v-model="item.fornecedor" class="ios-input-small text-xs">
-                                    <option v-for="f in fornecedores" :value="f">{{ f }}</option>
-                                </select>
-                                <button @click="removerItem(item)" class="text-pomodoro">✕</button>
-                            </div>
+                        <div class="mt-3 flex justify-between text-sm">
+                            <span class="text-gray-500">Total Un: <strong>{{ somarUnidades(item) }}</strong></span>
+                            <span class="text-[#CD212A] font-bold">Para Compra: {{ calcularCompra(item) }}</span>
                         </div>
                     </div>
-                </section>
+                </div>
+
+                <div class="glass-card overflow-hidden">
+                    <div @click="toggleSetor('adm')" class="p-4 bg-gray-50 flex justify-between font-bold">
+                        <span>Painel Administrativo</span>
+                        <span>{{ setores.adm ? '−' : '+' }}</span>
+                    </div>
+                    <div v-show="setores.adm" class="p-4 space-y-4">
+                        <div v-for="item in estoque" class="flex items-center gap-2 border-b pb-2">
+                            <input v-model="item.nome" class="flex-1 text-sm p-1 border-b">
+                            <select v-model="item.fornecedor" class="text-xs p-1">
+                                <option v-for="f in fornecedores" :value="f">{{ f }}</option>
+                            </select>
+                            <button @click="removerItem(item)" class="text-red-500 p-2">✕</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <nav class="fixed bottom-0 left-0 right-0 h-16 glass-nav border-t border-gray-200 flex justify-around items-center px-4">
-                <button class="text-basil font-bold">Estoque</button>
-                <button @click="abrirTermos" class="text-gray-400">Termos</button>
-                <button @click="authenticated = false" class="text-pomodoro">Sair</button>
+            <div class="fixed bottom-20 left-4 right-4">
+                <button @click="salvarFirebase" class="ios-btn bg-[#008C45] w-full text-white shadow-xl">
+                    Finalizar e Sincronizar
+                </button>
+            </div>
+
+            <nav class="fixed bottom-0 inset-x-0 h-16 glass-nav border-t flex justify-around items-center">
+                <button @click="abrirTermos" class="text-xs font-bold text-gray-400 uppercase">Termos de Uso</button>
+                <button @click="authenticated = false" class="text-xs font-bold text-[#CD212A] uppercase">Sair</button>
             </nav>
         </main>
 
-        <div v-if="modalTermos" class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-6 backdrop-blur-sm">
-            <div class="bg-white rounded-[22px] p-6 max-h-[80vh] overflow-y-auto w-full">
-                <h2 class="text-xl font-bold mb-4">Termos de Uso Profissionais</h2>
-                <div class="text-sm text-gray-600 space-y-3">
-                    <p><strong>1. Suporte Técnico:</strong> O desenvolvedor (Gabriel) detém a responsabilidade de suporte exclusivamente enquanto mantiver vínculo profissional ativo com a Artigiano Pizzaria.</p>
-                    <p><strong>2. Isenção de Responsabilidade:</strong> O sistema é uma ferramenta de auxílio. O desenvolvedor isenta-se de qualquer responsabilidade sobre divergências em valores financeiros, conferência física de pedidos ou erros de logística causados por inputs incorretos.</p>
-                    <p><strong>3. LGPD:</strong> Os dados aqui contidos são de uso restrito operacional.</p>
+        <div v-if="modalTermos" class="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-6 backdrop-blur-md">
+            <div class="bg-white rounded-[22px] p-6 w-full max-w-sm">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2">Termos Profissionais</h2>
+                <div class="text-xs text-gray-500 space-y-2 leading-relaxed h-48 overflow-y-auto">
+                    <p>O desenvolvedor <strong>Gabriel</strong> detém a responsabilidade de suporte exclusivamente durante seu vínculo com a Artigiano Pizzaria.</p>
+                    <p>Fica estabelecida a <strong>isenção total</strong> de responsabilidade sobre conferência de pedidos, valores financeiros ou erros de logística.</p>
+                    <p>O uso do PIN 1821 é de responsabilidade do administrador.</p>
                 </div>
-                <button @click="modalTermos = false" class="ios-btn bg-gray-200 w-full mt-6">Fechar</button>
+                <button @click="modalTermos = false" class="ios-btn bg-gray-100 w-full mt-4">Entendi</button>
             </div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

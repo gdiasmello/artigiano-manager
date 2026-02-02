@@ -1,75 +1,79 @@
 :root {
     --basil: #008C45;
     --pomodoro: #CD212A;
-    --cream: #F4F4F4;
     --ios-radius: 22px;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--cream);
-    color: #1c1c1e;
-    -webkit-tap-highlight-color: transparent;
 }
 
 [v-cloak] { display: none; }
 
-/* Design Glassmorphism */
+body {
+    font-family: -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+
 .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border-radius: var(--ios-radius);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .glass-nav {
-    background: rgba(244, 244, 244, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
 }
 
-/* iOS Inputs & Buttons */
 .ios-input {
     width: 100%;
-    padding: 14px;
-    background: #ebebeb;
-    border-radius: 12px;
-    border: none;
-    outline: none;
+    padding: 18px;
+    background: #f1f1f1;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ios-input-small {
-    padding: 8px 12px;
-    background: #f1f1f1;
+    width: 100%;
+    padding: 10px;
+    background: #f8f8f8;
     border-radius: 10px;
-    border: 1px solid #ddd;
-    font-size: 14px;
+    border: 1px solid #e5e5e5;
+}
+
+.error-border {
+    border-color: var(--pomodoro) !important;
+    background-color: #fff5f5 !important;
 }
 
 .ios-btn {
     padding: 16px;
     border-radius: 16px;
-    font-weight: 600;
-    transition: transform 0.1s ease;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    transition: transform 0.1s;
 }
 
-.ios-btn:active {
-    transform: scale(0.97);
+.ios-btn:active { transform: scale(0.96); }
+
+/* Animação Erro Login */
+.shake-error {
+    animation: shake 0.4s both;
 }
 
-/* Loader personalizado */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
 .loader-italy {
-    width: 48px;
-    height: 48px;
+    width: 50px; height: 50px;
     border: 5px solid var(--basil);
     border-bottom-color: var(--pomodoro);
     border-radius: 50%;
-    animation: rotation 1s linear infinite;
+    animation: spin 1s linear infinite;
 }
-
-@keyframes rotation {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
