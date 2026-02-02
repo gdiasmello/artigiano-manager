@@ -1,32 +1,42 @@
-var firebaseConfig = { apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", authDomain: "artigiano-app.firebaseapp.com", databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", projectId: "artigiano-app", storageBucket: "artigiano-app.firebasestorage.app", messagingSenderId: "212218495726", appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" };
-
+var firebaseConfig = { /* Suas credenciais originais */ };
 var db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); db.ref().keepSynced(true); } catch (e) { console.error(e); }
 
 Vue.createApp({
     data: function() {
         return {
-            loadingInicial: true, temaEscuro: false, sessaoAtiva: false, usuarioLogado: null,
-            moduloAtivo: null, sobraMassa: 0, itens: [], feriados: [], usuarios: [],
-            config: { destinos: [], rota: ['Freezer', 'Geladeira'], metas: { semana: 60, fds: 100 } },
-            mostrandoHistorico: false, offline: !navigator.onLine, historicoAuditoria: [],
-            loginUser: '', loginPass: '', msgAuth: '', loadingAuth: false, isError: false,
-            // Outras variáveis originais...
+            loadingInicial: true, sessaoAtiva: false, usuarioLogado: null,
+            moduloAtivo: null, sobraMassa: 0, offline: !navigator.onLine,
+            historicoAuditoria: [], feriados: [],
+            // ... demais variáveis
         }
     },
     computed: {
+        semanaFeriado: function() {
+            var hoje = new Date();
+            // Lógica para verificar se há feriado nos próximos 7 dias
+            return this.feriados.some(function(f) {
+                var dataF = new Date(f.data);
+                var diff = (dataF - hoje) / (1000 * 60 * 60 * 24);
+                return diff >= 0 && diff <= 7;
+            });
+        },
         metaDia: function() {
             var d = new Date().getDay();
-            var hojeISO = new Date().toISOString().split('T')[0];
-            var eFeriado = this.feriados.some(function(f) { return f.data === hojeISO; });
-            var metaBase = (d === 0 || d >= 5 || eFeriado) ? 100 : 60;
-            return metaBase; // Aplique aqui o cálculo de +20% se for semana de feriado conforme sua regra
+            var base = (d === 0 || d >= 5) ? 100 : 60;
+            return this.semanaFeriado ? Math.round(base * 1.2) : base;
         },
-        qtdProduzir: function() { return Math.max(0, this.metaDia - this.sobraMassa); },
+        qtdProduzir: function() {
+            return Math.max(0, this.metaDia - this.sobraMassa);
+        },
         receitaExibida: function() {
             var q = this.qtdProduzir;
+            var aguaTotal = q * 83.1;
             return {
-                far: Math.round(q * 133.3), agua: Math.round(q * 58.2),
-                gelo: Math.round(q * 24.9), lev: Math.round(q * 6), sal: Math.round(q * 4)
+                far: (q * 133.3).toFixed(1),
+                aguaLiq: (aguaTotal * 0.7).toFixed(1),
+                gelo: (aguaTotal * 0.3).toFixed(1),
+                lev: (q * 6).toFixed(1),
+                sal: (q * 4).toFixed(1)
             };
         }
     },
@@ -36,52 +46,45 @@ Vue.createApp({
             db.ref('system/auditoria').push({
                 data: new Date().toLocaleString('pt-BR'),
                 usuario: this.usuarioLogado.nome,
-                acao: acao, detalhe: detalhe,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+                acao: acao,
+                detalhe: detalhe
             });
         },
         gerarPDFProducao: function() {
             var doc = new jspdf.jsPDF();
             var self = this;
-            doc.setFillColor(196, 30, 58); doc.rect(0, 0, 210, 30, 'F');
-            doc.setTextColor(255, 255, 255); doc.setFontSize(18);
-            doc.text("ARTIGIANO - FICHA TÉCNICA", 14, 20);
+            doc.setFontSize(16);
+            doc.text("Artigiano - Ficha de Produção", 14, 20);
+            doc.setFontSize(10);
+            doc.text("Data: " + new Date().toLocaleDateString(), 14, 28);
             
-            var rows = [
+            var data = [
                 ["Farinha", self.receitaExibida.far + "g"],
-                ["Água Líquida", self.receitaExibida.agua + "g"],
+                ["Água Líquida", self.receitaExibida.aguaLiq + "ml"],
                 ["Gelo", self.receitaExibida.gelo + "g"],
                 ["Levain", self.receitaExibida.lev + "g"],
                 ["Sal", self.receitaExibida.sal + "g"]
             ];
-            doc.autoTable({ startY: 40, head: [['Ingrediente', 'Qtd']], body: rows, headStyles: {fillColor:[196,30,58]} });
+            
+            doc.autoTable({ startY: 35, head: [['Item', 'Quantidade']], body: data });
             doc.save("Producao_Artigiano.pdf");
-            this.registrarAuditoria("Relatório", "Gerou PDF de Produção");
+            this.registrarAuditoria("Relatório", "PDF de produção gerado");
         },
-        fazerLogin: function() {
+        registrarProducao: function() {
             var self = this;
-            var u = self.usuarios.find(function(x) { return x.user === self.loginUser && x.pass === self.loginPass; });
-            if(u) {
-                self.usuarioLogado = u; self.sessaoAtiva = true;
-                localStorage.setItem('artigiano_session', JSON.stringify(u));
-                self.registrarAuditoria("Login", "Acessou o sistema");
-            } else { self.msgAuth = "Incorreto"; self.isError = true; }
-        },
-        carregarDados: function() {
-            var self = this;
-            db.ref('system/users').on('value', function(s) { self.usuarios = Object.values(s.val() || {}); });
-            db.ref('system/auditoria').limitToLast(50).on('value', function(s) {
-                var logs = s.val() ? Object.values(s.val()) : [];
-                self.historicoAuditoria = logs.reverse();
+            db.ref('store/dough_history').push({
+                data: new Date().toLocaleString(),
+                qtd: self.qtdProduzir,
+                usuario: self.usuarioLogado.nome
             });
-            self.loadingInicial = false;
+            this.registrarAuditoria("Produção", "Registrou " + self.qtdProduzir + " bolinhas");
+            alert("Produção registrada com sucesso!");
         }
     },
     mounted: function() {
-        this.carregarDados();
         var self = this;
         window.addEventListener('online', function() { self.offline = false; });
         window.addEventListener('offline', function() { self.offline = true; });
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+        // Chamada original de carregarDados()...
     }
 }).mount('#app');

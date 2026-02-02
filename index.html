@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master V60</title>
+    <title>Artigiano Gestão V60.6</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=60">
+    <link rel="stylesheet" href="styles.css?v=60.6">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -21,76 +21,67 @@
 <body>
 
 <div id="app" v-cloak>
-    <div v-if="mostrandoAjuda" class="modal-backdrop help-modal"><div class="modal-window"><div class="modal-top"><h3>Ajuda</h3></div><div class="modal-content help-content"><p v-html="textoAjuda"></p><button class="btn-primary full" @click="mostrandoAjuda = false">OK</button></div></div></div>
-    
-    <div v-if="mostrandoTermos" class="modal-backdrop terms-modal">
-        <div class="modal-window large">
-            <div class="modal-top"><h3>Termos de Uso</h3></div>
-            <div class="modal-content terms-content">
-                <div class="terms-text">
-                    <h4>1. Licença de Uso</h4>
-                    <p>Este software é concedido para uso exclusivo na <strong>Artigiano</strong>.</p>
-                    <h4>2. Suporte Técnico (Cláusula Gabriel)</h4>
-                    <p>O suporte, manutenção e atualizações deste sistema serão fornecidos pelo desenvolvedor (Gabriel) <strong>exclusivamente durante a vigência de seu vínculo profissional</strong>.</p>
-                </div>
-                <button class="btn-primary full" @click="aceitarTermos" style="margin-top:15px;">LI E CONCORDO</button>
-            </div>
-        </div>
-    </div>
-    
-    <div v-if="loadingInicial" class="loading-screen"><div class="spinner-container"><i class="fas fa-pizza-slice fa-spin"></i><p>Conectando...</p><button @click="loadingInicial = false" class="btn-force">Entrar forçado</button></div></div>
-
-    <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial && !mostrandoTermos">
-        <div class="auth-box animated-up">
-            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão V60</p></div>
-            <div class="form-group">
-                <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário"></div>
-                <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha"></div>
-                <button class="btn-primary" @click="fazerLogin" :disabled="loadingAuth">ACESSAR</button>
-            </div>
-            <p v-if="msgAuth" class="msg-box" :class="{error: isError}">{{ msgAuth }}</p>
+    <div v-if="loadingInicial" class="loading-screen">
+        <div class="spinner-container">
+            <i class="fas fa-pizza-slice fa-spin"></i>
+            <p>Conectando Artigiano...</p>
+            <button @click="loadingInicial = false" class="btn-force">Entrada Forçada</button>
         </div>
     </div>
 
-    <div v-else-if="sessaoAtiva && !mostrandoTermos" class="app-layout">
+    <div v-else-if="sessaoAtiva" class="app-layout">
         <header class="app-header">
             <div class="user-pill" @click="mostrandoConfig = true">
                 <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
-                <div class="info"><span class="name">{{ usuarioLogado.nome }}</span><span class="role">{{ usuarioLogado.cargo }}</span></div>
+                <div class="info">
+                    <span class="name">{{ usuarioLogado.nome }}</span>
+                    <span class="role">{{ usuarioLogado.cargo }}</span>
+                </div>
             </div>
             <div class="header-actions">
-                <i v-if="offline" class="fas fa-wifi-slash" style="color: #ffb300; margin-right: 15px;"></i>
-                <button class="action-btn" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
-                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="action-btn admin"><i class="fas fa-users-cog"></i></button>
+                <i v-if="offline" class="fas fa-wifi-slash" style="color: #ffb300; margin-right: 10px;"></i>
+                <button class="action-btn" @click="alternarTema">
+                    <i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i>
+                </button>
             </div>
         </header>
 
         <main class="main-content">
-            <div v-if="!moduloAtivo" class="dashboard animated-fade">
-                <div class="dash-card producao" @click="abrirModulo('producao')"><div class="icon-circle"><i class="fas fa-bread-slice"></i></div><span>Massas & POP</span></div>
-                <div class="dash-card horti" @click="abrirModulo('hortifruti')"><div class="icon-circle"><i class="fas fa-carrot"></i></div><span>Hortifruti</span></div>
-                <div class="dash-card geral" @click="abrirModulo('geral')"><div class="icon-circle"><i class="fas fa-box-open"></i></div><span>Geral</span></div>
-                <div class="dash-card bebidas" @click="abrirModulo('bebidas')"><div class="icon-circle"><i class="fas fa-wine-bottle"></i></div><span>Bebidas</span></div>
-                <div class="dash-card limpeza" @click="abrirModulo('limpeza')"><div class="icon-circle"><i class="fas fa-broom"></i></div><span>Limpeza</span></div>
-                <div class="dash-card history" @click="mostrandoHistorico = true"><div class="icon-circle"><i class="fas fa-clock-rotate-left"></i></div><span>Histórico</span></div>
-            </div>
-
-            <div v-else-if="moduloAtivo === 'producao'" class="module-view animated-fade">
-                <div class="view-header"><button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button><h2>Ficha Técnica</h2></div>
+            <div v-if="moduloAtivo === 'producao'" class="module-view animated-fade">
+                <div class="view-header">
+                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button>
+                    <h2>Ficha Técnica</h2>
+                </div>
+                
                 <div class="config-box calc-box">
-                    <div class="calc-header"><div><h4><i class="fas fa-calculator"></i> Calculadora</h4><small>{{ nomeDiaSemana }}</small></div><div class="stock-input"><label>Sobrou:</label><input type="number" v-model.number="sobraMassa"></div></div>
-                    <div class="result-display"><span>A PRODUZIR:</span><h1>{{ qtdProduzir }} <small>bolinhas</small></h1></div>
-                    
+                    <div class="calc-header">
+                        <div>
+                            <h4>Calculadora</h4>
+                            <small>{{ nomeDiaSemana }} <span v-if="semanaFeriado">(+20% Meta)</span></small>
+                        </div>
+                        <div class="stock-input">
+                            <label>Sobrou:</label>
+                            <input type="number" v-model.number="sobraMassa" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div class="result-display">
+                        <span>A PRODUZIR:</span>
+                        <h1>{{ qtdProduzir }} <small>bolinhas</small></h1>
+                    </div>
+
                     <div class="recipe-table" v-if="qtdProduzir > 0">
                         <div class="r-row"><span>Farinha</span><strong>{{ receitaExibida.far }}g</strong></div>
-                        <div class="r-row"><span>Água Líquida</span><strong>{{ receitaExibida.agua }}g</strong></div>
-                        <div class="r-row"><span>Gelo</span><strong>{{ receitaExibida.gelo }}g</strong></div>
+                        <div class="r-row"><span>Água (70%)</span><strong>{{ receitaExibida.aguaLiq }}ml</strong></div>
+                        <div class="r-row"><span>Gelo (30%)</span><strong>{{ receitaExibida.gelo }}g</strong></div>
                         <div class="r-row"><span>Levain</span><strong>{{ receitaExibida.lev }}g</strong></div>
                         <div class="r-row"><span>Sal</span><strong>{{ receitaExibida.sal }}g</strong></div>
                         
-                        <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button class="btn-primary" style="flex: 2;" @click="registrarProducao"><i class="fas fa-save"></i> Registrar</button>
-                            <button class="btn-zap" style="flex: 1; background: #374151;" @click="gerarPDFProducao"><i class="fas fa-file-pdf"></i> PDF</button>
+                        <div style="display: flex; gap: 8px; margin-top: 15px;">
+                            <button class="btn-primary" style="flex: 2;" @click="registrarProducao">REGISTRAR</button>
+                            <button class="btn-zap" style="flex: 1; background: #4b5563;" @click="gerarPDFProducao">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -98,20 +89,8 @@
             
             </main>
     </div>
-
-    <div class="modal-backdrop" v-if="mostrandoHistorico">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Logs & Auditoria</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
-            <div class="modal-content">
-                <div v-for="h in historicoAuditoria" class="history-card">
-                    <div class="h-header"><span>{{ h.data }}</span><strong>{{ h.usuario }}</strong></div>
-                    <div class="h-body"><strong>{{ h.acao }}:</strong> {{ h.detalhe }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
-<script src="script.js?v=60"></script>
+<script src="script.js?v=60.6"></script>
 </body>
 </html>
