@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Artigiano Gestão</title>
+    
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body class="bg-cream">
+    <div id="app" v-cloak>
+        
+        <div id="watchdog" v-if="loading" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
+            <div class="loader-italy"></div>
+            <p class="mt-4 text-gray-500 italic">Carregando Artigiano...</p>
+            <button v-if="showForcedEnter" @click="loading = false" class="mt-8 px-6 py-2 bg-red-600 text-white rounded-full font-bold">ENTRAR FORÇADO</button>
+        </div>
+
+        <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-6">
+            <div class="w-full max-w-sm glass-card p-8 text-center">
+                <h1 class="text-2xl font-bold text-basil mb-6">Artigiano <span class="text-pomodoro">Gestão</span></h1>
+                <input type="password" v-model="pinInput" placeholder="PIN ADM" class="ios-input mb-4 text-center text-2xl tracking-widest" maxlength="4">
+                <button @click="login" class="ios-btn bg-basil w-full text-white">Acessar Sistema</button>
+            </div>
+        </div>
+
+        <main v-if="authenticated" class="pb-20">
+            <header class="p-6 pt-12 glass-nav sticky top-0 z-40 mb-6">
+                <h2 class="text-2xl font-bold">Benvenuti, Gabriel</h2>
+                <p class="text-sm opacity-70">Controle de Estoque e Logística</p>
+            </header>
+
+            <div class="px-4 space-y-6">
+                <section class="glass-card p-4">
+                    <h3 class="font-bold text-lg mb-4 flex justify-between items-center">
+                        Contagem de Itens
+                        <span class="text-xs bg-basil text-white px-2 py-1 rounded-full">Total Consolidado</span>
+                    </h3>
+                    <div v-for="item in estoque" :key="item.id" class="mb-4 border-b border-gray-100 pb-4">
+                        <div class="flex justify-between font-medium">
+                            <span>{{ item.nome }}</span>
+                            <span class="text-pomodoro font-bold">{{ calcularSoma(item) }} {{ item.unidade }}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <input type="number" v-model="item.locais.geladeira" placeholder="Geladeira" class="ios-input-small">
+                            <input type="number" v-model="item.locais.freezer" placeholder="Freezer" class="ios-input-small">
+                        </div>
+                    </div>
+                    <button @click="confirmarContagem" class="ios-btn bg-basil w-full text-white mt-4">Confirmar e Vibrar</button>
+                </section>
+
+                <section class="glass-card overflow-hidden">
+                    <div @click="toggleSetor('config')" class="p-4 bg-gray-50 flex justify-between items-center cursor-pointer">
+                        <span class="font-bold">Painel de Configurações</span>
+                        <span>{{ setores.config ? '−' : '+' }}</span>
+                    </div>
+                    
+                    <div v-show="setores.config" class="p-4 space-y-4">
+                        <div class="border-l-4 border-basil pl-3">
+                            <h4 class="font-bold text-sm uppercase">Editar Produtos</h4>
+                            <div v-for="item in estoque" class="mt-3 flex gap-2">
+                                <input v-model="item.nome" class="ios-input-small flex-1 text-xs">
+                                <select v-model="item.fornecedor" class="ios-input-small text-xs">
+                                    <option v-for="f in fornecedores" :value="f">{{ f }}</option>
+                                </select>
+                                <button @click="removerItem(item)" class="text-pomodoro">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <nav class="fixed bottom-0 left-0 right-0 h-16 glass-nav border-t border-gray-200 flex justify-around items-center px-4">
+                <button class="text-basil font-bold">Estoque</button>
+                <button @click="abrirTermos" class="text-gray-400">Termos</button>
+                <button @click="authenticated = false" class="text-pomodoro">Sair</button>
+            </nav>
+        </main>
+
+        <div v-if="modalTermos" class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-6 backdrop-blur-sm">
+            <div class="bg-white rounded-[22px] p-6 max-h-[80vh] overflow-y-auto w-full">
+                <h2 class="text-xl font-bold mb-4">Termos de Uso Profissionais</h2>
+                <div class="text-sm text-gray-600 space-y-3">
+                    <p><strong>1. Suporte Técnico:</strong> O desenvolvedor (Gabriel) detém a responsabilidade de suporte exclusivamente enquanto mantiver vínculo profissional ativo com a Artigiano Pizzaria.</p>
+                    <p><strong>2. Isenção de Responsabilidade:</strong> O sistema é uma ferramenta de auxílio. O desenvolvedor isenta-se de qualquer responsabilidade sobre divergências em valores financeiros, conferência física de pedidos ou erros de logística causados por inputs incorretos.</p>
+                    <p><strong>3. LGPD:</strong> Os dados aqui contidos são de uso restrito operacional.</p>
+                </div>
+                <button @click="modalTermos = false" class="ios-btn bg-gray-200 w-full mt-6">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

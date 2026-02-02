@@ -1,51 +1,75 @@
 :root {
-    --ios-green: #008C45;
-    --ios-red: #CD212A;
-    --ios-white: #F4F4F4;
-    --ios-bg: #F2F2F7;
-    --glass: rgba(255, 255, 255, 0.7);
+    --basil: #008C45;
+    --pomodoro: #CD212A;
+    --cream: #F4F4F4;
+    --ios-radius: 22px;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--ios-bg);
+    background-color: var(--cream);
     color: #1c1c1e;
-    user-select: none;
     -webkit-tap-highlight-color: transparent;
-}
-
-.bg-italy-green { background-color: var(--ios-green); }
-.bg-italy-red { background-color: var(--ios-red); }
-.text-italy-green { color: var(--ios-green); }
-.text-italy-red { color: var(--ios-red); }
-
-.glass-card {
-    background: var(--glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 22px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-}
-
-.glass-header {
-    background: rgba(244, 244, 244, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
 }
 
 [v-cloak] { display: none; }
 
-input[type="number"], input[type="text"], input[type="password"] {
-    -webkit-appearance: none;
-    border-radius: 8px;
+/* Design Glassmorphism */
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--ios-radius);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Animação suave para colapsáveis */
-.fade-enter-active, .fade-leave-active {
-    transition: opacity 0.3s ease;
+.glass-nav {
+    background: rgba(244, 244, 244, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
-.fade-enter-from, .fade-leave-to {
-    opacity: 0;
+
+/* iOS Inputs & Buttons */
+.ios-input {
+    width: 100%;
+    padding: 14px;
+    background: #ebebeb;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+}
+
+.ios-input-small {
+    padding: 8px 12px;
+    background: #f1f1f1;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.ios-btn {
+    padding: 16px;
+    border-radius: 16px;
+    font-weight: 600;
+    transition: transform 0.1s ease;
+}
+
+.ios-btn:active {
+    transform: scale(0.97);
+}
+
+/* Loader personalizado */
+.loader-italy {
+    width: 48px;
+    height: 48px;
+    border: 5px solid var(--basil);
+    border-bottom-color: var(--pomodoro);
+    border-radius: 50%;
+    animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
