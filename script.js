@@ -9,16 +9,14 @@ var firebaseConfig = {
 };
 
 var db;
-try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
+try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch(e) { console.error(e); }
 
 var app = Vue.createApp({
     data: function() {
         return {
-            loadingInicial: true, temaEscuro: false,
-            loginUser: '', loginPass: '', sessaoAtiva: false, usuarioLogado: null,
-            moduloAtivo: null, loteSelecionado: 45,
-            itens: [], usuarios: [], 
-            config: { destinos: [], rota: ['Freezer', 'Geladeira'] }
+            sessaoAtiva: false, moduloAtivo: null, temaEscuro: false,
+            loginUser: '', loginPass: '', usuarioLogado: null,
+            itens: [], usuarios: [], config: { destinos: [], rota: ['Geral'] }
         };
     },
     computed: {
@@ -32,52 +30,38 @@ var app = Vue.createApp({
             var self = this;
             db.ref('store/products').on('value', function(s) {
                 var list = [];
-                s.forEach(function(child) {
-                    var item = child.val(); item.id = child.key;
-                    list.push(item);
-                });
+                s.forEach(function(c) { var item = c.val(); item.id = c.key; list.push(item); });
                 self.itens = list;
             });
             db.ref('system/users').on('value', function(s) {
                 var u = []; s.forEach(function(c){ u.push(c.val()); });
                 self.usuarios = u;
-                self.loadingInicial = false;
             });
             db.ref('system/config').on('value', function(s) { if(s.val()) self.config = s.val(); });
         },
         fazerLogin: function() {
             var self = this;
-            var user = this.usuarios.find(function(u) { return u.user === self.loginUser && u.pass === self.loginPass; });
-            if (user) {
-                this.usuarioLogado = user;
-                this.sessaoAtiva = true;
-                localStorage.setItem('artigiano_session', JSON.stringify(user));
-            } else { alert("Acesso negado!"); }
+            var u = this.usuarios.find(function(x){ return x.user === self.loginUser && x.pass === self.loginPass; });
+            if(u) { self.sessaoAtiva = true; self.usuarioLogado = u; } else { alert("Erro de acesso!"); }
         },
         salvarContagem: function(id, local, valor) {
             db.ref('store/products/' + id + '/contagem/' + local).set(valor);
         },
         enviarZap: function(destino) {
             var self = this;
-            var texto = "*PEDIDO ARTIGIANO - " + this.moduloAtivo.toUpperCase() + "*\n\n";
-            this.itensFiltrados.forEach(function(item) {
+            var texto = "*PEDIDO ARTIGIANO*\n\n";
+            this.itensFiltrados.forEach(function(i) {
                 var estoque = 0;
-                for (var l in item.contagem) { estoque += parseFloat(item.contagem[l] || 0); }
-                if (estoque < item.meta) {
-                    texto += "• " + item.nome + ": " + (item.meta - estoque) + " " + item.unC + "\n";
+                for (var l in i.contagem) { estoque += parseFloat(i.contagem[l] || 0); }
+                if (estoque < i.meta) {
+                    texto += "• " + i.nome + ": " + (i.meta - estoque) + " " + i.unC + "\n";
                 }
             });
             window.open("https://api.whatsapp.com/send?phone=" + destino.numero + "&text=" + encodeURIComponent(texto));
         },
-        logout: function() { 
-            localStorage.removeItem('artigiano_session');
-            location.reload(); 
-        }
+        alternarTema: function() { this.temaEscuro = !this.temaEscuro; },
+        logout: function() { location.reload(); }
     },
-    mounted: function() {
-        this.carregarDados();
-        var session = localStorage.getItem('artigiano_session');
-        if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
-    }
+    mounted: function() { this.carregarDados(); }
 });
 app.mount('#app');

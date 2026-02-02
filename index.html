@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano Pro V60</title>
+    <title>Artigiano V60</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -13,94 +13,70 @@
 <body :class="{'dark-mode': temaEscuro}">
 <div id="app" v-cloak>
 
-    <div v-if="loadingInicial" class="ios-loading">
-        <i class="fas fa-pizza-slice fa-spin"></i>
-        <p>L'Artigiano Gestione...</p>
-    </div>
-
-    <div v-else-if="!sessaoAtiva" class="login-container">
-        <div class="login-card">
-            <div class="italy-stripe"></div>
-            <i class="fas fa-pizza-slice logo-icon"></i>
-            <h1>Artigiano</h1>
-            <p>Controle de Estoque e Produção</p>
-            <div class="login-form">
-                <input v-model="loginUser" placeholder="Usuário" class="ios-input">
-                <input v-model="loginPass" type="password" placeholder="Senha" class="ios-input">
-                <button @click="fazerLogin" class="btn-entrar">ENTRAR</button>
-            </div>
+    <div v-if="!sessaoAtiva" class="modal-overlay">
+        <div class="modal-box" style="text-align: center;">
+            <i class="fas fa-pizza-slice fa-3x" style="color: var(--ios-red);"></i>
+            <h2 style="margin: 20px 0;">Artigiano</h2>
+            <input v-model="loginUser" class="btn-main" style="background: #eee; color: #000; margin-bottom: 10px;" placeholder="Usuário">
+            <input v-model="loginPass" type="password" class="btn-main" style="background: #eee; color: #000; margin-bottom: 20px;" placeholder="Senha">
+            <button @click="fazerLogin" class="btn-main btn-red">ENTRAR</button>
         </div>
     </div>
 
-    <div v-else class="app-content">
-        <header class="ios-header">
-            <div class="header-top">
-                <span class="welcome">Ciao, <b>{{ usuarioLogado.nome }}</b></span>
-                <div class="header-actions">
-                    <button @click="temaEscuro = !temaEscuro"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
-                    <button @click="logout"><i class="fas fa-sign-out-alt"></i></button>
-                </div>
+    <div v-else class="app-layout">
+        <header class="app-header">
+            <div style="font-weight: 800; font-size: 20px;">Artigiano<span>.</span></div>
+            <div style="display: flex; gap: 15px;">
+                <button @click="alternarTema" style="background:none; border:none; color:var(--ios-gray);"><i class="fas fa-moon"></i></button>
+                <button @click="logout" style="background:none; border:none; color:var(--ios-red);"><i class="fas fa-power-off"></i></button>
             </div>
-            <h1 class="page-title" v-if="!moduloAtivo">Dashboard</h1>
-            <h1 class="page-title" v-else>{{ moduloAtivo.toUpperCase() }}</h1>
         </header>
 
-        <main class="ios-main">
-            <div v-if="!moduloAtivo" class="grid-menu">
-                <div class="menu-item green" @click="moduloAtivo = 'producao'">
+        <main>
+            <div v-if="!moduloAtivo" class="dashboard-grid">
+                <div class="menu-card card-green" @click="moduloAtivo = 'producao'">
                     <i class="fas fa-calculator"></i>
-                    <span>Massas</span>
+                    <strong>Massas</strong>
                 </div>
-                <div class="menu-item red" @click="moduloAtivo = 'hortifruti'">
-                    <i class="fas fa-leaf"></i>
-                    <span>Hortifruti</span>
+                <div class="menu-card card-red" @click="moduloAtivo = 'hortifruti'">
+                    <i class="fas fa-carrot"></i>
+                    <strong>Hortifruti</strong>
                 </div>
-                <div class="menu-item green" @click="moduloAtivo = 'geral'">
+                <div class="menu-card card-green" @click="moduloAtivo = 'geral'">
                     <i class="fas fa-boxes-stacked"></i>
-                    <span>Geral</span>
+                    <strong>Geral</strong>
                 </div>
-                <div class="menu-item red" @click="moduloAtivo = 'bebidas'">
-                    <i class="fas fa-wine-glass"></i>
-                    <span>Bebidas</span>
-                </div>
-                <div v-if="usuarioLogado.permissoes.admin" class="menu-item dark" @click="moduloAtivo = 'admin'">
-                    <i class="fas fa-cog"></i>
-                    <span>Ajustes</span>
+                <div class="menu-card card-red" @click="moduloAtivo = 'bebidas'">
+                    <i class="fas fa-wine-bottle"></i>
+                    <strong>Bebidas</strong>
                 </div>
             </div>
 
-            <div v-if="moduloAtivo === 'producao'" class="module-container">
-                <button class="btn-back" @click="moduloAtivo = null"><i class="fas fa-chevron-left"></i> Voltar</button>
-                <div class="ios-card">
-                    <h3>Calculadora de Lote</h3>
-                    <select v-model="loteSelecionado" class="ios-select">
-                        <option v-for="n in [15, 30, 45, 60, 75, 90, 105]" :value="n">{{ n }} unidades</option>
-                    </select>
-                    <div class="recipe-grid">
-                        <div class="recipe-item"><span>Farinha:</span> <b>{{ (loteSelecionado * 133).toFixed(0) }}g</b></div>
-                        <div class="recipe-item"><span>Água (70%):</span> <b>{{ ((loteSelecionado * 83) * 0.7).toFixed(0) }}ml</b></div>
-                        <div class="recipe-item"><span>Gelo (30%):</span> <b>{{ ((loteSelecionado * 83) * 0.3).toFixed(0) }}g</b></div>
-                    </div>
+            <div v-else class="inventory-view">
+                <div style="padding: 20px; display: flex; align-items: center; justify-content: space-between;">
+                    <button @click="moduloAtivo = null" style="background:none; border:none; color:var(--ios-blue); font-size: 16px;">
+                        <i class="fas fa-chevron-left"></i> Voltar
+                    </button>
+                    <h2 style="margin: 0; text-transform: capitalize;">{{ moduloAtivo }}</h2>
                 </div>
-            </div>
 
-            <div v-if="['hortifruti', 'geral', 'bebidas'].includes(moduloAtivo)" class="module-container">
-                <button class="btn-back" @click="moduloAtivo = null"><i class="fas fa-chevron-left"></i> Voltar</button>
-                <div v-for="item in itensFiltrados" :key="item.id" class="inventory-card">
-                    <div class="inv-header">
+                <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
+                    <div class="item-row">
                         <strong>{{ item.nome }}</strong>
-                        <span>Meta: {{ item.meta }}</span>
+                        <span style="color: var(--ios-gray); font-size: 12px;">Meta: {{ item.meta }}</span>
                     </div>
-                    <div class="inv-inputs">
-                        <div v-for="local in config.rota" :key="local" class="input-box">
-                            <label>{{ local }}</label>
-                            <input type="number" :value="item.contagem ? item.contagem[local] : ''" 
-                                   @input="salvarContagem(item.id, local, $event.target.value)">
+                    <div class="locations-grid">
+                        <div v-for="loc in config.rota" :key="loc" class="input-group">
+                            <label>{{ loc }}</label>
+                            <input type="number" 
+                                   :value="item.contagem ? item.contagem[loc] : ''"
+                                   @input="salvarContagem(item.id, loc, $event.target.value)">
                         </div>
                     </div>
                 </div>
-                <div class="order-section">
-                    <button v-for="d in config.destinos" @click="enviarZap(d)" class="btn-whatsapp">
+
+                <div style="padding: 20px;">
+                    <button v-for="d in config.destinos" @click="enviarZap(d)" class="btn-main btn-green" style="margin-bottom: 10px;">
                         <i class="fab fa-whatsapp"></i> Pedir para {{ d.nome }}
                     </button>
                 </div>

@@ -1,42 +1,79 @@
 :root {
     --ios-green: #008C45;
     --ios-red: #C41E3A;
-    --ios-white: #FFFFFF;
     --ios-bg: #F2F2F7;
+    --ios-card: #FFFFFF;
+    --ios-text: #1C1C1E;
     --ios-gray: #8E8E93;
-    --ios-text: #000000;
+    --ios-blue: #007AFF;
 }
 
-.dark-mode {
-    --ios-bg: #1C1C1E;
-    --ios-white: #2C2C2E;
+body.dark-mode {
+    --ios-bg: #000000;
+    --ios-card: #1C1C1E;
     --ios-text: #FFFFFF;
 }
 
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: var(--ios-bg); color: var(--ios-text); transition: 0.3s; }
-[v-cloak] { display: none; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
+body { margin: 0; background: var(--ios-bg); color: var(--ios-text); }
 
-/* Header Premium */
-.ios-header { padding: 40px 20px 10px; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 0.5px solid #ccc; }
-.dark-mode .ios-header { background: rgba(28,28,30,0.8); }
-.page-title { font-size: 34px; font-weight: 800; margin: 10px 0; }
+/* Header Fixo e Alinhado */
+.app-header {
+    background: rgba(255,255,255,0.8); backdrop-filter: blur(15px);
+    position: sticky; top: 0; z-index: 1000;
+    padding: 15px 20px; border-bottom: 0.5px solid #d1d1d6;
+    display: flex; justify-content: space-between; align-items: center;
+}
 
-/* Menu em Grade Estilo iOS */
-.grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
-.menu-item { background: var(--ios-white); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-.menu-item i { font-size: 24px; margin-bottom: 12px; }
-.menu-item.green i { color: var(--ios-green); }
-.menu-item.red i { color: var(--ios-red); }
-.menu-item span { font-weight: 600; font-size: 17px; }
+/* Grid de Menu Simétrico */
+.dashboard-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 15px; padding: 20px;
+}
 
-/* Cards de Inventário */
-.inventory-card { background: var(--ios-white); margin-bottom: 15px; border-radius: 15px; padding: 15px; }
-.inv-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 0.5px solid #eee; padding-bottom: 5px; }
-.inv-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.input-box label { font-size: 11px; color: var(--ios-gray); display: block; text-transform: uppercase; }
-.input-box input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: var(--ios-bg); color: var(--ios-text); }
+.menu-card {
+    background: var(--ios-card); border-radius: 16px; padding: 20px;
+    display: flex; flex-direction: column; align-items: flex-start;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: none;
+}
 
-/* Botões */
-.btn-entrar { width: 100%; background: var(--ios-red); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; }
-.btn-whatsapp { width: 100%; background: #25D366; color: white; border: none; padding: 15px; border-radius: 15px; font-weight: bold; margin-bottom: 10px; }
-.btn-back { background: none; border: none; color: var(--ios-red); font-size: 16px; font-weight: 600; padding: 10px 0; }
+.menu-card i { font-size: 24px; margin-bottom: 12px; }
+.card-green i { color: var(--ios-green); }
+.card-red i { color: var(--ios-red); }
+
+/* Cards de Inventário Alinhados */
+.item-card {
+    background: var(--ios-card); border-radius: 14px;
+    padding: 16px; margin: 0 15px 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.item-row strong { font-size: 17px; }
+
+/* Inputs Lado a Lado */
+.locations-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.input-group { background: var(--ios-bg); padding: 8px 12px; border-radius: 10px; }
+.input-group label { display: block; font-size: 10px; color: var(--ios-gray); text-transform: uppercase; }
+.input-group input { 
+    width: 100%; border: none; background: transparent; 
+    font-size: 16px; color: var(--ios-text); padding: 4px 0;
+}
+
+/* Botões Estilo iOS */
+.btn-main {
+    width: 100%; padding: 16px; border-radius: 14px; border: none;
+    font-size: 17px; font-weight: 600; cursor: pointer;
+}
+.btn-green { background: var(--ios-green); color: white; }
+.btn-red { background: var(--ios-red); color: white; }
+
+/* Modais Alinhados */
+.modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 2000;
+}
+.modal-box {
+    background: var(--ios-card); width: 90%; max-height: 80%;
+    border-radius: 20px; padding: 20px; overflow-y: auto;
+}
