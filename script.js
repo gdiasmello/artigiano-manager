@@ -13,71 +13,117 @@ try {
     firebase.initializeApp(firebaseConfig); 
     db = firebase.database(); 
 } catch (e) { 
-    console.error("Erro Firebase:", e); 
+    console.error(e); 
 }
 
+// Usando var em vez de const para garantir abertura em WebViews antigos
 var app = Vue.createApp({
     data: function() {
         return {
             loadingInicial: true,
             temaEscuro: false,
-            sessaoAtiva: false,
-            usuarioLogado: null,
+            mostrandoTermos: false,
+            mostrandoAjuda: false,
             loginUser: '',
             loginPass: '',
-            feriados: [],
+            sessaoAtiva: false,
+            usuarioLogado: null,
+            msgAuth: '',
+            isError: false,
+            loadingAuth: false,
             usuarios: [],
-            config: { destinos: [], rota: ['Freezer', 'Geladeira'] }
-            // Mantenha suas outras variáveis aqui exatamente como no original
+            feriados: [],
+            itens: [],
+            config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: {} }
         };
     },
     methods: {
         carregarDados: function() {
             var self = this;
-            // O segredo está aqui: usamos 'function' e 'self' para não quebrar no Xiaomi
+            // Carrega usuários
             db.ref('system/users').on('value', function(snapshot) {
                 var data = snapshot.val();
                 if (data) {
-                    self.usuarios = Object.values(data);
+                    var lista = [];
+                    for (var key in data) {
+                        var user = data[key];
+                        user.id = key;
+                        lista.push(user);
+                    }
+                    self.usuarios = lista;
                 }
-                // Desliga a pizza girando assim que os usuários carregam
-                self.loadingInicial = false; 
-            }, function(error) {
-                console.error("Erro ao carregar:", error);
+                // Libera a tela de carregamento
                 self.loadingInicial = false;
+            });
+
+            // Carrega configurações
+            db.ref('system/config').on('value', function(snapshot) {
+                if (snapshot.val()) {
+                    self.config = snapshot.val();
+                }
             });
         },
         fazerLogin: function() {
             var self = this;
-            var user = self.usuarios.find(function(u) {
-                return u.user === self.loginUser && u.pass === self.loginPass;
-            });
-            if (user) {
-                self.usuarioLogado = user;
+            self.loadingAuth = true;
+            var usuarioEncontrado = null;
+            
+            for (var i = 0; i < self.usuarios.length; i++) {
+                var u = self.usuarios[i];
+                if (u.user === self.loginUser && u.pass === self.loginPass) {
+                    usuarioEncontrado = u;
+                    break;
+                }
+            }
+
+            if (usuarioEncontrado) {
+                self.usuarioLogado = usuarioEncontrado;
                 self.sessaoAtiva = true;
-                localStorage.setItem('artigiano_session', JSON.stringify(user));
+                localStorage.setItem('artigiano_session', JSON.stringify(usuarioEncontrado));
+                self.loadingAuth = false;
             } else {
-                alert("Usuário ou senha incorretos");
+                self.msgAuth = "Usuário ou senha incorretos";
+                self.isError = true;
+                self.loadingAuth = false;
+            }
+        },
+        alternarTema: function() {
+            this.temaEscuro = !this.temaEscuro;
+            if (this.temaEscuro) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('artigiano_theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('artigiano_theme', 'light');
             }
         }
     },
     mounted: function() {
         var self = this;
-        // Watchdog: Se em 4 segundos a pizza ainda girar, força a entrada
-        setTimeout(function() {
-            if (self.loadingInicial) {
-                console.warn("Entrada forçada via Watchdog");
-                self.loadingInicial = false;
-            }
-        }, 4000);
-
-        this.carregarDados();
-
+        
+        // Recupera Sessão
         var session = localStorage.getItem('artigiano_session');
         if (session) {
             this.usuarioLogado = JSON.parse(session);
             this.sessaoAtiva = true;
         }
+
+        // Recupera Tema
+        var theme = localStorage.getItem('artigiano_theme');
+        if (theme === 'dark') {
+            this.temaEscuro = true;
+            document.body.classList.add('dark-mode');
+        }
+
+        // Inicia carregamento
+        this.carregarDados();
+
+        // Watchdog de segurança
+        setTimeout(function() {
+            if (self.loadingInicial) {
+                self.loadingInicial = false;
+            }
+        }, 5000);
     }
 });
 
