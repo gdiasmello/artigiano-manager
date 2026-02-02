@@ -3,125 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PIZZAMASTER Gestão</title>
+    <title>Artigiano Gestão</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --italy-green: #008C45;
-            --italy-white: #F4F5F0;
-            --italy-red: #CD212A;
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --text-main: #111;
-            --bg-body: var(--italy-white);
-        }
-        
-        .dark {
-            --italy-white: #121212;
-            --glass-bg: rgba(26, 26, 26, 0.9);
-            --text-main: #f3f4f6;
-            --bg-body: #0a0a0a;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-italiano {
-            background: linear-gradient(90deg, var(--italy-green) 0%, #ffffff 50%, var(--italy-red) 100%);
-            background-size: 200% auto;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            color: #111;
-            font-weight: 900;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-
-        .btn-italiano:hover {
-            background-position: right center;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
-        }
-
-        .ios-input {
-            @apply w-full px-5 py-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-green-600 transition-all outline-none font-medium;
-            background-color: var(--glass-bg);
-            color: var(--text-main);
-        }
-
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-        
-        .watchdog-overlay {
-            position: fixed;
-            inset: 0;
-            background: var(--italy-white);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide { animation: slideIn 0.4s ease-out forwards; }
-        
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: var(--italy-green); border-radius: 10px; }
-
-        .pizza-loader {
-            width: 80px;
-            height: 80px;
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid var(--italy-red);
-            border-left: 8px solid var(--italy-green);
-            border-radius: 50%;
-            animation: spin 1.5s linear infinite;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Dark mode overrides for inputs */
-        .dark .ios-input {
-            background-color: rgba(45, 45, 45, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
-  }
-}
-</script>
 </head>
 <body class="antialiased">
     <div id="root"></div>
 
+    <!-- Watchdog Loader -->
     <div id="watchdog" class="watchdog-overlay">
         <div class="pizza-loader mb-6"></div>
-        <h2 class="text-3xl font-black text-gray-800 dark:text-gray-100 tracking-tighter uppercase italic">PIZZAMASTER</h2>
+        <h2 class="text-3xl font-black text-gray-800 dark:text-gray-100 tracking-tighter uppercase italic">ARTIGIANO</h2>
         <p class="text-gray-500 mt-2 font-bold tracking-widest uppercase text-xs">Preparando o Forno...</p>
+        <button id="force-entry" class="mt-8 text-[10px] font-black uppercase tracking-widest text-red-500 hidden" onclick="document.getElementById('watchdog').remove()">Entrada Forçada</button>
     </div>
 
-    <script type="module" src="index.tsx"></script>
+    <script type="module" src="script.js"></script>
+    <script>
+        // Watchdog Logic
+        setTimeout(() => {
+            const btn = document.getElementById('force-entry');
+            if (btn) btn.classList.remove('hidden');
+        }, 6000);
+    </script>
 </body>
 </html>
