@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -7,78 +7,90 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     <title>Pizzeria Master</title>
-    
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body class="bg-[#F2F2F7]">
     <div id="app" v-cloak>
         
-        <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-6">
-            <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
-                <div class="mb-8">
-                    <h1 class="text-4xl font-black text-[#008C45]">PIZZERIA</h1>
-                    <h1 class="text-4xl font-black text-[#CD212A] mt-[-10px]">MASTER</h1>
-                    <p class="text-[9px] tracking-[4px] text-gray-400 uppercase mt-2">Gestão de Insumos</p>
+        <div v-if="mostrarTermos" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
+            <div class="bg-white w-full max-w-lg rounded-[30px] max-h-[85vh] flex flex-col shadow-2xl animate-fade">
+                <div class="p-6 border-b text-center">
+                    <h2 class="font-black text-xl text-[#008C45]">Termos de Responsabilidade</h2>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">Pizzeria Master - v1.0</p>
                 </div>
+                <div class="p-6 overflow-y-auto text-[12px] text-gray-600 space-y-4 leading-relaxed">
+                    <h4 class="font-bold text-black">Cláusulas Principais:</h4>
+                    <p>1. O desenvolvedor é isento de qualquer responsabilidade sobre erros em pedidos, falta de stock ou prejuízos financeiros da pizzaria.</p>
+                    <p>2. O suporte técnico é limitado e prestado apenas presencialmente enquanto o desenvolvedor estiver na pizzaria.</p>
+                    <p>3. Este software não possui vínculo societário com a Artigiano, sendo uma ferramenta de auxílio logístico independente.</p>
+                    <p>4. Em conformidade com a LGPD e o Marco Civil da Internet, os dados de acesso são protegidos por PIN individual.</p>
+                    <p>[... As 15 Cláusulas completas estão registadas no sistema ...]</p>
+                </div>
+                <div class="p-6 bg-gray-50 rounded-b-[30px] flex flex-col gap-3">
+                    <button @click="aceitarTermos" class="ios-btn bg-[#008C45] text-white w-full">Aceito e Compreendo</button>
+                    <button @click="mostrarTermos = false; authenticated = false" class="text-xs text-red-500 font-bold p-2">Recusar</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F2F2F7] p-6">
+            <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
+                <h1 class="text-3xl font-black text-[#008C45] mb-2 uppercase italic tracking-tighter">Pizzeria</h1>
+                <h1 class="text-3xl font-black text-[#CD212A] mb-8 mt-[-10px] uppercase italic tracking-tighter">Master</h1>
                 
                 <select v-model="userSelected" class="ios-input mb-4 font-bold text-center appearance-none">
-                    <option value="" disabled>SELECIONE UTILIZADOR</option>
-                    <option v-for="u in equipe" :value="u">{{ u.nome }}</option>
+                    <option value="" disabled>SELECIONAR UTILIZADOR</option>
+                    <option v-for="u in equipe" :key="u.id" :value="u">{{ u.nome }}</option>
                 </select>
 
-                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-3xl tracking-[10px] mb-8" maxlength="4" inputmode="numeric">
+                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px] mb-8" maxlength="4" inputmode="numeric">
                 
                 <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-lg">Entrar</button>
             </div>
         </div>
 
-        <main v-if="authenticated && currentTab === 'home'" class="p-6 pt-12 animate-fade">
-            <header class="mb-10 flex justify-between items-start">
-                <div>
-                    <h2 class="text-3xl font-black text-gray-800 italic">Ciao, {{ userSelected.nome }}!</h2>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-tighter">{{ dataAtual }}</p>
-                </div>
-                <div class="bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-                    <span class="text-[10px] font-black text-[#008C45]">P. MASTER v1.0</span>
-                </div>
+        <div v-if="authenticated">
+            <header v-if="currentTab !== 'home'" class="p-6 bg-white/90 backdrop-blur sticky top-0 z-40 border-b flex justify-between items-center">
+                <button @click="currentTab = 'home'" class="flex items-center text-[#008C45] font-black uppercase text-[10px]">
+                    <span class="text-2xl mr-1">‹</span> Início
+                </button>
+                <h3 class="font-black text-[10px] uppercase tracking-[3px] text-gray-300">{{ currentTab }}</h3>
+                <div class="w-10"></div>
             </header>
 
-            <div class="grid grid-cols-2 gap-5">
-                <div v-if="podeVer('insumos')" @click="currentTab = 'insumos'" class="tile-apple bg-[#008C45] text-white">
-                    <span class="text-4xl mb-2">📦</span>
-                    <span class="font-black uppercase text-[11px] tracking-widest">Insumos</span>
-                </div>
-                
-                <div v-if="podeVer('historico')" @click="currentTab = 'historico'" class="tile-apple bg-white text-gray-800 border-2 border-gray-50">
-                    <span class="text-4xl mb-2">📜</span>
-                    <span class="font-black uppercase text-[11px] tracking-widest text-gray-400">Histórico</span>
+            <main v-if="currentTab === 'home'" class="p-6 pt-12 animate-fade">
+                <div class="mb-10 text-left">
+                    <h2 class="text-3xl font-black text-gray-800">Ciao, {{ userSelected.nome }}!</h2>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">{{ dataAtual }}</p>
                 </div>
 
-                <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-[#CD212A] text-white">
-                    <span class="text-4xl mb-2">⚙️</span>
-                    <span class="font-black uppercase text-[11px] tracking-widest">Ajustes</span>
+                <div class="grid grid-cols-2 gap-4">
+                    <div @click="currentTab = 'insumos'; setorAtivo = 'Sacolão'" class="tile-apple bg-green-600 text-white">
+                        <span class="text-3xl mb-2">🍎</span>
+                        <span class="font-black text-[10px] uppercase">Sacolão</span>
+                    </div>
+                    <div @click="currentTab = 'insumos'; setorAtivo = 'Limpeza'" class="tile-apple bg-blue-600 text-white">
+                        <span class="text-3xl mb-2">🧼</span>
+                        <span class="font-black text-[10px] uppercase">Limpeza</span>
+                    </div>
+                    <div @click="currentTab = 'insumos'; setorAtivo = 'Ver Tudo'" class="tile-apple bg-white col-span-2 border-2 border-gray-100">
+                        <span class="text-3xl mb-2">📦</span>
+                        <span class="font-black text-[10px] uppercase text-gray-400 tracking-widest">Geral / Insumos</span>
+                    </div>
+                    <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-red-600 text-white">
+                        <span class="text-3xl mb-2">⚙️</span>
+                        <span class="font-black text-[10px] uppercase">Ajustes</span>
+                    </div>
+                    <div @click="logout" class="tile-apple bg-gray-200 text-gray-400">
+                        <span class="text-3xl mb-2">🚪</span>
+                        <span class="font-black text-[10px] uppercase">Sair</span>
+                    </div>
                 </div>
-
-                <div @click="logout" class="tile-apple bg-gray-100 text-gray-400">
-                    <span class="text-4xl mb-2">🚪</span>
-                    <span class="font-black uppercase text-[11px] tracking-widest">Sair</span>
-                </div>
-            </div>
-        </main>
-
+            </main>
         </div>
+    </div>
     <script src="script.js"></script>
-    <script>
-        // CÓDIGO PARA INSTALAR NA TELA INICIAL (SERVICE WORKER)
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(function() {
-                console.log('Pizzeria Master: Service Worker Ativo');
-            });
-        }
-    </script>
 </body>
 </html>
