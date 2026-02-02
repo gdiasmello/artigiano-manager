@@ -8,6 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
+  }
+}
+</script>
 </head>
 <body class="antialiased overflow-x-hidden">
     <div id="root"></div>
@@ -27,7 +36,7 @@
     </div>
 
     <script>
-        // Watchdog de segurança: exibe botão se o app não carregar em 4 segundos
+        // Watchdog de segurança: se o app não montar em 4s, mostra o botão de entrada forçada
         setTimeout(() => {
             const btn = document.getElementById('force-entry');
             if (btn) btn.classList.remove('hidden');
