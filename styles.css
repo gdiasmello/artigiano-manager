@@ -1,80 +1,42 @@
 :root {
     --ios-green: #008C45;
     --ios-red: #C41E3A;
+    --ios-white: #FFFFFF;
     --ios-bg: #F2F2F7;
-    --ios-card: #FFFFFF;
-    --ios-text: #1C1C1E;
     --ios-gray: #8E8E93;
-    --ios-blue: #007AFF;
-    --safe-area: 20px;
+    --ios-text: #000000;
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-body { 
-    margin: 0; font-family: -apple-system, sans-serif; 
-    background: var(--ios-bg); color: var(--ios-text); 
-    line-height: 1.4;
+.dark-mode {
+    --ios-bg: #1C1C1E;
+    --ios-white: #2C2C2E;
+    --ios-text: #FFFFFF;
 }
 
-/* Header com Efeito de Vidro */
-.app-header {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-    position: sticky; top: 0; z-index: 1000;
-    padding: 40px 20px 15px; border-bottom: 0.5px solid #d1d1d6;
-    display: flex; justify-content: space-between; align-items: flex-end;
-}
-.header-title { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
-.header-title span { color: var(--ios-green); }
-.header-title i { color: var(--ios-red); font-size: 24px; vertical-align: middle; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: var(--ios-bg); color: var(--ios-text); transition: 0.3s; }
+[v-cloak] { display: none; }
 
-/* Grid de Navegação */
-.dashboard { padding: var(--safe-area); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.dash-card {
-    background: var(--ios-card); border-radius: 20px; padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06); display: flex; flex-direction: column;
-    align-items: flex-start; position: relative; overflow: hidden;
-}
-.dash-card i { font-size: 26px; margin-bottom: 15px; }
-.dash-card b { font-size: 17px; font-weight: 600; }
-.badge-hoje { 
-    position: absolute; top: 12px; right: 12px; 
-    background: var(--ios-red); color: white; 
-    font-size: 10px; padding: 4px 8px; border-radius: 10px; font-weight: bold;
-}
+/* Header Premium */
+.ios-header { padding: 40px 20px 10px; background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; border-bottom: 0.5px solid #ccc; }
+.dark-mode .ios-header { background: rgba(28,28,30,0.8); }
+.page-title { font-size: 34px; font-weight: 800; margin: 10px 0; }
 
-/* Inputs e Cards de Inventário */
-.inventory-container { padding: 0 var(--safe-area); }
-.item-card {
-    background: var(--ios-card); border-radius: 14px; padding: 16px;
-    margin-bottom: 12px; border: 0.5px solid #e5e5ea;
-}
-.item-info { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.item-name { font-weight: 600; font-size: 17px; }
-.item-meta { color: var(--ios-gray); font-size: 13px; }
+/* Menu em Grade Estilo iOS */
+.grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+.menu-item { background: var(--ios-white); border-radius: 20px; padding: 25px; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.menu-item i { font-size: 24px; margin-bottom: 12px; }
+.menu-item.green i { color: var(--ios-green); }
+.menu-item.red i { color: var(--ios-red); }
+.menu-item span { font-weight: 600; font-size: 17px; }
 
-.locais-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.input-group { background: #f2f2f7; padding: 8px 12px; border-radius: 10px; }
-.input-group label { display: block; font-size: 10px; color: var(--ios-gray); text-transform: uppercase; }
-.input-group input { 
-    width: 100%; border: none; background: transparent; 
-    font-size: 16px; font-weight: 500; padding: 4px 0;
-}
+/* Cards de Inventário */
+.inventory-card { background: var(--ios-white); margin-bottom: 15px; border-radius: 15px; padding: 15px; }
+.inv-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 0.5px solid #eee; padding-bottom: 5px; }
+.inv-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.input-box label { font-size: 11px; color: var(--ios-gray); display: block; text-transform: uppercase; }
+.input-box input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: var(--ios-bg); color: var(--ios-text); }
 
-/* Botões de Ação */
-.footer-actions { padding: 20px; background: white; border-top: 0.5px solid #d1d1d6; }
-.btn-action {
-    width: 100%; padding: 16px; border-radius: 14px; border: none;
-    font-size: 17px; font-weight: 600; margin-bottom: 10px; display: flex;
-    justify-content: center; align-items: center; gap: 8px;
-}
-.btn-verde { background: var(--ios-green); color: white; }
-.btn-vermelho { background: var(--ios-red); color: white; }
-
-/* Login */
-.login-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-.login-logo { font-size: 60px; color: var(--ios-red); margin-bottom: 20px; }
-.login-input { 
-    width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #d1d1d6;
-    margin-bottom: 12px; font-size: 16px; background: white;
-}
+/* Botões */
+.btn-entrar { width: 100%; background: var(--ios-red); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+.btn-whatsapp { width: 100%; background: #25D366; color: white; border: none; padding: 15px; border-radius: 15px; font-weight: bold; margin-bottom: 10px; }
+.btn-back { background: none; border: none; color: var(--ios-red); font-size: 16px; font-weight: 600; padding: 10px 0; }
