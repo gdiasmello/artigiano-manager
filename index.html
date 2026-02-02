@@ -19,8 +19,8 @@
         
         .dark {
             --italy-white: #121212;
-            --glass-bg: rgba(30, 30, 30, 0.85);
-            --text-main: #eee;
+            --glass-bg: rgba(26, 26, 26, 0.9);
+            --text-main: #f3f4f6;
             --bg-body: #0a0a0a;
         }
 
@@ -30,13 +30,13 @@
             color: var(--text-main);
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .glass {
             background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -53,7 +53,7 @@
         .btn-italiano:hover {
             background-position: right center;
             transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
         }
 
         .ios-input {
@@ -96,6 +96,12 @@
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Dark mode overrides for inputs */
+        .dark .ios-input {
+            background-color: rgba(45, 45, 45, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
     </style>
 <script type="importmap">
 {
