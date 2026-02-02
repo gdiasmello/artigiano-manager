@@ -1,4 +1,4 @@
-const CACHE_NAME = 'artigiano-v60-offline';
+const CACHE_NAME = 'artigiano-v60';
 const ASSETS = [
   '/', '/index.html', '/styles.css', '/script.js',
   'https://unpkg.com/vue@3/dist/vue.global.js',
