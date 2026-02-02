@@ -9,26 +9,34 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div id="app" v-cloak>
     <div v-if="loadingInicial" class="loading-screen">
         <div class="spinner-container">
             <i class="fas fa-pizza-slice fa-spin"></i>
-            <p>Carregando Artigiano...</p>
-            <button @click="loadingInicial = false" class="btn-force">Pular Espera</button>
+            <p>Conectando Artigiano...</p>
+            <button @click="loadingInicial = false" class="btn-force">Entrar à Força</button>
+        </div>
+    </div>
+
+    <div v-else-if="!sessaoAtiva" class="auth-wrapper">
+        <div class="auth-box">
+            <h1>Artigiano</h1>
+            <div class="form">
+                <input v-model="loginUser" placeholder="Usuário">
+                <input v-model="loginPass" type="password" placeholder="Senha">
+                <button @click="fazerLogin" class="btn-primary">ENTRAR</button>
+            </div>
         </div>
     </div>
 
     <div v-else class="app-layout">
         <header class="app-header">
-            <div class="header-main">
-                <span class="brand">Artigiano 6.6</span>
-                <div class="header-btns">
-                    <button @click="exportarBackup" title="Backup"><i class="fas fa-database"></i></button>
-                    <button @click="logout"><i class="fas fa-sign-out-alt"></i></button>
-                </div>
+            <span>Artigiano 6.6</span>
+            <div class="header-btns">
+                <button @click="exportarBackup"><i class="fas fa-database"></i></button>
+                <button @click="logout"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
@@ -42,32 +50,23 @@
 
             <div v-else class="module-view">
                 <div class="view-header">
-                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button>
-                    <h2>{{ moduloAtivo.toUpperCase() }}</h2>
+                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</button>
                 </div>
 
                 <div v-if="moduloAtivo === 'producao'" class="calc-box">
-                    <div class="input-group">
-                        <label>Sobra de Massa:</label>
+                    <div class="card">
+                        <label>Sobra de hoje:</label>
                         <input type="number" v-model.number="sobraMassa">
-                    </div>
-                    <div class="recipe-card" v-if="qtdProduzir > 0">
-                        <h3>Fazer: {{ qtdProduzir }} bolinhas</h3>
-                        <p>Farinha: {{ (qtdProduzir * 133.3).toFixed(0) }}g</p>
-                        <p>Água (70%): {{ ((qtdProduzir * 83.1) * 0.7).toFixed(0) }}ml</p>
-                        <p>Gelo (30%): {{ ((qtdProduzir * 83.1) * 0.3).toFixed(0) }}g</p>
+                        <div class="res">Fazer: <strong>{{ qtdProduzir }}</strong> bolinhas</div>
                     </div>
                 </div>
 
-                <div v-else class="inventory-list">
+                <div v-else class="inventory">
                     <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
-                        <div class="item-head">
-                            <strong>{{ item.nome }}</strong>
-                            <small>Meta: {{ item.meta }} {{ item.unC }}</small>
-                        </div>
-                        <div class="locais-grid">
-                            <div v-for="local in config.rota" :key="local" class="local-input">
-                                <span>{{ local }}</span>
+                        <strong>{{ item.nome }}</strong>
+                        <div class="locais">
+                            <div v-for="local in config.rota" :key="local" class="loc-row">
+                                <label>{{ local }}:</label>
                                 <input type="number" 
                                        :value="item.contagem ? item.contagem[local] : ''"
                                        @input="salvarContagem(item.id, local, $event.target.value)">
@@ -75,8 +74,8 @@
                         </div>
                     </div>
                     <div class="footer-zap">
-                        <button v-for="d in config.destinos" :key="d.id" @click="enviarZap(d)" class="btn-zap">
-                            <i class="fab fa-whatsapp"></i> Enviar para {{ d.nome }}
+                        <button v-for="d in config.destinos" @click="enviarZap(d)" class="btn-zap">
+                            Enviar para {{ d.nome }}
                         </button>
                     </div>
                 </div>

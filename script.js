@@ -15,7 +15,8 @@ var app = Vue.createApp({
     data: function() {
         return {
             loadingInicial: true, moduloAtivo: null, itens: [], sobraMassa: 0,
-            config: { destinos: [], rota: ['Geral'] }
+            sessaoAtiva: false, loginUser: '', loginPass: '', usuarios: [],
+            config: { destinos: [], rota: ['Freezer', 'Geladeira'] }
         };
     },
     computed: {
@@ -35,8 +36,7 @@ var app = Vue.createApp({
             db.ref('store/products').on('value', function(s) {
                 var list = [];
                 s.forEach(function(child) {
-                    var item = child.val();
-                    item.id = child.key;
+                    var item = child.val(); item.id = child.key;
                     list.push(item);
                 });
                 self.itens = list;
@@ -45,29 +45,39 @@ var app = Vue.createApp({
             db.ref('system/config').on('value', function(s) {
                 if(s.val()) self.config = s.val();
             });
+            db.ref('system/users').on('value', function(s) {
+                if(s.val()) {
+                    var u = [];
+                    s.forEach(function(c){ u.push(c.val()); });
+                    self.usuarios = u;
+                }
+            });
+        },
+        fazerLogin: function() {
+            var self = this;
+            var u = self.usuarios.find(function(x){ return x.user === self.loginUser && x.pass === self.loginPass; });
+            if(u) { self.sessaoAtiva = true; } else { alert("Erro!"); }
         },
         salvarContagem: function(id, local, valor) {
             db.ref('store/products/' + id + '/contagem/' + local).set(valor);
         },
         enviarZap: function(destino) {
             var self = this;
-            var texto = "*Pedido Artigiano - " + this.moduloAtivo.toUpperCase() + "*\n\n";
+            var texto = "*Pedido Artigiano*\n\n";
             this.itensFiltrados.forEach(function(item) {
-                var estoque = 0;
-                for (var loc in item.contagem) { estoque += parseFloat(item.contagem[loc] || 0); }
-                if (estoque < item.meta) {
-                    var falta = item.meta - estoque;
-                    texto += "• " + item.nome + ": " + falta + " " + item.unC + "\n";
+                var est = 0;
+                for (var l in item.contagem) { est += parseFloat(item.contagem[l] || 0); }
+                if (est < item.meta) {
+                    texto += "• " + item.nome + ": " + (item.meta - est) + " " + item.unC + "\n";
                 }
             });
             window.open("https://api.whatsapp.com/send?phone=" + destino.numero + "&text=" + encodeURIComponent(texto));
         },
         exportarBackup: function() {
             db.ref().once('value', function(s) {
-                var data = JSON.stringify(s.val(), null, 2);
-                var blob = new Blob([data], {type: 'application/json'});
-                var url = window.URL.createObjectURL(blob);
-                var a = document.createElement('a'); a.href = url; a.download = 'backup.json'; a.click();
+                var a = document.createElement('a');
+                a.href = window.URL.createObjectURL(new Blob([JSON.stringify(s.val(),null,2)], {type:'application/json'}));
+                a.download = 'backup.json'; a.click();
             });
         },
         logout: function() { location.reload(); }
@@ -75,7 +85,7 @@ var app = Vue.createApp({
     mounted: function() {
         this.carregarDados();
         var self = this;
-        setTimeout(function() { if(self.loadingInicial) self.loadingInicial = false; }, 4000);
+        setTimeout(function() { self.loadingInicial = false; }, 5000);
     }
 });
 app.mount('#app');
