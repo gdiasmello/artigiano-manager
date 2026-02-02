@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Artigiano Master</title>
+    
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -19,7 +21,7 @@
                 <h1 class="text-3xl font-black text-[#008C45] mb-2">ARTIGIANO</h1>
                 <p class="text-[10px] tracking-[3px] text-gray-400 uppercase mb-8">Gestão de Insumos</p>
                 
-                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center appearance-none">
+                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center">
                     <option value="" disabled>QUEM ESTÁ ACESSANDO?</option>
                     <option v-for="u in equipe" :value="u">{{ u.nome }}</option>
                 </select>
@@ -28,137 +30,98 @@
             </div>
         </div>
 
-        <main v-if="authenticated && currentTab === 'home'" class="p-6 pt-12">
+        <main v-if="authenticated && currentTab === 'home'" class="p-6 pt-12 animate-fade">
             <header class="mb-8">
                 <h2 class="text-2xl font-black">Ciao, {{ userSelected.nome }}</h2>
-                <p class="text-sm text-gray-500">Hoje é {{ dataAtual }}</p>
+                <p class="text-sm text-gray-400">Pizzaria Artigiano | {{ dataAtual }}</p>
             </header>
 
             <div class="grid grid-cols-2 gap-4">
                 <div v-if="podeVer('insumos')" @click="currentTab = 'insumos'" class="tile-apple bg-[#008C45] text-white">
-                    <span class="text-3xl">📦</span><span class="font-bold text-xs mt-2 uppercase">Insumos</span>
+                    <span class="text-3xl mb-1">📦</span><span class="font-bold text-[10px] uppercase">Insumos</span>
                 </div>
                 <div v-if="podeVer('historico')" @click="currentTab = 'historico'" class="tile-apple bg-white text-gray-800 border">
-                    <span class="text-3xl">📜</span><span class="font-bold text-xs mt-2 uppercase">Histórico</span>
+                    <span class="text-3xl mb-1">📜</span><span class="font-bold text-[10px] uppercase">Histórico</span>
                 </div>
-                <div v-if="userSelected.cargo === 'ADM' || userSelected.cargo === 'Gerente'" @click="currentTab = 'config'" class="tile-apple bg-[#CD212A] text-white">
-                    <span class="text-3xl">⚙️</span><span class="font-bold text-xs mt-2 uppercase">Configurações</span>
+                <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-[#CD212A] text-white">
+                    <span class="text-3xl mb-1">⚙️</span><span class="font-bold text-[10px] uppercase">Ajustes</span>
                 </div>
                 <div @click="logout" class="tile-apple bg-gray-200 text-gray-500">
-                    <span class="text-3xl">🚪</span><span class="font-bold text-xs mt-2 uppercase">Sair</span>
+                    <span class="text-3xl mb-1">🚪</span><span class="font-bold text-[10px] uppercase">Sair</span>
                 </div>
             </div>
         </main>
 
-        <section v-if="currentTab === 'config'" class="min-h-screen pb-20">
-            <header class="p-6 bg-white/80 backdrop-blur sticky top-0 z-30 flex justify-between items-center border-b">
+        <section v-if="currentTab === 'insumos'" class="min-h-screen pb-24 animate-slide">
+            <header class="p-6 bg-white/80 backdrop-blur sticky top-0 z-30 border-b flex justify-between items-center">
                 <button @click="currentTab = 'home'" class="text-[#008C45] font-bold">← Voltar</button>
-                <h3 class="font-black text-sm uppercase">Painel de Controle</h3>
-                <div class="w-10"></div>
+                <h3 class="font-black text-sm uppercase">Contagem Física</h3>
+                <div class="w-8"></div>
             </header>
-
-            <div class="p-4 space-y-4">
-                
-                <div class="glass-section">
-                    <div @click="toggleSub('equipa')" class="section-header">
-                        <span>👥 Gestão de Equipa</span>
-                        <span>{{ sub.equipa ? '−' : '+' }}</span>
+            <div class="p-4">
+                <input v-model="searchQuery" placeholder="🔍 Buscar produto..." class="ios-input-small mb-4">
+                <div v-for="item in filteredInsumos" :key="item.id" class="glass-card p-4 mb-4">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="font-bold text-gray-800">{{ item.nome }}</span>
+                        <span class="text-[9px] bg-gray-100 p-1 rounded font-bold uppercase text-gray-400">{{ item.fornecedor }}</span>
                     </div>
-                    <div v-show="sub.equipa" class="p-4 space-y-4">
-                        <div v-for="f in equipe" class="flex items-center justify-between bg-gray-50 p-3 rounded-2xl">
-                            <div>
-                                <p class="font-bold text-sm">{{ f.nome }} ({{ f.pin }})</p>
-                                <p class="text-[10px] text-gray-400 uppercase">{{ f.cargo }}</p>
-                            </div>
-                            <button @click="removerFuncionario(f)" class="text-red-500 text-xs font-bold">Remover</button>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-2 rounded-xl text-center">
+                            <label class="text-[9px] font-bold text-gray-400 block mb-1">GELADEIRA</label>
+                            <input type="number" v-model="item.locais.geladeira" class="w-full bg-transparent text-center font-bold">
                         </div>
-                        <button @click="adicionarFuncionario" class="ios-btn-small">+ Novo Funcionário</button>
-                    </div>
-                </div>
-
-                <div class="glass-section">
-                    <div @click="toggleSub('fornecedores')" class="section-header">
-                        <span>🚛 Fornecedores (WhatsApp)</span>
-                        <span>{{ sub.fornecedores ? '−' : '+' }}</span>
-                    </div>
-                    <div v-show="sub.fornecedores" class="p-4 space-y-4">
-                        <div v-for="forn in fornecedores" class="bg-gray-50 p-3 rounded-2xl space-y-2">
-                            <input v-model="forn.nome" class="w-full text-sm font-bold bg-transparent">
-                            <input v-model="forn.zap" placeholder="5543..." class="w-full text-xs text-gray-500 bg-transparent">
-                            <label class="flex items-center gap-2 text-[10px] font-bold text-[#008C45]">
-                                <input type="checkbox" v-model="forn.triplicaSexta"> 🚀 TRIPLICA NA SEXTA
-                            </label>
+                        <div class="bg-gray-50 p-2 rounded-xl text-center">
+                            <label class="text-[9px] font-bold text-gray-400 block mb-1">FREEZER</label>
+                            <input type="number" v-model="item.locais.freezer" class="w-full bg-transparent text-center font-bold">
                         </div>
                     </div>
                 </div>
-
-                <div class="glass-section">
-                    <div @click="toggleSub('catalogo')" class="section-header">
-                        <span>🍕 Catálogo Técnico</span>
-                        <span>{{ sub.catalogo ? '−' : '+' }}</span>
-                    </div>
-                    <div v-show="sub.catalogo" class="p-4">
-                        <input v-model="searchCat" placeholder="🔍 Autocomplete..." class="ios-input-small mb-4">
-                        <div v-for="p in filteredCatalog" class="border-b border-gray-100 py-3">
-                            <div class="flex justify-between items-center mb-2">
-                                <input v-model="p.nome" class="text-sm font-bold w-full bg-transparent">
-                                <button @click="removerItem(p)" class="text-red-300">×</button>
-                            </div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div class="flex flex-col">
-                                    <span class="text-[9px] text-gray-400">FATOR</span>
-                                    <input type="number" v-model="p.fator" class="bg-gray-100 p-1 rounded text-xs">
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-[9px] text-gray-400">META</span>
-                                    <input type="number" v-model="p.meta" class="bg-gray-100 p-1 rounded text-xs">
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-[9px] text-gray-400">UNID.</span>
-                                    <input v-model="p.unidade" class="bg-gray-100 p-1 rounded text-xs">
-                                </div>
-                            </div>
-                        </div>
-                        <button @click="novoProduto" class="ios-btn-small mt-4">Adicionar ao Catálogo</button>
-                    </div>
-                </div>
-
-                <div class="glass-section">
-                    <div @click="toggleSub('ajustes')" class="section-header">
-                        <span>🗓️ Feriados & Rota Física</span>
-                        <span>{{ sub.ajustes ? '−' : '+' }}</span>
-                    </div>
-                    <div v-show="sub.ajustes" class="p-4 space-y-4">
-                        <div class="flex justify-between items-center bg-red-50 p-3 rounded-2xl">
-                            <span class="text-xs font-bold text-red-600">AUMENTO FERIADO (50%)</span>
-                            <input type="checkbox" v-model="config.modoFeriado">
-                        </div>
-                        <div class="space-y-2">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Ordem de Contagem</p>
-                            <div v-for="(rota, idx) in config.rota" class="flex justify-between bg-white p-2 rounded-xl text-xs shadow-sm">
-                                <span>{{ idx + 1 }}. {{ rota }}</span>
-                                <div class="flex gap-2">
-                                    <button @click="moverRota(idx, -1)">▲</button>
-                                    <button @click="moverRota(idx, 1)">▼</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+            </div>
+            <div class="fixed bottom-6 inset-x-4 flex gap-2">
+                <button @click="gerarPedido('rascunho')" class="ios-btn bg-gray-200 text-gray-800 flex-1">Guardar</button>
+                <button @click="gerarPedido('whatsapp')" class="ios-btn bg-[#008C45] text-white flex-[2] shadow-xl">Enviar WhatsApp</button>
             </div>
         </section>
 
-        <div v-if="modalTermos" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
-            <div class="bg-white rounded-[32px] p-8 w-full max-w-sm">
-                <h2 class="text-xl font-black mb-4">Termos de Uso</h2>
-                <p class="text-[11px] text-gray-500 leading-relaxed mb-6">
-                    Desenvolvedor: <strong>Gabriel</strong>.<br>
-                    Responsabilidade de suporte limitada ao vínculo profissional. Isenção total de responsabilidade sobre valores e conferência de pedidos.
-                </p>
-                <button @click="modalTermos = false" class="ios-btn bg-gray-100 w-full text-black">Fechar</button>
+        <section v-if="currentTab === 'historico'" class="min-h-screen animate-slide">
+            <header class="p-6 bg-white/80 backdrop-blur sticky top-0 z-30 border-b flex justify-between">
+                <button @click="currentTab = 'home'" class="text-[#008C45] font-bold">← Voltar</button>
+                <h3 class="font-black text-sm uppercase">Pedidos Enviados</h3>
+                <div class="w-8"></div>
+            </header>
+            <div class="p-4 space-y-4">
+                <div v-for="(h, idx) in historico" :key="idx" class="glass-card p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-bold text-gray-400">{{ h.data }}</span>
+                        <span v-if="h.rascunho" class="text-[9px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold uppercase">Rascunho</span>
+                        <button v-if="isAdmin" @click="removerHistorico(idx)" class="text-red-300">🗑️</button>
+                    </div>
+                    <p class="font-black text-xs mb-2">{{ h.fornecedor }}</p>
+                    <div class="bg-gray-100 p-3 rounded-xl text-[11px] text-gray-600 leading-relaxed whitespace-pre-line">
+                        {{ h.conteudo }}
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
+
+        <section v-if="currentTab === 'config'" class="min-h-screen pb-20 animate-slide">
+            <header class="p-6 border-b flex justify-between items-center bg-white">
+                <button @click="currentTab = 'home'" class="text-[#008C45] font-bold">← Voltar</button>
+                <h3 class="font-black text-sm uppercase">Painel ADM</h3>
+                <div class="w-8"></div>
+            </header>
+            <div class="p-4 space-y-4">
+                <div class="glass-section" v-for="(val, key) in sub" :key="key">
+                    <div @click="toggleSub(key)" class="section-header">
+                        <span class="uppercase text-[11px] tracking-wider">{{ key }}</span>
+                        <span>{{ val ? '−' : '+' }}</span>
+                    </div>
+                    <div v-show="val" class="p-4">
+                        <p class="text-[10px] text-gray-400 italic">Área de edição rápida do banco de dados.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
     </div>
     <script src="script.js"></script>

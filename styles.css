@@ -1,96 +1,71 @@
 :root {
     --basil: #008C45;
     --pomodoro: #CD212A;
-    --apple-gray: #F2F2F7;
+    --apple-bg: #F2F2F7;
 }
 
 [v-cloak] { display: none; }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #1c1c1e;
-    user-select: none;
+    font-family: -apple-system, system-ui, sans-serif;
+    background-color: var(--apple-bg);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-radius: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+    border-radius: 28px;
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 .tile-apple {
-    height: 150px;
-    border-radius: 28px;
+    height: 140px;
+    border-radius: 26px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.04);
     transition: 0.2s;
 }
 
-.tile-apple:active { transform: scale(0.92); }
-
-.glass-section {
-    background: white;
-    border-radius: 24px;
-    overflow: hidden;
-    border: 1px solid #e5e5ea;
-}
-
-.section-header {
-    padding: 18px;
-    font-weight: 800;
-    font-size: 13px;
-    text-transform: uppercase;
-    display: flex;
-    justify-content: space-between;
-    cursor: pointer;
-    background: #fff;
-}
+.tile-apple:active { transform: scale(0.94); }
 
 .ios-input {
-    width: 100%;
-    padding: 16px;
-    background: #E9E9EB;
-    border-radius: 16px;
-    border: none;
-    outline: none;
+    width: 100%; padding: 16px; background: #E9E9EB;
+    border-radius: 16px; border: none; outline: none;
 }
 
 .ios-input-small {
-    width: 100%;
-    padding: 10px;
-    background: #F2F2F7;
-    border-radius: 12px;
-    font-size: 12px;
+    width: 100%; padding: 12px; background: white;
+    border-radius: 14px; border: 1px solid #E5E5E7;
 }
 
 .ios-btn {
-    padding: 18px;
-    border-radius: 20px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    padding: 18px; border-radius: 20px; font-weight: 800;
+    text-transform: uppercase; font-size: 13px;
 }
 
-.ios-btn-small {
-    width: 100%;
-    padding: 10px;
-    background: var(--basil);
-    color: white;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
+.glass-section {
+    background: white; border-radius: 22px; overflow: hidden;
+}
+
+.section-header {
+    padding: 18px; font-weight: 900; display: flex;
+    justify-content: space-between; cursor: pointer;
 }
 
 .shake-error { animation: shake 0.4s both; }
 @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    75% { transform: translateX(8px); }
+    25%, 75% { transform: translateX(-6px); }
+    50% { transform: translateX(6px); }
 }
+
+.animate-fade { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.animate-slide { animation: slideUp 0.3s ease-out; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
