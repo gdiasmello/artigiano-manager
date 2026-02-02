@@ -9,104 +9,73 @@ var firebaseConfig = {
 };
 
 var db;
-try { firebase.initializeApp(firebaseConfig); db = firebase.database(); db.ref().keepSynced(true); } catch(e) { console.error(e); }
+try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch(e) { console.error(e); }
 
-Vue.createApp({
+var app = Vue.createApp({
     data: function() {
         return {
-            loadingInicial: true, sessaoAtiva: false, usuarioLogado: null,
-            loginUser: '', loginPass: '', msgAuth: '', moduloAtivo: null,
-            sobraMassa: 0, offline: !navigator.onLine, mostrandoHistorico: false,
-            usuarios: [], feriados: [], logs: [], config: { metas: { semana: 60, fds: 100 } }
+            loadingInicial: true, moduloAtivo: null, itens: [], sobraMassa: 0,
+            config: { destinos: [], rota: ['Geral'] }
         };
     },
     computed: {
-        semanaFeriado: function() {
-            var self = this; var hoje = new Date();
-            return this.feriados.some(function(f) {
-                var df = new Date(f.data);
-                var diff = (df - hoje) / (1000 * 60 * 60 * 24);
-                return diff >= 0 && diff <= 7;
-            });
+        itensFiltrados: function() {
+            var self = this;
+            return this.itens.filter(function(i) { return i.categoria === self.moduloAtivo; });
         },
-        metaDia: function() {
+        qtdProduzir: function() {
             var d = new Date().getDay();
-            var base = (d === 0 || d >= 5) ? 100 : 60;
-            return this.semanaFeriado ? Math.round(base * 1.2) : base;
-        },
-        qtdProduzir: function() { return Math.max(0, this.metaDia - this.sobraMassa); },
-        receitaExibida: function() {
-            var q = this.qtdProduzir;
-            var aguaTotal = q * 83.1;
-            return {
-                far: (q * 133.3).toFixed(0),
-                aguaLiq: (aguaTotal * 0.7).toFixed(0),
-                gelo: (aguaTotal * 0.3).toFixed(0),
-                lev: (q * 6).toFixed(0),
-                sal: (q * 4).toFixed(0)
-            };
+            var meta = (d === 0 || d >= 5) ? 100 : 60;
+            return Math.max(0, meta - this.sobraMassa);
         }
     },
     methods: {
-        registrarAuditoria: function(acao) {
-            if(!this.usuarioLogado) return;
-            db.ref('system/auditoria').push({
-                data: new Date().toLocaleString(),
-                usuario: this.usuarioLogado.nome,
-                acao: acao
-            });
-        },
-        fazerLogin: function() {
+        carregarDados: function() {
             var self = this;
-            var user = self.usuarios.find(function(u) { return u.user === self.loginUser && u.pass === self.loginPass; });
-            if(user) {
-                self.usuarioLogado = user; self.sessaoAtiva = true;
-                localStorage.setItem('artigiano_session', JSON.stringify(user));
-                self.registrarAuditoria("Login realizado");
-            } else { self.msgAuth = "Erro de acesso"; }
-        },
-        logout: function() { 
-            localStorage.removeItem('artigiano_session');
-            location.reload();
-        },
-        gerarPDF: function() {
-            var doc = new jspdf.jsPDF(); var self = this;
-            doc.text("Artigiano V60.6 - Ficha de Massa", 14, 20);
-            var data = [
-                ["Farinha", self.receitaExibida.far+"g"],
-                ["Agua Liq (70%)", self.receitaExibida.aguaLiq+"g"],
-                ["Gelo (30%)", self.receitaExibida.gelo+"g"],
-                ["Levain", self.receitaExibida.lev+"g"],
-                ["Sal", self.receitaExibida.sal+"g"]
-            ];
-            doc.autoTable({ startY: 30, head: [['Item', 'Qtd']], body: data });
-            doc.save("Producao.pdf");
-            this.registrarAuditoria("PDF gerado");
-        },
-        registrarMassa: function() {
-            db.ref('store/dough_history').push({
-                data: new Date().toLocaleString(),
-                qtd: this.qtdProduzir,
-                usuario: this.usuarioLogado.nome
+            db.ref('store/products').on('value', function(s) {
+                var list = [];
+                s.forEach(function(child) {
+                    var item = child.val();
+                    item.id = child.key;
+                    list.push(item);
+                });
+                self.itens = list;
+                self.loadingInicial = false;
             });
-            this.registrarAuditoria("Massa registrada: " + this.qtdProduzir + "un");
-            alert("Massa salva!");
-        }
+            db.ref('system/config').on('value', function(s) {
+                if(s.val()) self.config = s.val();
+            });
+        },
+        salvarContagem: function(id, local, valor) {
+            db.ref('store/products/' + id + '/contagem/' + local).set(valor);
+        },
+        enviarZap: function(destino) {
+            var self = this;
+            var texto = "*Pedido Artigiano - " + this.moduloAtivo.toUpperCase() + "*\n\n";
+            this.itensFiltrados.forEach(function(item) {
+                var estoque = 0;
+                for (var loc in item.contagem) { estoque += parseFloat(item.contagem[loc] || 0); }
+                if (estoque < item.meta) {
+                    var falta = item.meta - estoque;
+                    texto += "• " + item.nome + ": " + falta + " " + item.unC + "\n";
+                }
+            });
+            window.open("https://api.whatsapp.com/send?phone=" + destino.numero + "&text=" + encodeURIComponent(texto));
+        },
+        exportarBackup: function() {
+            db.ref().once('value', function(s) {
+                var data = JSON.stringify(s.val(), null, 2);
+                var blob = new Blob([data], {type: 'application/json'});
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement('a'); a.href = url; a.download = 'backup.json'; a.click();
+            });
+        },
+        logout: function() { location.reload(); }
     },
     mounted: function() {
+        this.carregarDados();
         var self = this;
-        db.ref('system/users').on('value', function(s) { self.usuarios = Object.values(s.val() || {}); });
-        db.ref('system/feriados').on('value', function(s) { self.feriados = Object.values(s.val() || {}); });
-        db.ref('system/auditoria').limitToLast(20).on('value', function(s) {
-            var arr = []; s.forEach(function(c) { arr.push(c.val()); });
-            self.logs = arr.reverse();
-        });
-        
-        var session = localStorage.getItem('artigiano_session');
-        if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
-        
-        setTimeout(function() { self.loadingInicial = false; }, 2000);
-        window.addEventListener('online', function() { self.offline = false; });
-        window.addEventListener('offline', function() { self.offline = true; });
+        setTimeout(function() { if(self.loadingInicial) self.loadingInicial = false; }, 4000);
     }
-}).mount('#app');
+});
+app.mount('#app');

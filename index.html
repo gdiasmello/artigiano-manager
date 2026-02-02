@@ -4,104 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artigiano Gestão V60.6</title>
-    
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
-
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-
 <div id="app" v-cloak>
     <div v-if="loadingInicial" class="loading-screen">
         <div class="spinner-container">
             <i class="fas fa-pizza-slice fa-spin"></i>
-            <p>Conectando Artigiano...</p>
-            <button @click="loadingInicial = false" class="btn-force" style="margin-top:20px; font-size:12px; opacity:0.6;">Pular Espera</button>
-        </div>
-    </div>
-
-    <div v-else-if="!sessaoAtiva" class="auth-wrapper">
-        <div class="auth-box">
-            <div class="brand"><h1>Artigiano</h1><p>Gestão V60.6</p></div>
-            <div class="form-group">
-                <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário"></div>
-                <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha"></div>
-                <button class="btn-primary" @click="fazerLogin">ACESSAR</button>
-            </div>
-            <p v-if="msgAuth" class="msg-box error">{{ msgAuth }}</p>
+            <p>Carregando Artigiano...</p>
+            <button @click="loadingInicial = false" class="btn-force">Pular Espera</button>
         </div>
     </div>
 
     <div v-else class="app-layout">
         <header class="app-header">
-            <div class="user-pill">
-                <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
-                <span>{{ usuarioLogado.nome }}</span>
-            </div>
-            <div class="header-actions">
-                <i v-if="offline" class="fas fa-wifi-slash" style="color:#ffb300; margin-right:10px;"></i>
-                <button @click="mostrandoHistorico = true" class="action-btn"><i class="fas fa-clock-rotate-left"></i></button>
-                <button @click="logout" class="action-btn"><i class="fas fa-sign-out-alt"></i></button>
+            <div class="header-main">
+                <span class="brand">Artigiano 6.6</span>
+                <div class="header-btns">
+                    <button @click="exportarBackup" title="Backup"><i class="fas fa-database"></i></button>
+                    <button @click="logout"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
             </div>
         </header>
 
         <main class="main-content">
             <div v-if="!moduloAtivo" class="dashboard">
-                <div class="dash-card producao" @click="moduloAtivo = 'producao'"><i class="fas fa-bread-slice"></i><span>Massa</span></div>
-                <div class="dash-card horti" @click="moduloAtivo = 'hortifruti'"><i class="fas fa-carrot"></i><span>Horti</span></div>
-                <div class="dash-card geral" @click="moduloAtivo = 'geral'"><i class="fas fa-box"></i><span>Geral</span></div>
+                <div class="dash-card" @click="moduloAtivo = 'producao'"><i class="fas fa-calculator"></i> Massas</div>
+                <div class="dash-card" @click="moduloAtivo = 'hortifruti'"><i class="fas fa-carrot"></i> Hortifruti</div>
+                <div class="dash-card" @click="moduloAtivo = 'geral'"><i class="fas fa-boxes-stacked"></i> Geral</div>
+                <div class="dash-card" @click="moduloAtivo = 'bebidas'"><i class="fas fa-wine-bottle"></i> Bebidas</div>
             </div>
 
-            <div v-if="moduloAtivo === 'producao'" class="module-view">
+            <div v-else class="module-view">
                 <div class="view-header">
-                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</button>
-                    <h2>Ficha de Massa</h2>
+                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button>
+                    <h2>{{ moduloAtivo.toUpperCase() }}</h2>
                 </div>
-                <div class="config-box">
-                    <div class="calc-header">
-                        <h4>Calculadora</h4>
-                        <div class="stock-input"><label>Sobrou:</label><input type="number" v-model.number="sobraMassa"></div>
+
+                <div v-if="moduloAtivo === 'producao'" class="calc-box">
+                    <div class="input-group">
+                        <label>Sobra de Massa:</label>
+                        <input type="number" v-model.number="sobraMassa">
                     </div>
-                    <div class="result-display">
-                        <span>Fazer:</span><h1>{{ qtdProduzir }} un</h1>
-                        <small v-if="semanaFeriado" style="color:var(--primary)">+20% Meta Especial</small>
+                    <div class="recipe-card" v-if="qtdProduzir > 0">
+                        <h3>Fazer: {{ qtdProduzir }} bolinhas</h3>
+                        <p>Farinha: {{ (qtdProduzir * 133.3).toFixed(0) }}g</p>
+                        <p>Água (70%): {{ ((qtdProduzir * 83.1) * 0.7).toFixed(0) }}ml</p>
+                        <p>Gelo (30%): {{ ((qtdProduzir * 83.1) * 0.3).toFixed(0) }}g</p>
                     </div>
-                    <div class="recipe-table" v-if="qtdProduzir > 0">
-                        <div class="r-row"><span>Farinha</span><strong>{{ receitaExibida.far }}g</strong></div>
-                        <div class="r-row"><span>Água Liq (70%)</span><strong>{{ receitaExibida.aguaLiq }}g</strong></div>
-                        <div class="r-row"><span>Gelo (30%)</span><strong>{{ receitaExibida.gelo }}g</strong></div>
-                        <div class="r-row"><span>Levain</span><strong>{{ receitaExibida.lev }}g</strong></div>
-                        <div class="r-row"><span>Sal</span><strong>{{ receitaExibida.sal }}g</strong></div>
-                        <div style="display:flex; gap:10px; margin-top:15px;">
-                            <button class="btn-primary" style="flex:2;" @click="registrarMassa">REGISTRAR</button>
-                            <button class="btn-zap" style="flex:1; background:#4b5563;" @click="gerarPDF"><i class="fas fa-file-pdf"></i></button>
+                </div>
+
+                <div v-else class="inventory-list">
+                    <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
+                        <div class="item-head">
+                            <strong>{{ item.nome }}</strong>
+                            <small>Meta: {{ item.meta }} {{ item.unC }}</small>
                         </div>
+                        <div class="locais-grid">
+                            <div v-for="local in config.rota" :key="local" class="local-input">
+                                <span>{{ local }}</span>
+                                <input type="number" 
+                                       :value="item.contagem ? item.contagem[local] : ''"
+                                       @input="salvarContagem(item.id, local, $event.target.value)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer-zap">
+                        <button v-for="d in config.destinos" :key="d.id" @click="enviarZap(d)" class="btn-zap">
+                            <i class="fab fa-whatsapp"></i> Enviar para {{ d.nome }}
+                        </button>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-
-    <div v-if="mostrandoHistorico" class="modal-backdrop">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Auditoria</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
-            <div class="modal-content">
-                <div v-for="log in logs" class="history-card">
-                    <div class="h-header"><span>{{ log.data }}</span><strong>{{ log.usuario }}</strong></div>
-                    <div>{{ log.acao }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
 <script src="script.js"></script>
 </body>
 </html>
