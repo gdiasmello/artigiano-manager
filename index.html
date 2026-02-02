@@ -5,16 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artigiano Gestão V60.6</title>
     
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#C41E3A">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=60.6">
+    <link rel="stylesheet" href="styles.css">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -25,72 +23,85 @@
         <div class="spinner-container">
             <i class="fas fa-pizza-slice fa-spin"></i>
             <p>Conectando Artigiano...</p>
-            <button @click="loadingInicial = false" class="btn-force">Entrada Forçada</button>
+            <button @click="loadingInicial = false" class="btn-force" style="margin-top:20px; font-size:12px; opacity:0.6;">Pular Espera</button>
         </div>
     </div>
 
-    <div v-else-if="sessaoAtiva" class="app-layout">
+    <div v-else-if="!sessaoAtiva" class="auth-wrapper">
+        <div class="auth-box">
+            <div class="brand"><h1>Artigiano</h1><p>Gestão V60.6</p></div>
+            <div class="form-group">
+                <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário"></div>
+                <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha"></div>
+                <button class="btn-primary" @click="fazerLogin">ACESSAR</button>
+            </div>
+            <p v-if="msgAuth" class="msg-box error">{{ msgAuth }}</p>
+        </div>
+    </div>
+
+    <div v-else class="app-layout">
         <header class="app-header">
-            <div class="user-pill" @click="mostrandoConfig = true">
+            <div class="user-pill">
                 <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
-                <div class="info">
-                    <span class="name">{{ usuarioLogado.nome }}</span>
-                    <span class="role">{{ usuarioLogado.cargo }}</span>
-                </div>
+                <span>{{ usuarioLogado.nome }}</span>
             </div>
             <div class="header-actions">
-                <i v-if="offline" class="fas fa-wifi-slash" style="color: #ffb300; margin-right: 10px;"></i>
-                <button class="action-btn" @click="alternarTema">
-                    <i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i>
-                </button>
+                <i v-if="offline" class="fas fa-wifi-slash" style="color:#ffb300; margin-right:10px;"></i>
+                <button @click="mostrandoHistorico = true" class="action-btn"><i class="fas fa-clock-rotate-left"></i></button>
+                <button @click="logout" class="action-btn"><i class="fas fa-sign-out-alt"></i></button>
             </div>
         </header>
 
         <main class="main-content">
-            <div v-if="moduloAtivo === 'producao'" class="module-view animated-fade">
+            <div v-if="!moduloAtivo" class="dashboard">
+                <div class="dash-card producao" @click="moduloAtivo = 'producao'"><i class="fas fa-bread-slice"></i><span>Massa</span></div>
+                <div class="dash-card horti" @click="moduloAtivo = 'hortifruti'"><i class="fas fa-carrot"></i><span>Horti</span></div>
+                <div class="dash-card geral" @click="moduloAtivo = 'geral'"><i class="fas fa-box"></i><span>Geral</span></div>
+            </div>
+
+            <div v-if="moduloAtivo === 'producao'" class="module-view">
                 <div class="view-header">
-                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button>
-                    <h2>Ficha Técnica</h2>
+                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <h2>Ficha de Massa</h2>
                 </div>
-                
-                <div class="config-box calc-box">
+                <div class="config-box">
                     <div class="calc-header">
-                        <div>
-                            <h4>Calculadora</h4>
-                            <small>{{ nomeDiaSemana }} <span v-if="semanaFeriado">(+20% Meta)</span></small>
-                        </div>
-                        <div class="stock-input">
-                            <label>Sobrou:</label>
-                            <input type="number" v-model.number="sobraMassa" placeholder="0">
-                        </div>
+                        <h4>Calculadora</h4>
+                        <div class="stock-input"><label>Sobrou:</label><input type="number" v-model.number="sobraMassa"></div>
                     </div>
-
                     <div class="result-display">
-                        <span>A PRODUZIR:</span>
-                        <h1>{{ qtdProduzir }} <small>bolinhas</small></h1>
+                        <span>Fazer:</span><h1>{{ qtdProduzir }} un</h1>
+                        <small v-if="semanaFeriado" style="color:var(--primary)">+20% Meta Especial</small>
                     </div>
-
                     <div class="recipe-table" v-if="qtdProduzir > 0">
                         <div class="r-row"><span>Farinha</span><strong>{{ receitaExibida.far }}g</strong></div>
-                        <div class="r-row"><span>Água (70%)</span><strong>{{ receitaExibida.aguaLiq }}ml</strong></div>
+                        <div class="r-row"><span>Água Liq (70%)</span><strong>{{ receitaExibida.aguaLiq }}g</strong></div>
                         <div class="r-row"><span>Gelo (30%)</span><strong>{{ receitaExibida.gelo }}g</strong></div>
                         <div class="r-row"><span>Levain</span><strong>{{ receitaExibida.lev }}g</strong></div>
                         <div class="r-row"><span>Sal</span><strong>{{ receitaExibida.sal }}g</strong></div>
-                        
-                        <div style="display: flex; gap: 8px; margin-top: 15px;">
-                            <button class="btn-primary" style="flex: 2;" @click="registrarProducao">REGISTRAR</button>
-                            <button class="btn-zap" style="flex: 1; background: #4b5563;" @click="gerarPDFProducao">
-                                <i class="fas fa-file-pdf"></i>
-                            </button>
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button class="btn-primary" style="flex:2;" @click="registrarMassa">REGISTRAR</button>
+                            <button class="btn-zap" style="flex:1; background:#4b5563;" @click="gerarPDF"><i class="fas fa-file-pdf"></i></button>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            </main>
+        </main>
+    </div>
+
+    <div v-if="mostrandoHistorico" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Auditoria</h3><button @click="mostrandoHistorico = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-content">
+                <div v-for="log in logs" class="history-card">
+                    <div class="h-header"><span>{{ log.data }}</span><strong>{{ log.usuario }}</strong></div>
+                    <div>{{ log.acao }}</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<script src="script.js?v=60.6"></script>
+<script src="script.js"></script>
 </body>
 </html>

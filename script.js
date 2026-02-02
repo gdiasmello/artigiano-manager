@@ -8,123 +8,105 @@ var firebaseConfig = {
     appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff" 
 };
 
-var db; 
-try { 
-    firebase.initializeApp(firebaseConfig); 
-    db = firebase.database(); 
-} catch (e) { 
-    console.error(e); 
-}
+var db;
+try { firebase.initializeApp(firebaseConfig); db = firebase.database(); db.ref().keepSynced(true); } catch(e) { console.error(e); }
 
-// Usando var em vez de const para garantir abertura em WebViews antigos
-var app = Vue.createApp({
+Vue.createApp({
     data: function() {
         return {
-            loadingInicial: true,
-            temaEscuro: false,
-            mostrandoTermos: false,
-            mostrandoAjuda: false,
-            loginUser: '',
-            loginPass: '',
-            sessaoAtiva: false,
-            usuarioLogado: null,
-            msgAuth: '',
-            isError: false,
-            loadingAuth: false,
-            usuarios: [],
-            feriados: [],
-            itens: [],
-            config: { destinos: [], rota: ['Freezer', 'Geladeira'], cores: {} }
+            loadingInicial: true, sessaoAtiva: false, usuarioLogado: null,
+            loginUser: '', loginPass: '', msgAuth: '', moduloAtivo: null,
+            sobraMassa: 0, offline: !navigator.onLine, mostrandoHistorico: false,
+            usuarios: [], feriados: [], logs: [], config: { metas: { semana: 60, fds: 100 } }
         };
     },
-    methods: {
-        carregarDados: function() {
-            var self = this;
-            // Carrega usuários
-            db.ref('system/users').on('value', function(snapshot) {
-                var data = snapshot.val();
-                if (data) {
-                    var lista = [];
-                    for (var key in data) {
-                        var user = data[key];
-                        user.id = key;
-                        lista.push(user);
-                    }
-                    self.usuarios = lista;
-                }
-                // Libera a tela de carregamento
-                self.loadingInicial = false;
+    computed: {
+        semanaFeriado: function() {
+            var self = this; var hoje = new Date();
+            return this.feriados.some(function(f) {
+                var df = new Date(f.data);
+                var diff = (df - hoje) / (1000 * 60 * 60 * 24);
+                return diff >= 0 && diff <= 7;
             });
-
-            // Carrega configurações
-            db.ref('system/config').on('value', function(snapshot) {
-                if (snapshot.val()) {
-                    self.config = snapshot.val();
-                }
+        },
+        metaDia: function() {
+            var d = new Date().getDay();
+            var base = (d === 0 || d >= 5) ? 100 : 60;
+            return this.semanaFeriado ? Math.round(base * 1.2) : base;
+        },
+        qtdProduzir: function() { return Math.max(0, this.metaDia - this.sobraMassa); },
+        receitaExibida: function() {
+            var q = this.qtdProduzir;
+            var aguaTotal = q * 83.1;
+            return {
+                far: (q * 133.3).toFixed(0),
+                aguaLiq: (aguaTotal * 0.7).toFixed(0),
+                gelo: (aguaTotal * 0.3).toFixed(0),
+                lev: (q * 6).toFixed(0),
+                sal: (q * 4).toFixed(0)
+            };
+        }
+    },
+    methods: {
+        registrarAuditoria: function(acao) {
+            if(!this.usuarioLogado) return;
+            db.ref('system/auditoria').push({
+                data: new Date().toLocaleString(),
+                usuario: this.usuarioLogado.nome,
+                acao: acao
             });
         },
         fazerLogin: function() {
             var self = this;
-            self.loadingAuth = true;
-            var usuarioEncontrado = null;
-            
-            for (var i = 0; i < self.usuarios.length; i++) {
-                var u = self.usuarios[i];
-                if (u.user === self.loginUser && u.pass === self.loginPass) {
-                    usuarioEncontrado = u;
-                    break;
-                }
-            }
-
-            if (usuarioEncontrado) {
-                self.usuarioLogado = usuarioEncontrado;
-                self.sessaoAtiva = true;
-                localStorage.setItem('artigiano_session', JSON.stringify(usuarioEncontrado));
-                self.loadingAuth = false;
-            } else {
-                self.msgAuth = "Usuário ou senha incorretos";
-                self.isError = true;
-                self.loadingAuth = false;
-            }
+            var user = self.usuarios.find(function(u) { return u.user === self.loginUser && u.pass === self.loginPass; });
+            if(user) {
+                self.usuarioLogado = user; self.sessaoAtiva = true;
+                localStorage.setItem('artigiano_session', JSON.stringify(user));
+                self.registrarAuditoria("Login realizado");
+            } else { self.msgAuth = "Erro de acesso"; }
         },
-        alternarTema: function() {
-            this.temaEscuro = !this.temaEscuro;
-            if (this.temaEscuro) {
-                document.body.classList.add('dark-mode');
-                localStorage.setItem('artigiano_theme', 'dark');
-            } else {
-                document.body.classList.remove('dark-mode');
-                localStorage.setItem('artigiano_theme', 'light');
-            }
+        logout: function() { 
+            localStorage.removeItem('artigiano_session');
+            location.reload();
+        },
+        gerarPDF: function() {
+            var doc = new jspdf.jsPDF(); var self = this;
+            doc.text("Artigiano V60.6 - Ficha de Massa", 14, 20);
+            var data = [
+                ["Farinha", self.receitaExibida.far+"g"],
+                ["Agua Liq (70%)", self.receitaExibida.aguaLiq+"g"],
+                ["Gelo (30%)", self.receitaExibida.gelo+"g"],
+                ["Levain", self.receitaExibida.lev+"g"],
+                ["Sal", self.receitaExibida.sal+"g"]
+            ];
+            doc.autoTable({ startY: 30, head: [['Item', 'Qtd']], body: data });
+            doc.save("Producao.pdf");
+            this.registrarAuditoria("PDF gerado");
+        },
+        registrarMassa: function() {
+            db.ref('store/dough_history').push({
+                data: new Date().toLocaleString(),
+                qtd: this.qtdProduzir,
+                usuario: this.usuarioLogado.nome
+            });
+            this.registrarAuditoria("Massa registrada: " + this.qtdProduzir + "un");
+            alert("Massa salva!");
         }
     },
     mounted: function() {
         var self = this;
+        db.ref('system/users').on('value', function(s) { self.usuarios = Object.values(s.val() || {}); });
+        db.ref('system/feriados').on('value', function(s) { self.feriados = Object.values(s.val() || {}); });
+        db.ref('system/auditoria').limitToLast(20).on('value', function(s) {
+            var arr = []; s.forEach(function(c) { arr.push(c.val()); });
+            self.logs = arr.reverse();
+        });
         
-        // Recupera Sessão
         var session = localStorage.getItem('artigiano_session');
-        if (session) {
-            this.usuarioLogado = JSON.parse(session);
-            this.sessaoAtiva = true;
-        }
-
-        // Recupera Tema
-        var theme = localStorage.getItem('artigiano_theme');
-        if (theme === 'dark') {
-            this.temaEscuro = true;
-            document.body.classList.add('dark-mode');
-        }
-
-        // Inicia carregamento
-        this.carregarDados();
-
-        // Watchdog de segurança
-        setTimeout(function() {
-            if (self.loadingInicial) {
-                self.loadingInicial = false;
-            }
-        }, 5000);
+        if(session) { this.usuarioLogado = JSON.parse(session); this.sessaoAtiva = true; }
+        
+        setTimeout(function() { self.loadingInicial = false; }, 2000);
+        window.addEventListener('online', function() { self.offline = false; });
+        window.addEventListener('offline', function() { self.offline = true; });
     }
-});
-
-app.mount('#app');
+}).mount('#app');
