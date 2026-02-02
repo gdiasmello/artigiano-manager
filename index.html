@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano Gestão V60.7</title>
+    <title>Artigiano V59</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#C41E3A">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=60.7">
+    <link rel="stylesheet" href="styles.css?v=59">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -22,14 +22,14 @@
     <div v-if="loadingInicial" class="loading-screen">
         <div class="spinner-container">
             <i class="fas fa-pizza-slice fa-spin"></i>
-            <p>Restaurando Sistema...</p>
+            <p>Conectando ao Banco...</p>
             <button @click="loadingInicial = false" class="btn-force">Entrar Forçado</button>
         </div>
     </div>
 
     <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial">
         <div class="auth-box animated-up">
-            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Recuperação V60.7</p></div>
+            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão de Estoque</p></div>
             <div class="form-group">
                 <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
                 <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin"></div>
@@ -47,39 +47,22 @@
             </div>
             <div class="header-actions">
                 <button class="action-btn" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
-                <button v-if="usuarioLogado.permissoes.admin" @click="mostrandoAdmin = true" class="action-btn admin"><i class="fas fa-users-cog"></i></button>
             </div>
         </header>
 
         <main class="main-content">
             <div v-if="!moduloAtivo" class="dashboard animated-fade">
-                <div class="dash-card producao" @click="abrirModulo('producao')" v-if="podeAcessar('producao')">
-                    <div class="suggest-badge">Calculadora</div>
-                    <div class="icon-circle"><i class="fas fa-bread-slice"></i></div>
-                    <span>Massas & POP</span>
+                <div class="dash-card horti" @click="abrirModulo('hortifruti')">
+                    <div class="icon-circle"><i class="fas fa-carrot"></i></div><span>Hortifruti</span>
                 </div>
-                <div class="dash-card horti" @click="abrirModulo('hortifruti')" v-if="podeAcessar('hortifruti')">
-                    <div class="suggest-badge" v-if="sugestaoDia('hortifruti')">Hoje!</div>
-                    <div class="icon-circle"><i class="fas fa-carrot"></i></div>
-                    <span>Hortifruti</span>
+                <div class="dash-card geral" @click="abrirModulo('geral')">
+                    <div class="icon-circle"><i class="fas fa-box-open"></i></div><span>Geral</span>
                 </div>
-                <div class="dash-card geral" @click="abrirModulo('geral')" v-if="podeAcessar('geral')">
-                    <div class="suggest-badge" v-if="sugestaoDia('geral')">Hoje!</div>
-                    <div class="icon-circle"><i class="fas fa-box-open"></i></div>
-                    <span>Geral</span>
+                <div class="dash-card bebidas" @click="abrirModulo('bebidas')">
+                    <div class="icon-circle"><i class="fas fa-wine-bottle"></i></div><span>Bebidas</span>
                 </div>
-                <div class="dash-card bebidas" @click="abrirModulo('bebidas')" v-if="podeAcessar('bebidas')">
-                    <div class="icon-circle"><i class="fas fa-wine-bottle"></i></div>
-                    <span>Bebidas</span>
-                </div>
-                <div class="dash-card limpeza" @click="abrirModulo('limpeza')" v-if="podeAcessar('limpeza')">
-                    <div class="suggest-badge" v-if="sugestaoDia('limpeza')">Hoje!</div>
-                    <div class="icon-circle"><i class="fas fa-broom"></i></div>
-                    <span>Limpeza</span>
-                </div>
-                <div class="dash-card history" @click="mostrandoHistorico = true">
-                    <div class="icon-circle"><i class="fas fa-clock-rotate-left"></i></div>
-                    <span>Histórico</span>
+                <div class="dash-card limpeza" @click="abrirModulo('limpeza')">
+                    <div class="icon-circle"><i class="fas fa-broom"></i></div><span>Limpeza</span>
                 </div>
             </div>
 
@@ -88,32 +71,48 @@
                     <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button>
                     <h2>{{ nomeModulo }}</h2>
                 </div>
-                
-                <div v-if="produtosDoModulo.length === 0" class="empty-state">
-                    <i class="fas fa-box-open"></i>
-                    <p>Nenhum item cadastrado nesta categoria.</p>
-                </div>
 
                 <div class="products-container">
-                    <div v-for="p in produtosDoModulo" :key="p.id" class="product-card" :style="{borderLeft: '5px solid ' + getCorCategoria(p.categoria)}">
+                    <div v-for="p in produtosFiltrados" :key="p.id" class="product-card">
                         <div class="p-info">
                             <strong>{{ p.nome }}</strong>
                             <small>Meta: {{ p.meta }} {{ p.unC }}</small>
                         </div>
                         <div class="p-actions-row">
                             <div class="input-wrapper">
-                                <input type="number" v-model.number="p.contagem[p.locais[0]]" :placeholder="p.unQ" class="input-qty" @change="salvarProdutoUnitario(p)">
+                                <input type="number" v-model.number="p.contagemTotal" placeholder="O que tem na loja?" class="input-qty" @change="salvarProduto(p)">
                             </div>
+                        </div>
+                        <div class="p-status">
+                            <span v-if="calculaFalta(p) > 0" class="tag-buy">COMPRAR {{ calculaFalta(p) }} {{ p.unC }}</span>
+                            <span v-else class="tag-ok">ESTOQUE OK</span>
                         </div>
                     </div>
                 </div>
+
+                <button class="fab-cart" @click="mostrandoPreview = true" v-if="contagemCarrinho > 0">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-badge">{{ contagemCarrinho }}</span>
+                    ENVIAR PEDIDO
+                </button>
             </div>
         </main>
     </div>
 
-    <div class="modal-backdrop" v-if="mostrandoConfig">...</div>
+    <div class="modal-backdrop" v-if="mostrandoPreview">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Revisar Pedido</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div>
+            <div class="modal-content">
+                <div v-for="(itens, fornecedor) in pedidosAgrupados" :key="fornecedor" class="order-block">
+                    <h4>{{ fornecedor }}</h4>
+                    <ul><li v-for="i in itens">{{ i.texto }}</li></ul>
+                    <button class="btn-zap" @click="enviarZap(fornecedor, itens)">Enviar para {{ fornecedor }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<script src="script.js?v=60.7"></script>
+<script src="script.js?v=59"></script>
 </body>
 </html>
