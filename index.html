@@ -1,118 +1,86 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano V59</title>
+    <title>Artigiano Gestão - V60</title>
     
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#C41E3A">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css?v=59">
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dark-mode">
 
-<div id="app" v-cloak>
-    
-    <div v-if="loadingInicial" class="loading-screen">
-        <div class="spinner-container">
-            <i class="fas fa-pizza-slice fa-spin"></i>
-            <p>Conectando ao Banco...</p>
-            <button @click="loadingInicial = false" class="btn-force">Entrar Forçado</button>
-        </div>
+    <div id="watchdog">
+        <h2 id="status-msg">Iniciando Sistema...</h2>
+        <p id="error-log"></p>
+        <button id="btn-force" style="display:none" class="btn btn-primary">Entrada Forçada</button>
     </div>
 
-    <div class="auth-wrapper" v-if="!sessaoAtiva && !loadingInicial">
-        <div class="auth-box animated-up">
-            <div class="brand"><div class="logo-bg"><i class="fas fa-pizza-slice"></i></div><h1>Artigiano</h1><p>Gestão de Estoque</p></div>
-            <div class="form-group">
-                <div class="input-group"><i class="fas fa-user"></i><input v-model="loginUser" placeholder="Usuário" @keyup.enter="fazerLogin"></div>
-                <div class="input-group"><i class="fas fa-lock"></i><input v-model="loginPass" type="password" placeholder="Senha" @keyup.enter="fazerLogin"></div>
-                <button class="btn-primary" @click="fazerLogin" :disabled="loadingAuth">ACESSAR</button>
-            </div>
-            <p v-if="msgAuth" class="msg-box error">{{ msgAuth }}</p>
-        </div>
-    </div>
-
-    <div v-else-if="sessaoAtiva" class="app-layout">
-        <header class="app-header">
-            <div class="user-pill" @click="mostrandoConfig = true">
-                <div class="avatar">{{ usuarioLogado.nome.charAt(0) }}</div>
-                <div class="info"><span class="name">{{ usuarioLogado.nome }}</span><span class="role">{{ usuarioLogado.cargo }}</span></div>
-            </div>
-            <div class="header-actions">
-                <button class="action-btn" @click="alternarTema"><i class="fas" :class="temaEscuro ? 'fa-sun' : 'fa-moon'"></i></button>
-            </div>
+    <div id="app" v-cloak>
+        <header class="main-header">
+            <h1>Artigiano Gestão</h1>
+            <div class="badge-hoje">{{ dataHoje }}</div>
         </header>
 
-        <main class="main-content">
-            <div v-if="!moduloAtivo" class="dashboard animated-fade">
-                <div class="dash-card horti" @click="abrirModulo('hortifruti')">
-                    <div class="icon-circle"><i class="fas fa-carrot"></i></div><span>Hortifruti</span>
-                </div>
-                <div class="dash-card geral" @click="abrirModulo('geral')">
-                    <div class="icon-circle"><i class="fas fa-box-open"></i></div><span>Geral</span>
-                </div>
-                <div class="dash-card bebidas" @click="abrirModulo('bebidas')">
-                    <div class="icon-circle"><i class="fas fa-wine-bottle"></i></div><span>Bebidas</span>
-                </div>
-                <div class="dash-card limpeza" @click="abrirModulo('limpeza')">
-                    <div class="icon-circle"><i class="fas fa-broom"></i></div><span>Limpeza</span>
-                </div>
-            </div>
-
-            <div v-else class="module-view animated-fade">
-                <div class="view-header">
-                    <button @click="moduloAtivo = null" class="btn-back"><i class="fas fa-arrow-left"></i></button>
-                    <h2>{{ nomeModulo }}</h2>
-                </div>
-
-                <div class="products-container">
-                    <div v-for="p in produtosFiltrados" :key="p.id" class="product-card">
-                        <div class="p-info">
-                            <strong>{{ p.nome }}</strong>
-                            <small>Meta: {{ p.meta }} {{ p.unC }}</small>
-                        </div>
-                        <div class="p-actions-row">
-                            <div class="input-wrapper">
-                                <input type="number" v-model.number="p.contagemTotal" placeholder="O que tem na loja?" class="input-qty" @change="salvarProduto(p)">
-                            </div>
-                        </div>
-                        <div class="p-status">
-                            <span v-if="calculaFalta(p) > 0" class="tag-buy">COMPRAR {{ calculaFalta(p) }} {{ p.unC }}</span>
-                            <span v-else class="tag-ok">ESTOQUE OK</span>
-                        </div>
+        <main class="content">
+            <section v-if="abaAtual === 'producao'" class="fade-in">
+                <div class="card">
+                    <h3><i class="fas fa-calculator"></i> Produção de Massa</h3>
+                    <div class="meta-controls">
+                        <button class="btn" @click="metaMassa = 60">Semana (60)</button>
+                        <button class="btn" @click="metaMassa = 100">FDS (100)</button>
+                    </div>
+                    <div class="input-group">
+                        <label>Meta de Bolinhas:</label>
+                        <input type="number" v-model.number="metaMassa">
+                    </div>
+                    
+                    <div class="receita-grid">
+                        <div class="ingrediente"><strong>Farinha:</strong> {{ (metaMassa * 133.3 / 1000).toFixed(2) }} kg</div>
+                        <div class="ingrediente"><strong>Água:</strong> {{ (metaMassa * 83.1 / 1000).toFixed(2) }} L</div>
+                        <div class="ingrediente"><strong>Levain:</strong> {{ (metaMassa * 6).toFixed(0) }} g</div>
+                        <div class="ingrediente"><strong>Sal:</strong> {{ (metaMassa * 4).toFixed(0) }} g</div>
                     </div>
                 </div>
+            </section>
 
-                <button class="fab-cart" @click="mostrandoPreview = true" v-if="contagemCarrinho > 0">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-badge">{{ contagemCarrinho }}</span>
-                    ENVIAR PEDIDO
-                </button>
-            </div>
-        </main>
-    </div>
-
-    <div class="modal-backdrop" v-if="mostrandoPreview">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Revisar Pedido</h3><button @click="mostrandoPreview = false"><i class="fas fa-times"></i></button></div>
-            <div class="modal-content">
-                <div v-for="(itens, fornecedor) in pedidosAgrupados" :key="fornecedor" class="order-block">
-                    <h4>{{ fornecedor }}</h4>
-                    <ul><li v-for="i in itens">{{ i.texto }}</li></ul>
-                    <button class="btn-zap" @click="enviarZap(fornecedor, itens)">Enviar para {{ fornecedor }}</button>
+            <section v-if="abaAtual === 'estoque'" class="fade-in">
+                <div class="search-bar">
+                    <input type="text" v-model="busca" placeholder="Buscar produto...">
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script src="script.js?v=59"></script>
+                <div v-for="item in produtosFiltrados" :key="item.id" :class="['card', item.categoria]">
+                    <div class="card-header">
+                        <span class="prod-nome">{{ item.nome }}</span>
+                        <span class="prod-meta">Meta: {{ item.meta }}</span>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn-circle" @click="item.contagem = (item.contagem || 0) + 0.5">+0.5</button>
+                        <input type="number" v-model.number="item.contagem" class="input-contagem">
+                        <button class="btn btn-success" @click="salvarEstoque(item)">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="navbar">
+            <button :class="{active: abaAtual === 'producao'}" @click="abaAtual = 'producao'">
+                <i class="fas fa-pizza-slice"></i><span>Produção</span>
+            </button>
+            <button :class="{active: abaAtual === 'estoque'}" @click="abaAtual = 'estoque'">
+                <i class="fas fa-boxes"></i><span>Estoque</span>
+            </button>
+            <button @click="enviarWhatsApp()">
+                <i class="fab fa-whatsapp"></i><span>Pedido</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

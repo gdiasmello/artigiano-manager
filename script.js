@@ -1,81 +1,88 @@
-var firebaseConfig = { 
-    apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4", 
-    authDomain: "artigiano-app.firebaseapp.com", 
-    databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com", 
-    projectId: "artigiano-app" 
+// WATCHDOG - Captura erros antes do Vue carregar
+window.onerror = function(msg, url, line) {
+    var log = document.getElementById('error-log');
+    if(log) log.innerText = "Erro: " + msg + " na linha " + line;
+    document.getElementById('btn-force').style.display = "block";
 };
 
-var db; try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
+// FIREBASE INIT
+var firebaseConfig = {
+    apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
+    databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
 
-var { createApp } = Vue;
-
-var app = createApp({
+// VUE APP
+var app = Vue.createApp({
     data: function() {
         return {
-            loadingInicial: true, sessaoAtiva: false, 
-            usuarioLogado: null, loginUser: '', loginPass: '',
-            moduloAtivo: null, produtos: [], 
-            mostrandoPreview: false, mostrandoConfig: false,
-            config: { destinos: [] }
-        }
+            abaAtual: 'producao',
+            metaMassa: 60,
+            produtos: [],
+            busca: '',
+            dataHoje: new Date().toLocaleDateString('pt-BR')
+        };
     },
     computed: {
-        nomeModulo: function() {
-            var n = { hortifruti: 'Hortifruti', geral: 'Geral', bebidas: 'Bebidas', limpeza: 'Limpeza' };
-            return n[this.moduloAtivo] || '';
-        },
         produtosFiltrados: function() {
             var self = this;
-            return this.produtos.filter(function(p) { return p.categoria === self.moduloAtivo; });
-        },
-        itensParaPedir: function() {
-            var self = this;
-            return this.produtos.filter(function(p) { return self.calculaFalta(p) > 0; });
-        },
-        contagemCarrinho: function() { return this.itensParaPedir.length; },
-        pedidosAgrupados: function() {
-            var grupos = {};
-            var self = this;
-            this.itensParaPedir.forEach(function(p) {
-                var dId = p.destinoNome || 'Geral';
-                if (!grupos[dId]) grupos[dId] = [];
-                grupos[dId].push({ texto: "- " + self.calculaFalta(p) + " " + p.unC + " " + p.nome, id: p.id });
+            return this.produtos.filter(function(p) {
+                return p.nome.toLowerCase().indexOf(self.busca.toLowerCase()) > -1;
             });
-            return grupos;
         }
+    },
+    created: function() {
+        this.carregarDados();
+    },
+    mounted: function() {
+        // Remove o loader após carregar
+        setTimeout(function() {
+            var loader = document.getElementById('watchdog');
+            if(loader) loader.style.display = 'none';
+        }, 1200);
     },
     methods: {
-        calculaFalta: function(p) {
-            var estoque = parseFloat(p.contagemTotal || 0);
-            var meta = parseFloat(p.meta || 0);
-            var fator = parseFloat(p.fator || 1);
-            // Estoque real em caixas/kg
-            var estoqueReal = (p.tipoConversao === 'multiplicar') ? estoque * fator : estoque / fator;
-            var falta = meta - estoqueReal;
-            return falta > 0 ? Math.ceil(falta * 10) / 10 : 0;
-        },
-        abrirModulo: function(m) { this.moduloAtivo = m; },
-        salvarProduto: function(p) { if(db) db.ref('store/products/' + p.id).update({ contagemTotal: p.contagemTotal }); },
-        enviarZap: function(fornecedor, itens) {
-            var texto = "*PEDIDO ARTIGIANO - " + fornecedor.toUpperCase() + "*\n\n";
-            itens.forEach(function(i) { texto += i.texto + "\n"; });
-            window.open("https://wa.me/?text=" + encodeURIComponent(texto));
-        },
-        fazerLogin: function() {
-            if(this.loginUser.toLowerCase() === 'gabriel' && this.loginPass === '21gabriel') {
-                this.logar({ nome: 'Gabriel', cargo: 'Gerente' });
-            } else { alert("Login incorreto."); }
-        },
-        logar: function(u) { this.usuarioLogado = u; this.sessaoAtiva = true; },
-        carregarDb: function() {
+        carregarDados: function() {
             var self = this;
-            if(!db) return;
-            db.ref('store/products').on('value', function(s) { 
-                self.produtos = s.val() ? Object.values(s.val()) : []; 
-                self.loadingInicial = false; 
+            db.ref('produtos').on('value', function(snapshot) {
+                var data = snapshot.val();
+                var temp = [];
+                for (var key in data) {
+                    var item = data[key];
+                    item.id = key;
+                    temp.push(item);
+                }
+                self.produtos = temp;
             });
+        },
+        salvarEstoque: function(item) {
+            db.ref('produtos/' + item.id).update({
+                contagem: item.contagem,
+                lastUpdate: firebase.database.ServerValue.TIMESTAMP
+            });
+            if (navigator.vibrate) navigator.vibrate(40);
+        },
+        enviarWhatsApp: function() {
+            var mensagem = "*PEDIDO ARTIGIANO - " + this.dataHoje + "*\n\n";
+            var itensFaltantes = this.produtos.filter(function(p) {
+                return p.contagem < p.meta;
+            });
+
+            if(itensFaltantes.length === 0) {
+                alert("Tudo em dia! Nada para pedir.");
+                return;
+            }
+
+            itensFaltantes.forEach(function(p) {
+                var qtd = p.meta - p.contagem;
+                mensagem += "• *" + p.nome + "*: falta " + qtd + "\n";
+            });
+
+            var url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(mensagem);
+            window.open(url, '_blank');
         }
-    },
-    mounted: function() { this.carregarDb(); }
+    }
 });
+
 app.mount('#app');
