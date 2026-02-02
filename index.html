@@ -21,7 +21,7 @@
 <body class="antialiased">
     <div id="root"></div>
 
-    <!-- Watchdog Loader -->
+    <!-- Watchdog Loader (Círculo de Carregamento) -->
     <div id="watchdog" class="watchdog-overlay">
         <div class="pizza-loader mb-6"></div>
         <h2 class="text-3xl font-black text-gray-800 dark:text-gray-100 tracking-tighter uppercase italic">ARTIGIANO</h2>
@@ -29,13 +29,15 @@
         <button id="force-entry" class="mt-8 text-[10px] font-black uppercase tracking-widest text-red-500 hidden" onclick="document.getElementById('watchdog').remove()">Entrada Forçada</button>
     </div>
 
+    <!-- Script principal como módulo -->
     <script type="module" src="script.js"></script>
+    
     <script>
-        // Watchdog Logic
+        // Watchdog de segurança: se o JS falhar, mostra botão de emergência após 4s
         setTimeout(() => {
             const btn = document.getElementById('force-entry');
             if (btn) btn.classList.remove('hidden');
-        }, 6000);
+        }, 4000);
     </script>
 </body>
 </html>

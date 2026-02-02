@@ -4,11 +4,12 @@ import htm from 'https://esm.sh/htm';
 
 const html = htm.bind(h);
 
-// --- CONFIGURAÇÕES E BANCO ---
-const DB_NAME = 'ArtigianoDB_v5';
+// --- CONFIGURAÇÕES ---
+const DB_NAME = 'ArtigianoDB_v7';
 const DB_VERSION = 1;
 const ALL_CATEGORIES = ['Sacolão', 'Geral', 'Limpeza', 'Massas', 'Bebidas'];
 
+// --- BANCO DE DADOS ---
 const openDB = () => {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -18,7 +19,7 @@ const openDB = () => {
             if (!db.objectStoreNames.contains('logs')) db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
         };
         request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => reject("Erro ao abrir banco");
     });
 };
 
@@ -26,239 +27,222 @@ const App = () => {
     const [currentUser, setCurrentUser] = useState(null);
     const [currentMode, setCurrentMode] = useState('Home');
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('pm_theme') === 'dark');
-    const [rejectionTime, setRejectionTime] = useState(() => {
-        const saved = localStorage.getItem('pm_rejection_time');
-        return saved ? parseInt(saved) : null;
-    });
-
+    const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('art_theme') === 'dark');
+    
     const [users, setUsers] = useState([]);
-    const [products, setProducts] = useState(JSON.parse(localStorage.getItem('pm_products') || '[]'));
-    const [suppliers, setSuppliers] = useState(JSON.parse(localStorage.getItem('pm_suppliers') || '[]'));
+    const [products, setProducts] = useState(() => JSON.parse(localStorage.getItem('art_products') || '[]'));
+    const [suppliers, setSuppliers] = useState(() => JSON.parse(localStorage.getItem('art_suppliers') || '[]'));
     const [logs, setLogs] = useState([]);
 
-    // Feedback tátil
-    const feedback = (type) => {
-        if (navigator.vibrate) navigator.vibrate(40);
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(type === 'success' ? 880 : type === 'error' ? 220 : 440, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        } catch (e) {}
-    };
-
-    useEffect(() => {
-        document.documentElement.classList.toggle('dark', isDarkMode);
-        localStorage.setItem('pm_theme', isDarkMode ? 'dark' : 'light');
-    }, [isDarkMode]);
-
+    // Inicialização Robusta
     useEffect(() => {
         const init = async () => {
-            const db = await openDB();
-            const tx = db.transaction('users', 'readonly');
-            const store = tx.objectStore('users');
-            const req = store.getAll();
-            req.onsuccess = () => {
-                const list = req.result;
-                if (!list.find(u => u.username === 'ADM')) {
-                    const adm = { username: 'ADM', pin: '1821', role: 'ADM', name: 'Administrador', permissions: ALL_CATEGORIES, acceptedTerms: true };
-                    const txW = db.transaction('users', 'readwrite');
-                    txW.objectStore('users').add(adm);
-                    setUsers([adm, ...list]);
-                } else {
+            try {
+                const db = await openDB();
+                const tx = db.transaction('users', 'readwrite');
+                const store = tx.objectStore('users');
+                
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    let list = req.result;
+                    if (!list.find(u => u.username === 'ADM')) {
+                        const adm = { username: 'ADM', pin: '1821', role: 'ADM', name: 'Administrador', permissions: ALL_CATEGORIES, acceptedTerms: true };
+                        store.add(adm);
+                        list = [adm, ...list];
+                    }
                     setUsers(list);
+                };
+
+                const txL = db.transaction('logs', 'readonly').objectStore('logs').getAll();
+                txL.onsuccess = () => setLogs(txL.result);
+
+            } catch (err) {
+                console.warn("Erro ao carregar DB, usando fallback:", err);
+            } finally {
+                // Remove o loader EM QUALQUER CASO
+                const loader = document.getElementById('watchdog');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
                 }
-            };
-            const txL = db.transaction('logs', 'readonly').objectStore('logs').getAll();
-            txL.onsuccess = () => setLogs(txL.result);
-            
-            setTimeout(() => {
-                const watchdog = document.getElementById('watchdog');
-                if (watchdog) {
-                    watchdog.style.opacity = '0';
-                    setTimeout(() => watchdog.remove(), 500);
-                }
-            }, 1000);
+            }
         };
         init();
     }, []);
 
     useEffect(() => {
-        localStorage.setItem('pm_products', JSON.stringify(products));
-        localStorage.setItem('pm_suppliers', JSON.stringify(suppliers));
-    }, [products, suppliers]);
+        localStorage.setItem('art_products', JSON.stringify(products));
+        localStorage.setItem('art_suppliers', JSON.stringify(suppliers));
+        document.documentElement.classList.toggle('dark', isDarkMode);
+        localStorage.setItem('art_theme', isDarkMode ? 'dark' : 'light');
+    }, [products, suppliers, isDarkMode]);
 
-    const canEdit = currentUser?.role === 'ADM' || currentUser?.role === 'Gerente';
+    const logout = () => { setCurrentUser(null); setCurrentMode('Home'); };
 
-    const logout = () => {
-        setCurrentUser(null);
-        setCurrentMode('Home');
-        feedback('click');
-    };
-
-    const isLocked = () => {
-        if (!rejectionTime) return false;
-        return (Date.now() - rejectionTime) / 1000 < 180;
-    };
-
-    // --- COMPONENTES ---
+    // --- COMPONENTES DE TELA ---
 
     const Login = () => {
         const [u, setU] = useState('');
         const [p, setP] = useState('');
-        const locked = isLocked();
 
-        if (locked) return html`
-            <div className="min-h-screen flex items-center justify-center p-6 bg-red-50 dark:bg-zinc-950">
-                <div className="text-center">
-                    <i className="fa-solid fa-clock text-red-600 text-6xl mb-6 animate-pulse"></i>
-                    <h2 className="text-2xl font-black uppercase">Acesso Suspenso</h2>
-                    <p className="text-sm font-bold text-gray-400 mt-2">Aguarde 3 minutos</p>
-                </div>
-            </div>`;
+        const handleLogin = (e) => {
+            e.preventDefault();
+            const found = users.find(user => user.username === u.toUpperCase() && user.pin === p);
+            if (found) {
+                setCurrentUser(found);
+                setCurrentMode('Home');
+            } else {
+                alert("ID ou PIN inválido (Dica: ADM / 1821)");
+            }
+        };
 
         return html`
-            <div className="min-h-screen flex items-center justify-center p-6 bg-italy-white dark:bg-zinc-950">
-                <div className="glass w-full max-w-md p-10 rounded-[3.5rem] shadow-2xl border-b-[14px] border-[#CD212A] border-t-[14px] border-[#008C45] text-center">
-                    <div className="w-24 h-24 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl">
-                        <i className="fa-solid fa-pizza-slice text-red-600 text-5xl transform -rotate-12"></i>
+            <div class="min-h-screen flex items-center justify-center p-6">
+                <div class="glass w-full max-w-md p-10 rounded-[3rem] text-center shadow-2xl animate-slide">
+                    <div class="w-20 h-20 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <i class="fa-solid fa-pizza-slice text-red-600 text-4xl"></i>
                     </div>
-                    <h1 className="text-4xl font-black text-gray-800 dark:text-white uppercase italic tracking-tighter mb-1">ARTIGIANO</h1>
-                    <p className="text-gray-400 font-bold text-[10px] tracking-[0.3em] uppercase mb-10">Workflow de Elite</p>
-                    <form onSubmit=${(e) => {
-                        e.preventDefault();
-                        const found = users.find(user => user.username === u.toUpperCase() && user.pin === p);
-                        if (found) {
-                            setCurrentUser(found);
-                            if (!found.acceptedTerms) setCurrentMode('Terms');
-                            feedback('success');
-                        } else {
-                            feedback('error');
-                            alert("Login inválido");
-                        }
-                    }} className="space-y-4">
-                        <input type="text" placeholder="USUÁRIO" className="ios-input" value=${u} onInput=${e => setU(e.target.value.toUpperCase())} required />
-                        <input type="password" placeholder="PIN" className="ios-input text-center tracking-[1em] text-2xl font-black" value=${p} onInput=${e => setP(e.target.value.slice(0,4))} required />
-                        <button type="submit" className="btn-italiano w-full py-5 rounded-3xl uppercase tracking-widest text-lg mt-4">Entrar</button>
+                    <h1 class="text-3xl font-black italic tracking-tighter mb-8">ARTIGIANO GESTÃO</h1>
+                    <form onSubmit=${handleLogin} class="space-y-4">
+                        <input type="text" placeholder="ID USUÁRIO" class="ios-input" value=${u} onInput=${e => setU(e.target.value)} />
+                        <input type="password" placeholder="PIN" class="ios-input text-center text-2xl tracking-widest" value=${p} onInput=${e => setP(e.target.value)} />
+                        <button type="submit" class="btn-italiano w-full py-4 rounded-2xl uppercase font-black mt-4">Entrar</button>
                     </form>
                 </div>
             </div>`;
     };
 
-    const DoughCalculator = () => {
-        const day = new Date().getDay();
-        const suggested = (day === 0 || day <= 3) ? 60 : 100;
-        const [count, setCount] = useState(suggested);
+    const Home = () => html`
+        <div class="p-6 animate-slide">
+            <header class="flex justify-between items-center mb-10">
+                <div>
+                    <h2 class="text-2xl font-black italic">CIAO, ${currentUser.name}!</h2>
+                    <p class="text-[10px] uppercase font-bold text-gray-400">Cargo: ${currentUser.role}</p>
+                </div>
+                <button onClick=${() => setIsDarkMode(!isDarkMode)} class="w-10 h-10 glass rounded-xl">
+                    <i class="fa-solid ${isDarkMode ? 'fa-sun' : 'fa-moon'} text-amber-500"></i>
+                </button>
+            </header>
+
+            <div class="grid grid-cols-2 gap-4">
+                ${currentUser.permissions.map(cat => html`
+                    <button onClick=${() => { setSelectedCategory(cat); setCurrentMode(cat === 'Massas' ? 'Massas' : 'Inventory'); }}
+                        class="bg-white dark:bg-zinc-900 p-6 rounded-[2.5rem] shadow-sm flex flex-col items-center active:scale-95 transition-all">
+                        <div class="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
+                            <i class="fa-solid ${cat === 'Massas' ? 'fa-bowl-rice' : 'fa-box'} text-xl text-green-600"></i>
+                        </div>
+                        <span class="font-black text-[10px] uppercase text-gray-600 dark:text-gray-300">${cat}</span>
+                    </button>
+                `)}
+            </div>
+        </div>`;
+
+    const Inventory = () => {
+        const filtered = products.filter(p => p.category === selectedCategory);
         
-        const res = useMemo(() => ({
-            farinha: (count * 133.3).toFixed(1),
-            agua: (count * 83.1).toFixed(1),
-            liq: (count * 58.2).toFixed(1),
-            gelo: (count * 24.9).toFixed(1),
-            levain: (count * 6).toFixed(1),
-            sal: (count * 4).toFixed(1)
-        }), [count]);
+        const saveLog = async (p, val) => {
+            const db = await openDB();
+            const entry = { productName: p.name, userName: currentUser.name, value: val, timestamp: Date.now() };
+            db.transaction('logs', 'readwrite').objectStore('logs').add(entry);
+            if (navigator.vibrate) navigator.vibrate(30);
+        };
 
         return html`
-            <div className="p-6 pb-32 animate-slide">
-                <button onClick=${() => setCurrentMode('Home')} className="mb-6 flex items-center text-gray-400 uppercase font-black text-[10px] tracking-widest"><i className="fa-solid fa-chevron-left mr-2"></i> Voltar</button>
-                <h2 className="text-3xl font-black uppercase italic mb-2">Calculadora de Massas</h2>
-                <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] shadow-sm border-l-8 border-[#008C45] mb-8">
-                    <p className="text-xs font-bold text-gray-400 uppercase mb-4">Sugestão: <span className="text-green-600">${suggested} Massas</span></p>
-                    <div className="flex items-center gap-4">
-                        <input type="range" min="15" max="150" step="5" value=${count} onChange=${e => setCount(parseInt(e.target.value))} className="flex-1 h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#CD212A]" />
-                        <span className="text-4xl font-black italic">${count}</span>
-                    </div>
+            <div class="p-6 pb-32 animate-slide">
+                <button onClick=${() => setCurrentMode('Home')} class="mb-6 font-bold text-xs uppercase opacity-50">← Voltar</button>
+                <h2 class="text-3xl font-black italic mb-6">${selectedCategory}</h2>
+                <div class="space-y-4">
+                    ${filtered.length === 0 ? html`<p class="text-center py-20 opacity-30 italic">Nenhum item cadastrado neste setor.</p>` : 
+                      filtered.map(p => html`
+                        <div class="bg-white dark:bg-zinc-900 p-5 rounded-[2rem] shadow-sm border border-gray-100 dark:border-zinc-800">
+                            <h4 class="font-bold mb-4 uppercase text-sm">${p.name}</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" placeholder="Estoque" class="ios-input" onBlur=${e => saveLog(p, e.target.value)} />
+                                <div class="bg-zinc-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-[10px] font-black opacity-40 uppercase">
+                                    ${p.baseUnit}
+                                </div>
+                            </div>
+                        </div>
+                    `)}
                 </div>
+            </div>`;
+    };
 
-                <div className="grid grid-cols-2 gap-4 mb-10">
-                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm flex flex-col items-center">
-                        <i className="fa-solid fa-wheat-awn text-green-600 mb-2"></i>
-                        <p className="text-[10px] font-black uppercase text-gray-400">Farinha</p>
-                        <p className="text-2xl font-black">${res.farinha}g</p>
-                    </div>
-                    <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm flex flex-col items-center">
-                        <i className="fa-solid fa-droplet text-blue-500 mb-2"></i>
-                        <p className="text-[10px] font-black uppercase text-gray-400">Água Total</p>
-                        <p className="text-2xl font-black">${res.agua}g</p>
-                    </div>
-                    <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-3xl flex flex-col items-center border border-blue-100 dark:border-blue-800">
-                        <p className="text-[10px] font-black text-blue-500 uppercase">Líquida (70%)</p>
-                        <p className="text-lg font-black text-blue-700 dark:text-blue-300">${res.liq}g</p>
-                    </div>
-                    <div className="bg-cyan-50 dark:bg-cyan-900/10 p-5 rounded-3xl flex flex-col items-center border border-cyan-100 dark:border-cyan-800">
-                        <p className="text-[10px] font-black text-cyan-500 uppercase">Gelo (30%)</p>
-                        <p className="text-lg font-black text-cyan-700 dark:text-cyan-300">${res.gelo}g</p>
-                    </div>
+    const DoughCalc = () => {
+        const [n, setN] = useState(60);
+        const res = { 
+            farinha: (n * 133.3).toFixed(0), 
+            agua: (n * 83.1).toFixed(0), 
+            sal: (n * 4).toFixed(0),
+            gelo: (n * 24.9).toFixed(0)
+        };
+
+        return html`
+            <div class="p-6 animate-slide">
+                <button onClick=${() => setCurrentMode('Home')} class="mb-6 font-bold text-xs opacity-50 uppercase">← Voltar</button>
+                <h2 class="text-3xl font-black italic mb-6">Calculadora de Massas</h2>
+                <div class="bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] mb-6 shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-gray-400 mb-4">Meta Diária</p>
+                    <input type="range" min="20" max="150" step="5" value=${n} onInput=${e => setN(e.target.value)} class="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-red-600" />
+                    <div class="text-6xl font-black italic text-center mt-4 text-red-600">${n}</div>
+                    <p class="text-center text-[9px] font-bold uppercase text-gray-400 mt-2">Unidades de 226g</p>
                 </div>
-                
-                <div className="space-y-3">
-                    <h3 className="text-xs font-black uppercase text-red-600 tracking-widest">Processo (POP)</h3>
-                    <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl text-xs opacity-70 border border-gray-100 dark:border-zinc-800">
-                        1. Mistura 1: Água Líq + Gelo + Sal + 50% Farinha.
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">Farinha</p>
+                        <p class="text-lg font-black">${res.farinha}g</p>
                     </div>
-                    <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl text-xs opacity-70 border border-gray-100 dark:border-zinc-800">
-                        2. Mistura 2: Restante Farinha + Levain. Bater até ponto de véu.
+                    <div class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                        <p class="text-[9px] font-bold text-blue-500 uppercase">Água Total</p>
+                        <p class="text-lg font-black text-blue-700 dark:text-blue-300">${res.agua}g</p>
+                    </div>
+                    <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-gray-100 dark:border-zinc-800">
+                        <p class="text-[9px] font-bold text-gray-400 uppercase">Sal</p>
+                        <p class="text-lg font-black">${res.sal}g</p>
+                    </div>
+                    <div class="bg-cyan-50 dark:bg-cyan-900/10 p-4 rounded-2xl border border-cyan-100 dark:border-cyan-900/30">
+                        <p class="text-[9px] font-bold text-cyan-500 uppercase">Gelo</p>
+                        <p class="text-lg font-black text-cyan-700 dark:text-cyan-300">${res.gelo}g</p>
                     </div>
                 </div>
             </div>`;
     };
 
-    const Inventory = () => {
-        const filtered = products.filter(p => p.category === selectedCategory);
-        
-        const handleUpdate = async (p, loc, val) => {
-            const num = parseFloat(val) || 0;
-            const db = await openDB();
-            const tx = db.transaction('logs', 'readwrite');
-            const entry = {
-                userName: currentUser.name,
-                productName: p.name,
-                locations: { freezer: 0, shelf: 0, other: 0, ...{ [loc]: num } },
-                timestamp: Date.now()
-            };
-            tx.objectStore('logs').add(entry);
-            setLogs([...logs, entry]);
-            feedback('click');
-        };
+    const Settings = () => html`
+        <div class="p-6 animate-slide">
+            <h2 class="text-3xl font-black italic mb-8">Painel Admin</h2>
+            <div class="space-y-4">
+                <button onClick=${() => {
+                    const name = prompt("Nome do Produto:");
+                    const cat = prompt("Categoria (Sacolão, Geral, Limpeza, Massas, Bebidas):", "Geral");
+                    if(name && cat) setProducts([...products, { id: Date.now(), name, category: cat, baseUnit: 'un' }]);
+                }} class="w-full bg-white dark:bg-zinc-900 p-6 rounded-3xl font-bold uppercase text-xs text-left shadow-sm flex justify-between items-center">
+                    <span>+ Novo Insumo</span>
+                    <i class="fa-solid fa-plus opacity-30"></i>
+                </button>
+                
+                <button onClick=${logout} class="w-full bg-red-100 text-red-600 p-6 rounded-3xl font-bold uppercase text-xs shadow-sm active:bg-red-200">
+                    Encerrar Sessão
+                </button>
+            </div>
+        </div>`;
 
-        const handleSendOrder = (supplierId) => {
-            const sup = suppliers.find(s => s.id === supplierId);
-            if (!sup) return;
-            const supProds = products.filter(p => p.supplierId === supplierId && p.category === selectedCategory);
-            let itemsMsg = "";
-            supProds.forEach(p => {
-                const itemLogs = logs.filter(l => l.productName === p.name);
-                const latest = itemLogs[itemLogs.length - 1];
-                const count = latest ? (latest.locations.freezer + latest.locations.shelf + latest.locations.other) : 0;
-                const target = p.targetStock || 20;
-                if (count < target) {
-                    const diff = target - count;
-                    itemsMsg += `• ${p.name}: ${diff} ${p.baseUnit}\n`;
-                }
-            });
+    // Renderização Condicional
+    if (!currentUser) return html`<${Login} />`;
 
-            if (!itemsMsg) return alert("Nada para pedir!");
+    return html`
+        <div class="max-w-md mx-auto min-h-screen relative pb-24">
+            ${currentMode === 'Home' && html`<${Home} />`}
+            ${currentMode === 'Inventory' && html`<${Inventory} />`}
+            ${currentMode === 'Massas' && html`<${DoughCalc} />`}
+            ${currentMode === 'Settings' && html`<${Settings} />`}
+            
+            <!-- Bottom Navbar -->
+            <nav class="fixed bottom-0 left-0 right-0 glass h-20 flex justify-around items-center px-6 border-t border-white/20 z-40">
+                <button onClick=${() => setCurrentMode('Home')} class="text-xl ${currentMode === 'Home' ? 'text-green-600' : 'opacity-30'} transition-all"><i class="fa-solid fa-house"></i></button>
+                <button onClick=${() => setCurrentMode('Settings')} class="text-xl ${currentMode === 'Settings' ? 'text-green-600' : 'opacity-30'} transition-all"><i class="fa-solid fa-user-gear"></i></button>
+            </nav>
+        </div>`;
+};
 
-            const fullMsg = `${sup.greeting}\n\n*PEDIDO ARTIGIANO*\nSetor: ${selectedCategory}\n\n${itemsMsg}\n_Enviado por: ${currentUser.name}_`;
-            window.open(`https://wa.me/${sup.phone}?text=${encodeURIComponent(fullMsg)}`, '_blank');
-            feedback('success');
-        };
-
-        return html`
-            <div className="p-6 pb-40 animate-slide">
-                <div className="flex items-center justify-between mb-8">
-                    <button onClick=${() => setCurrentMode('Home')} className="w-10 h-10 glass rounded-2xl flex items-center justify-center text-gray-500"><i className="fa-solid fa-chevron-left"></i></button>
-                    <h2 className="text-2xl font-black uppercase italic">${selectedCategory}</h2>
-                    <div className="w-10"></div>
-                </div>
-
-                <div className="space-y-4">
-                    ${filtered.map(p => html`
-                        <div
+render(html`<${App} />`, document.getElementById('root'));
