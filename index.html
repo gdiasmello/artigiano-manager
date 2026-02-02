@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
     <title>Pizzeria Master</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,86 +14,246 @@
 <body class="bg-[#F2F2F7]">
     <div id="app" v-cloak>
         
-        <header v-if="authenticated && currentTab !== 'home'" class="p-4 bg-white/80 backdrop-blur-lg sticky top-0 z-50 border-b flex justify-between items-center">
-            <button @click="currentTab = 'home'" class="text-[#008C45] font-bold flex items-center">‹ Voltar</button>
-            <h1 class="font-black text-[10px] uppercase tracking-widest text-gray-400">{{ currentTab }}</h1>
-            <div class="w-10"></div>
-        </header>
-
-        <main v-if="authenticated && currentTab === 'home'" class="p-6 pt-10 animate-fade">
-            <h2 class="text-3xl font-black mb-8 italic">Pizzeria Master</h2>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div @click="currentTab = 'insumos'; setorAtivo = 'Sacolão'" class="tile-apple bg-[#008C45] text-white">
-                    <span class="text-3xl mb-1">🍎</span>
-                    <span class="font-bold text-[10px] uppercase">Sacolão</span>
+        <div v-if="mostrarTermos" class="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
+            <div class="bg-white w-full max-w-lg rounded-[30px] max-h-[85vh] flex flex-col shadow-2xl animate-fade">
+                <div class="p-6 border-b text-center">
+                    <h2 class="font-black text-xl text-[#008C45]">Termos de Uso</h2>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">Pizzeria Master - v1.0</p>
                 </div>
-                <div @click="currentTab = 'insumos'; setorAtivo = 'Limpeza'" class="tile-apple bg-blue-500 text-white">
-                    <span class="text-3xl mb-1">🧼</span>
-                    <span class="font-bold text-[10px] uppercase">Limpeza</span>
+                <div class="p-6 overflow-y-auto text-[11px] text-gray-600 space-y-4 leading-relaxed">
+                    <p><strong>1. Suporte:</strong> Limitado à presença física do desenvolvedor na pizzaria.</p>
+                    <p><strong>2. Isenção de Responsabilidade:</strong> O desenvolvedor não responde por erros de pedidos, falhas de stock ou prejuízos financeiros. Toda a conferência é responsabilidade do operador.</p>
+                    <p><strong>3. Vínculo:</strong> Software independente sem vínculo jurídico com a Artigiano.</p>
+                    <p><strong>4. Leis:</strong> Em conformidade com a LGPD e Marco Civil da Internet.</p>
+                    <p>[Cláusulas 5 a 15 inclusas conforme diretrizes técnicas de proteção de dados e autonomia operativa].</p>
                 </div>
-                <div @click="currentTab = 'historico'" class="tile-apple bg-gray-800 text-white col-span-2">
-                    <span class="text-2xl mb-1">📜 Histórico de Pedidos</span>
-                </div>
-                <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-white border-2 border-gray-100 text-gray-400">
-                    <span class="text-2xl mb-1">⚙️ Ajustes Master</span>
-                </div>
-            </div>
-        </main>
-
-        <div v-if="currentTab === 'config'" class="p-4 space-y-4">
-            
-            <div class="glass-card overflow-hidden">
-                <div @click="menuAberto = menuAberto === 'equipe' ? null : 'equipe'" class="p-5 flex justify-between items-center font-bold">
-                    <span>👥 Gestão de Equipa</span>
-                    <span>{{ menuAberto === 'equipe' ? '−' : '+' }}</span>
-                </div>
-                <div v-if="menuAberto === 'equipe'" class="p-5 bg-gray-50/50 border-t space-y-3">
-                    <input v-model="novoUser.nome" placeholder="Nome" class="ios-input">
-                    <input v-model="novoUser.pin" placeholder="PIN (4 dígitos)" class="ios-input" maxlength="4">
-                    <button class="ios-btn bg-black text-white w-full">Salvar Funcionário</button>
-                    
-                    <div v-for="u in equipe" :key="u.id" class="flex justify-between items-center p-3 bg-white rounded-2xl shadow-sm">
-                        <span class="font-bold">{{ u.nome }} ({{ u.cargo }})</span>
-                        <button class="text-red-500 font-bold">Remover</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-card overflow-hidden">
-                <div @click="menuAberto = menuAberto === 'rota' ? null : 'rota'" class="p-5 flex justify-between items-center font-bold">
-                    <span>📍 Rota de Contagem</span>
-                    <span>{{ menuAberto === 'rota' ? '−' : '+' }}</span>
-                </div>
-                <div v-if="menuAberto === 'rota'" class="p-5 bg-gray-50/50 border-t space-y-2">
-                    <div v-for="(r, idx) in rota" :key="idx" class="flex justify-between items-center p-4 bg-white rounded-2xl">
-                        <span class="font-bold">{{ r }}</span>
-                        <div class="flex gap-2">
-                            <button @click="moverRota(idx, -1)">⬆️</button>
-                            <button @click="moverRota(idx, 1)">⬇️</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            </div>
-
-        <div v-if="currentTab === 'historico'" class="p-4 space-y-4">
-            <div v-for="(h, idx) in historico" :key="idx" class="glass-card p-5 animate-fade">
-                <div class="flex justify-between mb-2">
-                    <span class="font-black text-green-700 uppercase text-[10px]">{{ h.fornecedor }}</span>
-                    <span class="text-[9px] text-gray-400 font-bold">{{ h.data }}</span>
-                </div>
-                <div class="bg-gray-100 p-4 rounded-2xl text-[11px] text-gray-600 font-mono">
-                    {{ h.conteudo }}
-                </div>
-                <div v-if="isAdmin" class="mt-3 flex justify-end">
-                    <button class="text-red-500 text-xs font-bold">🗑️ Apagar Registo</button>
+                <div class="p-6 bg-gray-50 rounded-b-[30px] flex flex-col gap-3">
+                    <button @click="aceitarTermos" class="ios-btn bg-[#008C45] text-white w-full shadow-lg">Aceito e Compreendo</button>
+                    <button @click="mostrarTermos = false; authenticated = false" class="text-xs text-red-500 font-bold p-2 text-center">Recusar e Sair</button>
                 </div>
             </div>
         </div>
 
+        <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F2F2F7] p-6">
+            <div class="w-full max-w-sm glass-card p-10 text-center" :class="{ 'shake-error': loginError }">
+                <h1 class="text-4xl font-black text-[#008C45] italic uppercase tracking-tighter">Pizzeria</h1>
+                <h1 class="text-4xl font-black text-[#CD212A] mb-8 mt-[-12px] italic uppercase tracking-tighter">Master</h1>
+                
+                <select v-model="userSelected" class="ios-input mb-4 font-bold text-center appearance-none">
+                    <option value="" disabled>SELECIONAR UTILIZADOR</option>
+                    <option v-for="u in equipe" :key="u.id" :value="u">{{ u.nome }}</option>
+                </select>
+
+                <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-2xl tracking-[12px] mb-8" maxlength="4" inputmode="numeric">
+                
+                <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-xl">Entrar</button>
+            </div>
+        </div>
+
+        <div v-if="authenticated">
+            
+            <header v-if="currentTab !== 'home'" class="p-4 bg-white/80 backdrop-blur-lg sticky top-0 z-40 border-b flex justify-between items-center">
+                <button @click="currentTab = 'home'" class="flex items-center text-[#008C45] font-black uppercase text-[10px]">
+                    <span class="text-2xl mr-1">‹</span> Início
+                </button>
+                <h3 class="font-black text-[10px] uppercase tracking-[3px] text-gray-300">{{ currentTab }}</h3>
+                <div class="w-10"></div>
+            </header>
+
+            <main v-if="currentTab === 'home'" class="p-6 pt-12 animate-fade">
+                <div class="mb-10 text-left">
+                    <h2 class="text-4xl font-black text-gray-800">Ciao, {{ userSelected.nome }}!</h2>
+                    <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">{{ dataAtual }}</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div @click="currentTab = 'insumos'; setorAtivo = 'Sacolão'" class="tile-apple bg-green-600 text-white">
+                        <span class="text-4xl mb-2">🍎</span>
+                        <span class="font-black text-[10px] uppercase">Sacolão / Horti</span>
+                    </div>
+                    <div @click="currentTab = 'insumos'; setorAtivo = 'Limpeza'" class="tile-apple bg-blue-600 text-white">
+                        <span class="text-4xl mb-2">🧼</span>
+                        <span class="font-black text-[10px] uppercase">Limpeza</span>
+                    </div>
+                    <div @click="currentTab = 'insumos'; setorAtivo = 'Ver Tudo'" class="tile-apple bg-white col-span-2 border-2 border-gray-100">
+                        <span class="text-4xl mb-2">📦</span>
+                        <span class="font-black text-[10px] uppercase text-gray-400 tracking-widest">Geral / Insumos</span>
+                    </div>
+                    <div @click="currentTab = 'histórico'" class="tile-apple bg-gray-800 text-white">
+                        <span class="text-4xl mb-2">📜</span>
+                        <span class="font-black text-[10px] uppercase">Histórico</span>
+                    </div>
+                    <div v-if="isAdmin" @click="currentTab = 'config'" class="tile-apple bg-red-600 text-white shadow-red-200 shadow-lg">
+                        <span class="text-4xl mb-2">⚙️</span>
+                        <span class="font-black text-[10px] uppercase">Ajustes Master</span>
+                    </div>
+                    <div @click="logout" class="tile-apple bg-gray-200 text-gray-400">
+                        <span class="text-4xl mb-2">🚪</span>
+                        <span class="font-black text-[10px] uppercase">Sair</span>
+                    </div>
+                </div>
+            </main>
+
+            <div v-if="currentTab === 'insumos'" class="p-4 space-y-4 animate-fade">
+                <div v-for="item in insumosFiltrados" :key="item.id" class="glass-card p-5 border-l-8" :class="statusEstoque(item) === 'PEDIR' ? 'border-red-500' : 'border-green-500'">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-black uppercase text-sm leading-tight">{{ item.nome }}</h4>
+                            <p class="text-[9px] text-gray-400 font-bold uppercase">{{ item.local }} | Meta: {{ getMetaAjustada(item) }} {{ item.unQ }}</p>
+                        </div>
+                        <span class="text-[10px] font-black px-3 py-1 rounded-full" :class="statusEstoque(item) === 'PEDIR' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'">
+                            {{ statusEstoque(item) }}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="relative">
+                            <input type="number" v-model.number="item.contagem" class="ios-input text-center text-xl" placeholder="0">
+                            <span class="absolute top-[-8px] left-3 text-[8px] font-bold text-gray-400 uppercase bg-white px-1">Contagem ({{ item.unQ }})</span>
+                        </div>
+                        <div class="flex flex-col justify-center items-center bg-gray-50 rounded-2xl">
+                            <span class="text-[9px] uppercase font-bold text-gray-400">Falta ({{ item.unC }})</span>
+                            <span class="text-2xl font-black text-gray-800">{{ calcularFalta(item) }}</span>
+                        </div>
+                    </div>
+                </div>
+                <button @click="enviarWhatsApp" class="ios-btn bg-[#008C45] w-full text-white sticky bottom-6 shadow-2xl z-50">FINALIZAR E ENVIAR PEDIDO</button>
+            </div>
+
+            <div v-if="currentTab === 'histórico'" class="p-6 space-y-4 animate-fade">
+                <div v-if="historico.length === 0" class="text-center py-20">
+                    <span class="text-5xl block mb-4 opacity-20">📜</span>
+                    <p class="text-gray-400 font-bold">Nenhum pedido no registo.</p>
+                </div>
+                <div v-for="(h, idx) in historico" :key="idx" class="bg-white p-5 rounded-[30px] shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-black text-[10px] text-[#008C45] uppercase tracking-widest">{{ h.fornecedor }}</span>
+                        <span class="text-[9px] font-bold text-gray-300">{{ h.data }}</span>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-2xl text-[10px] font-mono text-gray-500 whitespace-pre-wrap leading-relaxed">
+                        {{ h.conteudo }}
+                    </div>
+                    <div v-if="isAdmin" class="mt-4 flex justify-end">
+                        <button @click="removerHistorico(idx)" class="text-red-500 text-[10px] font-black uppercase">🗑️ Apagar Registo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'config'" class="p-4 space-y-4 animate-fade">
+                
+                <div class="glass-card overflow-hidden">
+                    <div @click="menuAberto = menuAberto === 'equipe' ? null : 'equipe'" class="p-5 flex justify-between items-center font-bold bg-white cursor-pointer">
+                        <span class="text-sm">👥 Gestão de Equipa</span>
+                        <span class="text-gray-300">{{ menuAberto === 'equipe' ? '−' : '+' }}</span>
+                    </div>
+                    <div v-if="menuAberto === 'equipe'" class="p-5 bg-gray-50 border-t space-y-3">
+                        <input v-model="novoUser.nome" placeholder="Nome do Funcionário" class="ios-input">
+                        <input v-model="novoUser.pin" placeholder="PIN de 4 dígitos" class="ios-input" maxlength="4" inputmode="numeric">
+                        <button @click="adicionarFuncionario" class="ios-btn bg-black text-white w-full text-xs">Adicionar Funcionário</button>
+                        <div v-for="u in equipe" :key="u.id" class="flex justify-between items-center p-4 bg-white rounded-2xl">
+                            <span class="font-bold text-xs">{{ u.nome }} ({{ u.cargo }})</span>
+                            <button @click="removerFuncionario(u.id)" class="text-red-500 text-[10px] font-bold">REMOVER</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card overflow-hidden">
+                    <div @click="menuAberto = menuAberto === 'fornecedores' ? null : 'fornecedores'" class="p-5 flex justify-between items-center font-bold bg-white cursor-pointer">
+                        <span class="text-sm">📱 Gestão de Fornecedores</span>
+                        <span class="text-gray-300">{{ menuAberto === 'fornecedores' ? '−' : '+' }}</span>
+                    </div>
+                    <div v-if="menuAberto === 'fornecedores'" class="p-5 bg-gray-50 border-t space-y-3">
+                        <input v-model="novoForn.nome" placeholder="Nome (Ex: Sacolão)" class="ios-input">
+                        <input v-model="novoForn.zap" placeholder="WhatsApp (Ex: 5543...)" class="ios-input">
+                        <textarea v-model="novoForn.saudacao" placeholder="Saudação personalizada..." class="ios-input h-20"></textarea>
+                        <div class="flex items-center justify-between p-2">
+                            <span class="text-[10px] font-bold text-gray-400">REGRA DE SEXTA (3X)</span>
+                            <input type="checkbox" v-model="novoForn.triplicaSexta" class="w-5 h-5 accent-green-600">
+                        </div>
+                        <button @click="adicionarFornecedor" class="ios-btn bg-[#008C45] text-white w-full text-xs">Salvar Fornecedor</button>
+                        <div v-for="f in fornecedores" :key="f.id" class="p-4 bg-white rounded-2xl flex justify-between items-center shadow-sm">
+                            <span class="font-bold text-xs">{{ f.nome }}</span>
+                            <button @click="removerFornecedor(f.id)" class="text-red-500 text-[10px] font-black">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card overflow-hidden">
+                    <div @click="menuAberto = menuAberto === 'catalogo' ? null : 'catalogo'" class="p-5 flex justify-between items-center font-bold bg-white cursor-pointer">
+                        <span class="text-sm">📦 Catálogo Técnico</span>
+                        <span class="text-gray-300">{{ menuAberto === 'catalogo' ? '−' : '+' }}</span>
+                    </div>
+                    <div v-if="menuAberto === 'catalogo'" class="p-5 bg-gray-50 border-t space-y-3">
+                        <input v-model="novoProd.nome" placeholder="Nome do Produto" class="ios-input">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select v-model="novoProd.local" class="ios-input text-xs font-bold">
+                                <option value="" disabled>LOCAL/ROTA</option>
+                                <option v-for="r in rota" :value="r">{{ r }}</option>
+                            </select>
+                            <select v-model="novoProd.destinoId" class="ios-input text-xs font-bold">
+                                <option value="" disabled>FORNECEDOR</option>
+                                <option v-for="f in fornecedores" :value="f.id">{{ f.nome }}</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input v-model="novoProd.unQ" placeholder="Unid. Cont." class="ios-input">
+                            <input v-model="novoProd.unC" placeholder="Unid. Comp." class="ios-input">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input v-model.number="novoProd.meta" type="number" placeholder="Meta Mín." class="ios-input">
+                            <input v-model.number="novoProd.fator" type="number" placeholder="Fator (1)" class="ios-input">
+                        </div>
+                        <button @click="adicionarProduto" class="ios-btn bg-black text-white w-full text-xs">Cadastrar Produto</button>
+                        
+                        <div class="mt-6 border-t pt-4">
+                            <input v-model="filtroCatalogo" placeholder="Pesquisar no catálogo..." class="ios-input bg-white mb-2">
+                            <div v-for="p in estoque" :key="p.id" class="p-3 bg-white mb-1 rounded-xl text-[10px] flex justify-between">
+                                <span class="font-bold">{{ p.nome }}</span>
+                                <button @click="removerProduto(p.id)" class="text-red-500">Excluir</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card overflow-hidden">
+                    <div @click="menuAberto = menuAberto === 'rota' ? null : 'rota'" class="p-5 flex justify-between items-center font-bold bg-white cursor-pointer">
+                        <span class="text-sm">📍 Rota de Contagem</span>
+                        <span class="text-gray-300">{{ menuAberto === 'rota' ? '−' : '+' }}</span>
+                    </div>
+                    <div v-if="menuAberto === 'rota'" class="p-5 bg-gray-50 border-t space-y-2">
+                        <div v-for="(r, idx) in rota" :key="idx" class="flex justify-between items-center p-4 bg-white rounded-2xl">
+                            <span class="font-bold text-xs uppercase">{{ r }}</span>
+                            <div class="flex gap-4">
+                                <button @click="moverRota(idx, -1)" class="text-lg">⬆️</button>
+                                <button @click="moverRota(idx, 1)" class="text-lg">⬇️</button>
+                                <button @click="removerLocal(idx)" class="text-red-500 text-xs ml-2">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-4">
+                            <input v-model="novoLocalNome" placeholder="Novo Setor" class="ios-input">
+                            <button @click="adicionarLocal" class="ios-btn bg-black text-white px-6">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 bg-white flex justify-between items-center">
+                    <div>
+                        <h3 class="font-black text-xs uppercase">Semana de Feriado</h3>
+                        <p class="text-[9px] text-gray-400 font-bold">Aumentar todas as metas em 50%</p>
+                    </div>
+                    <input type="checkbox" v-model="config.modoFeriado" class="w-7 h-7 accent-red-600">
+                </div>
+
+                <div class="text-center pt-8">
+                    <button @click="mostrarTermos = true" class="text-[9px] font-black text-gray-300 underline uppercase tracking-[2px]">Rever Contrato de Utilização</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>
