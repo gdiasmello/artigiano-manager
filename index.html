@@ -3,51 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#f0f2f5">
-    <link rel="manifest" href="data:application/json;base64,ewogICJnameIjogIlBpenplcmlhIE1hc3RlciBQUk8iLAogICJzaG9ydF9uYW1lIjogIkFydGlnaWFubyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjBmMmY1IiwKICAidGhlbWVfY29sb3IiOiAiI2YwZjJmNSIsCiAgImljb25zIjogW3sgInNyYyI6ICJsb2dvLnBuZyIsICJzaXplcyI6ICI1MTJ4NTEyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiB9XQp9">
     <title>Pizzeria Master PRO</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div id="modal-termos" class="modal-overlay">
+
+    <!-- Splash / Termos -->
+    <div id="modal-terms" class="modal-overlay">
         <div class="modal-content glass">
-            <h2>🛡️ Termos de Uso</h2>
-            <p>App independente de Gabriel. Sem vínculo jurídico com Artigiano. Suporte apenas presencial. Uso sob responsabilidade do usuário.</p>
-            <button onclick="aceitarTermos()" class="btn-primary">Concordar</button>
+            <h2>🛡️ Segurança Jurídica</h2>
+            <p>App independente desenvolvido por Gabriel. Sem vínculo jurídico com a Artigiano. Responsabilidade do usuário. Suporte apenas presencial.</p>
+            <button onclick="acceptTerms()" class="btn-primary">Concordar</button>
         </div>
     </div>
 
-    <section id="view-login" class="view">
+    <!-- Login -->
+    <div id="screen-login" class="screen active">
         <div class="login-card glass">
-            <h1 style="font-size: 3rem; margin: 0;">🍕</h1>
-            <input type="text" id="user-input" placeholder="Usuário">
-            <input type="password" id="pin-input" placeholder="PIN" inputmode="numeric">
-            <button id="btn-login" class="btn-primary">Entrar</button>
-            <p class="version">v1.5.0-PWA</p>
+            <h1 class="logo-text">Artigiano <span>PRO</span></h1>
+            <input type="password" id="pin-input" placeholder="PIN de 4 dígitos" maxlength="4" inputmode="numeric">
+            <button onclick="handleLogin()" class="btn-login">Entrar</button>
         </div>
-    </section>
+    </div>
 
-    <section id="view-dash" class="view hidden">
-        <header class="glass-header">
-            <h1 id="user-greeting">Olá, Gabriel</h1>
-            <button class="btn-icon" onclick="alert('Manual: Sempre conte o estoque real na prateleira.')"><i data-lucide="help-circle"></i></button>
+    <!-- Dashboard -->
+    <div id="screen-dash" class="screen">
+        <header class="glass-nav">
+            <div class="user-info">
+                <span id="user-name">Usuário</span>
+                <small id="user-role">Pizzaiolo</small>
+            </div>
+            <div class="nav-icons">
+                <i data-lucide="help-circle" onclick="showHelp()"></i>
+                <i data-lucide="settings" id="admin-icon" class="hidden"></i>
+            </div>
         </header>
-        <div class="grid-container">
-            <div class="card verde" onclick="nav('contagem')"><i data-lucide="leaf"></i>Sacolão</div>
-            <div class="card amarelo" onclick="nav('producao')"><i data-lucide="scale"></i>Produção</div>
-            <div class="card azul" onclick="nav('contagem')"><i data-lucide="sparkles"></i>Limpeza</div>
-            <div class="card vermelho" onclick="nav('contagem')"><i data-lucide="cup-soda"></i>Bebidas</div>
+
+        <div class="grid-dashboard">
+            <div class="card green" onclick="openInventory('sacolao')">
+                <i data-lucide="leaf"></i><span>Sacolão</span>
+            </div>
+            <div class="card yellow" onclick="openProduction()">
+                <i data-lucide="scale"></i><span>Produção</span>
+            </div>
+            <div class="card blue" onclick="openInventory('limpeza')">
+                <i data-lucide="sparkles"></i><span>Limpeza</span>
+            </div>
+            <div class="card grey" onclick="openInventory('insumos')">
+                <i data-lucide="package"></i><span>Insumos</span>
+            </div>
+            <div class="card red" onclick="openInventory('bebidas')">
+                <i data-lucide="beer"></i><span>Bebidas</span>
+            </div>
+            <div class="card purple" onclick="openHistory()">
+                <i data-lucide="scroll-text"></i><span>Histórico</span>
+            </div>
         </div>
-    </section>
+    </div>
 
-    <nav id="main-nav" class="tab-bar glass hidden">
-        <button onclick="nav('dash')"><i data-lucide="home"></i></button>
-        <button onclick="nav('carrinho')"><i data-lucide="shopping-cart"></i></button>
-        <button onclick="nav('config')"><i data-lucide="settings"></i></button>
-    </nav>
+    <!-- Modal Produção (Amarelo) -->
+    <div id="modal-prod" class="modal-full hidden">
+        <div class="modal-header glass">
+            <button onclick="closeModals()"><i data-lucide="chevron-left"></i></button>
+            <h2>Calculadora & POPs</h2>
+        </div>
+        <div class="modal-body">
+            <div class="calc-section card-inner glass">
+                <h3>🔢 Quantidade de Massas</h3>
+                <input type="number" id="input-massas" placeholder="Ex: 30" oninput="runCalculator()">
+                <div id="res-calc" class="results-grid">
+                    <!-- Resultados via JS -->
+                </div>
+            </div>
+            <div class="pop-section">
+                <h3>📖 Manuais Técnicos</h3>
+                <button class="btn-pop" onclick="showPOP(1)">POP 01: Batimento</button>
+                <button class="btn-pop" onclick="showPOP(2)">POP 02: Boleamento</button>
+                <button class="btn-pop" onclick="showPOP(3)">POP 03: Clima</button>
+            </div>
+        </div>
+    </div>
 
-    <script type="module" src="app.js"></script>
-    <script>lucide.createIcons();</script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
