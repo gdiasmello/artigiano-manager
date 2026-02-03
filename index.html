@@ -1,51 +1,53 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel Master – Pizzaria</title>
-
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="icons/icon-192.png" />
-
-  <meta name="theme-color" content="#b71c1c" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f0f2f5">
+    <link rel="manifest" href="data:application/json;base64,ewogICJnameIjogIlBpenplcmlhIE1hc3RlciBQUk8iLAogICJzaG9ydF9uYW1lIjogIkFydGlnaWFubyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjBmMmY1IiwKICAidGhlbWVfY29sb3IiOiAiI2YwZjJmNSIsCiAgImljb25zIjogW3sgInNyYyI6ICJsb2dvLnBuZyIsICJzaXplcyI6ICI1MTJ4NTEyIiwgInR5cGUiOiAiaW1hZ2UvcG5nIiB9XQp9">
+    <title>Pizzeria Master PRO</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
+    <div id="modal-termos" class="modal-overlay">
+        <div class="modal-content glass">
+            <h2>🛡️ Termos de Uso</h2>
+            <p>App independente de Gabriel. Sem vínculo jurídico com Artigiano. Suporte apenas presencial. Uso sob responsabilidade do usuário.</p>
+            <button onclick="aceitarTermos()" class="btn-primary">Concordar</button>
+        </div>
+    </div>
 
-  <!-- LOGIN ADM -->
-  <section id="login">
-    <h1>🔐 Acesso ADM</h1>
-    <input type="password" id="senha" placeholder="Senha de acesso" />
-    <button onclick="login()">Entrar</button>
-    <p id="erroLogin"></p>
-  </section>
+    <section id="view-login" class="view">
+        <div class="login-card glass">
+            <h1 style="font-size: 3rem; margin: 0;">🍕</h1>
+            <input type="text" id="user-input" placeholder="Usuário">
+            <input type="password" id="pin-input" placeholder="PIN" inputmode="numeric">
+            <button id="btn-login" class="btn-primary">Entrar</button>
+            <p class="version">v1.5.0-PWA</p>
+        </div>
+    </section>
 
-  <!-- PAINEL MASTER -->
-  <section id="painel" class="hidden">
-    <header>
-      <h2>🍕 Painel Master – ADM</h2>
-      <button onclick="logout()">Sair</button>
-    </header>
+    <section id="view-dash" class="view hidden">
+        <header class="glass-header">
+            <h1 id="user-greeting">Olá, Gabriel</h1>
+            <button class="btn-icon" onclick="alert('Manual: Sempre conte o estoque real na prateleira.')"><i data-lucide="help-circle"></i></button>
+        </header>
+        <div class="grid-container">
+            <div class="card verde" onclick="nav('contagem')"><i data-lucide="leaf"></i>Sacolão</div>
+            <div class="card amarelo" onclick="nav('producao')"><i data-lucide="scale"></i>Produção</div>
+            <div class="card azul" onclick="nav('contagem')"><i data-lucide="sparkles"></i>Limpeza</div>
+            <div class="card vermelho" onclick="nav('contagem')"><i data-lucide="cup-soda"></i>Bebidas</div>
+        </div>
+    </section>
 
-    <main>
-      <h3>📦 Estoque</h3>
+    <nav id="main-nav" class="tab-bar glass hidden">
+        <button onclick="nav('dash')"><i data-lucide="home"></i></button>
+        <button onclick="nav('carrinho')"><i data-lucide="shopping-cart"></i></button>
+        <button onclick="nav('config')"><i data-lucide="settings"></i></button>
+    </nav>
 
-      <input id="produto" placeholder="Produto" />
-      <input id="quantidade" type="number" placeholder="Quantidade" />
-      <button onclick="adicionarProduto()">Adicionar</button>
-
-      <ul id="listaEstoque"></ul>
-    </main>
-  </section>
-
-  <script src="app.js"></script>
-
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js");
-    }
-  </script>
-
+    <script type="module" src="app.js"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

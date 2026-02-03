@@ -1,61 +1,61 @@
-const SENHA_ADM = "1821";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// LOGIN
-function login() {
-  const senha = document.getElementById("senha").value;
+const firebaseConfig = {
+  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
+  authDomain: "artigiano-app.firebaseapp.com",
+  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+  projectId: "artigiano-app",
+  storageBucket: "artigiano-app.firebasestorage.app",
+  messagingSenderId: "212218495726",
+  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+};
 
-  if (senha === SENHA_ADM) {
-    localStorage.setItem("admLogado", "true");
-    mostrarPainel();
-  } else {
-    document.getElementById("erroLogin").innerText = "❌ Senha incorreta";
-  }
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// SERVICE WORKER PARA MODO OFFLINE
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('data:text/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdpbnN0YWxsJywgZSA9PiBlLndhaXRVbnRpbChjYWNoZXMub3BlbignY2FjaGUnKS50aGVuKGMgPT4gYy5hZGRBbGwoWycuLicsICdpbmRleC5odG1sJywgJ3N0eWxlLmNzcycsICdhcHAuanMnXSkpKSk7CnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCBlID0+IGUucmVzcG9uZFdpdGgoY2FjaGVzLm1hdGNoKGUucmVxdWVzdCkudGhlbihyID0+IHIgfHwgZmV0Y2goZS5yZXF1ZXN0KSkpKTs=');
 }
 
-function logout() {
-  localStorage.removeItem("admLogado");
-  location.reload();
+// LÓGICA DE INSTALAÇÃO (PWA)
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+// AUTH GABRIEL 1821
+document.getElementById('btn-login').addEventListener('click', async () => {
+    const user = document.getElementById('user-input').value.toLowerCase();
+    const pin = document.getElementById('pin-input').value;
+
+    if (user === "gabriel" && pin === "1821") {
+        logar(user);
+    } else {
+        const snap = await get(ref(db, `users/${user}`));
+        if (snap.exists() && snap.val().pin === pin) logar(user);
+        else alert("Acesso Negado!");
+    }
+});
+
+function logar(user) {
+    document.getElementById('view-login').classList.add('hidden');
+    document.getElementById('view-dash').classList.remove('hidden');
+    document.getElementById('main-nav').classList.remove('hidden');
+    document.getElementById('user-greeting').innerText = `Olá, ${user}`;
+    if (deferredPrompt) deferredPrompt.prompt();
 }
 
-function mostrarPainel() {
-  document.getElementById("login").classList.add("hidden");
-  document.getElementById("painel").classList.remove("hidden");
-  carregarEstoque();
-}
+window.aceitarTermos = () => {
+    document.getElementById('modal-termos').classList.add('hidden');
+    localStorage.setItem('termos_ok', 'true');
+};
 
-// ESTOQUE
-function adicionarProduto() {
-  const produto = document.getElementById("produto").value;
-  const quantidade = document.getElementById("quantidade").value;
+if(localStorage.getItem('termos_ok')) document.getElementById('modal-termos').classList.add('hidden');
 
-  if (!produto || quantidade <= 0) return;
-
-  const estoque = JSON.parse(localStorage.getItem("estoque")) || [];
-
-  estoque.push({ produto, quantidade });
-
-  localStorage.setItem("estoque", JSON.stringify(estoque));
-
-  document.getElementById("produto").value = "";
-  document.getElementById("quantidade").value = "";
-
-  carregarEstoque();
-}
-
-function carregarEstoque() {
-  const lista = document.getElementById("listaEstoque");
-  lista.innerHTML = "";
-
-  const estoque = JSON.parse(localStorage.getItem("estoque")) || [];
-
-  estoque.forEach((item, index) => {
-    const li = document.createElement("li");
-    li.innerHTML = `${item.produto} — ${item.quantidade}`;
-    lista.appendChild(li);
-  });
-}
-
-// AUTO LOGIN
-if (localStorage.getItem("admLogado") === "true") {
-  mostrarPainel();
-}
+window.nav = (v) => {
+    document.querySelectorAll('.view').forEach(e => e.classList.add('hidden'));
+    document.getElementById(`view-${v}`).classList.remove('hidden');
+};
