@@ -1,73 +1,20 @@
-:root {
-    --ios-bg: #F2F2F7;
-    --ios-card: rgba(255, 255, 255, 0.8);
-    --ios-text: #1C1C1E;
-}
+:root { --ios-bg: #F2F2F7; --ios-card: rgba(255, 255, 255, 0.8); --ios-text: #1C1C1E; }
+@media (prefers-color-scheme: dark) { :root { --ios-bg: #000000; --ios-card: rgba(28, 28, 30, 0.8); --ios-text: #FFFFFF; } }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --ios-bg: #000000;
-        --ios-card: rgba(28, 28, 30, 0.8);
-        --ios-text: #FFFFFF;
-    }
-}
+body { background-color: var(--ios-bg); color: var(--ios-text); font-family: -apple-system, sans-serif; overflow-x: hidden; }
 
-body {
-    background-color: var(--ios-bg);
-    color: var(--ios-text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
+.glass { background: var(--ios-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+.ios-card { border-radius: 24px; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.ios-card:active { transform: scale(0.96); }
+.ios-input { background: rgba(120,120,128,0.12); border-radius: 15px; padding: 12px; font-weight: 700; outline: none; border: 2px solid transparent; color: var(--ios-text); width: 100%; }
+.ios-input:focus { border-color: #008C45; }
 
-.glass {
-    background: var(--ios-card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.ios-card {
-    border-radius: 24px;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ios-card:active {
-    transform: scale(0.96);
-}
-
-.ios-input {
-    background: rgba(120, 120, 128, 0.12);
-    border-radius: 14px;
-    padding: 12px;
-    font-weight: 600;
-    outline: none;
-    border: 2px solid transparent;
-    color: var(--ios-text);
-}
-
-.ios-input:focus {
-    border-color: #008C45;
-}
-
-/* Animações */
-.floating-pizza {
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); filter: brightness(1.1); }
-}
+.floating-pizza { animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px) rotate(3deg); } }
 
 [v-cloak] { display: none; }
+.shake { animation: shake 0.4s ease; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.4s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
-.shake { animation: shake 0.4s ease-in-out; }
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-}
+.animate-ios { animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }

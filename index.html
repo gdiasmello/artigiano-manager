@@ -14,24 +14,19 @@
         <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
 
         <transition name="fade">
-            <div v-if="!auth" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-8 bg-[var(--ios-bg)]">
+            <div v-if="!auth" class="fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 bg-[var(--ios-bg)]">
                 <div class="w-full max-w-sm text-center" :class="{ 'shake': loginError }">
-                    <div class="mb-6 flex justify-center">
-                        <img src="https://lh3.googleusercontent.com/d/1Xy_J_v1v_H_D_U_f_S_v_G_B_S_C_T_X" class="w-32 h-32 rounded-3xl shadow-2xl floating-pizza">
-                    </div>
-                    <div class="mb-8">
-                        <h1 class="text-4xl font-black italic text-[#008C45]">PIZZERIA</h1>
-                        <h1 class="text-4xl font-black italic text-[#CD212A] -mt-2">MASTER PRO</h1>
-                    </div>
+                    <img src="https://lh3.googleusercontent.com/d/1Xy_J_v1v_H_D_U_f_S_v_G_B_S_C_T_X" class="w-32 h-32 mx-auto rounded-3xl shadow-2xl floating-pizza mb-6">
+                    <h1 class="text-4xl font-black italic text-[#008C45]">PIZZERIA</h1>
+                    <h1 class="text-4xl font-black italic text-[#CD212A] -mt-2 mb-8">MASTER PRO</h1>
+                    
                     <div class="glass p-8 ios-card shadow-2xl space-y-4">
                         <input v-model="loginForm.nome" type="text" placeholder="NOME" class="ios-input text-center uppercase">
                         <input v-model="loginForm.pin" type="password" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px]" maxlength="4" inputmode="numeric">
-                        <div class="flex items-center justify-center gap-2 py-2 cursor-pointer" @click="lembrar = !lembrar">
-                            <div class="w-5 h-5 rounded-md border-2 border-[#008C45] flex items-center justify-center" :class="lembrar ? 'bg-[#008C45]' : ''">
-                                <span v-if="lembrar" class="text-white text-[10px]">✓</span>
-                            </div>
+                        <label class="flex items-center justify-center gap-2 py-2 cursor-pointer">
+                            <input type="checkbox" v-model="lembrar" class="accent-[#008C45]">
                             <span class="text-[10px] font-black uppercase opacity-60">Lembrar de mim</span>
-                        </div>
+                        </label>
                         <button @click="handleLogin" class="w-full bg-[#008C45] text-white py-5 ios-card font-black shadow-lg">ENTRAR</button>
                     </div>
                 </div>
@@ -44,39 +39,38 @@
                 <header class="flex justify-between items-end mb-8 pt-4">
                     <div>
                         <p class="text-[10px] font-black opacity-40 uppercase">{{ dataAtual }}</p>
-                        <h2 class="text-3xl font-black italic">{{ saudacao }}, {{ userSelected.nome }}</h2>
+                        <h2 class="text-3xl font-black italic leading-tight">{{ saudacao }},<br>{{ userSelected.nome }}</h2>
                     </div>
+                    <div v-if="config.feriado" class="bg-[#CD212A] text-white text-[8px] font-black px-3 py-1 rounded-full animate-pulse">MODO FERIADO ATIVO</div>
                 </header>
+
                 <div class="grid grid-cols-2 gap-4">
-                    <div v-if="podeVer('Sacolão')" @click="abrirSetor('Sacolão')" class="ios-card glass p-6 border-l-[6px] border-[#008C45] relative overflow-hidden">
-                        <span class="text-3xl block mb-2">🍎</span>
-                        <h3 class="font-black text-[12px] uppercase">Sacolão</h3>
-                    </div>
-                    <div v-if="podeVer('Limpeza')" @click="abrirSetor('Limpeza')" class="ios-card glass p-6 border-l-[6px] border-[#007AFF] relative overflow-hidden">
-                        <span class="text-3xl block mb-2">🧼</span>
-                        <h3 class="font-black text-[12px] uppercase">Limpeza</h3>
-                    </div>
-                    <div v-if="podeVer('Gelo')" @click="abrirSetor('Gelo')" class="ios-card glass p-6 border-l-[6px] border-[#5AC8FA] relative overflow-hidden">
-                        <span class="text-3xl block mb-2">🧊</span>
-                        <h3 class="font-black text-[12px] uppercase">Gelo</h3>
-                    </div>
-                    <div v-if="podeVer('Geral')" @click="abrirSetor('Geral')" class="ios-card glass p-6 border-l-[6px] border-[#8E8E93] relative overflow-hidden">
-                        <span class="text-3xl block mb-2">📦</span>
-                        <h3 class="font-black text-[12px] uppercase">Geral</h3>
+                    <div v-for="bloco in blocosDisponiveis" :key="bloco.nome" @click="abrirSetor(bloco.nome)" 
+                         class="ios-card glass p-6 border-l-[6px] relative overflow-hidden" :style="{ borderColor: bloco.cor }">
+                        <span class="text-3xl block mb-2">{{ bloco.emoji }}</span>
+                        <h3 class="font-black text-[12px] uppercase leading-tight">{{ bloco.nome }}</h3>
                     </div>
                 </div>
             </main>
 
             <main v-if="tab === 'contagem'" class="p-4 animate-ios pb-40">
-                <div class="sticky top-0 z-50 glass p-5 flex justify-between items-center rounded-2xl mb-4">
-                    <button @click="tab = 'home'" class="text-[#008C45] font-black text-[10px] uppercase tracking-widest">‹ Voltar</button>
+                <div class="sticky top-2 z-50 glass p-5 flex justify-between items-center rounded-2xl mb-6 shadow-lg">
+                    <button @click="tab = 'home'" class="text-[#008C45] font-black text-[10px] uppercase">‹ Voltar</button>
                     <h3 class="font-black text-xs uppercase">{{ setorAtivo }}</h3>
                     <div class="w-10"></div>
                 </div>
-                <div v-for="item in insumosFiltrados" :key="item.id" class="glass ios-card p-5 border-l-[8px] mb-4 shadow-sm" :class="calcFalta(item) > 0 ? 'border-[#CD212A]' : 'border-[#008C45]'">
+                
+                <div v-for="item in insumosOrdenados" :key="item.id" class="glass ios-card p-5 border-l-[8px] mb-4" 
+                     :class="calcFalta(item) > 0 ? 'border-[#CD212A]' : 'border-[#008C45]'">
                     <div class="flex justify-between mb-4">
-                        <h4 class="font-black text-sm uppercase">{{ item.nome }}</h4>
-                        <p class="text-[10px] font-black opacity-40">META: {{ getMetaFinal(item) }} {{ item.unQ }}</p>
+                        <div>
+                            <h4 class="font-black text-sm uppercase">{{ item.nome }}</h4>
+                            <p class="text-[8px] font-black opacity-30 uppercase">{{ item.local }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[7px] font-black opacity-30 uppercase">Meta</p>
+                            <p class="text-xs font-black">{{ getMetaFinal(item) }}{{ item.unQ }}</p>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <input type="number" v-model.number="item.contagem" @input="saveHibrido" class="ios-input text-center text-xl font-black" placeholder="0">
@@ -89,58 +83,59 @@
             </main>
 
             <main v-if="tab === 'carrinho'" class="p-5 animate-ios pb-40">
-                <h2 class="text-3xl font-black italic mb-6">Pedidos</h2>
-                <div v-for="f in fornecedoresComPedido" :key="f.id" class="glass ios-card overflow-hidden mb-6">
-                    <div class="bg-[#008C45] p-4 text-white font-black text-xs uppercase">{{ f.nome }}</div>
-                    <div class="p-4 space-y-2">
-                        <div v-for="p in getItensForn(f.id)" class="flex justify-between text-xs font-bold">
+                <h2 class="text-3xl font-black italic mb-6">Pedidos Pendentes</h2>
+                <div v-if="fornecedoresComPedido.length === 0" class="text-center py-20 opacity-20 font-black uppercase text-sm">Estoque em Dia</div>
+                
+                <div v-for="f in fornecedoresComPedido" :key="f.id" class="glass ios-card overflow-hidden mb-6 shadow-xl">
+                    <div class="bg-[#008C45] p-4 text-white font-black text-xs flex justify-between">
+                        <span>{{ f.nome }}</span>
+                        <span class="opacity-60">{{ f.zap }}</span>
+                    </div>
+                    <div class="p-4 space-y-2 bg-black/5">
+                        <div v-for="p in getItensForn(f.id)" class="flex justify-between text-[11px] font-bold border-b border-black/5 pb-1">
                             <span>{{ p.nome }}</span>
                             <span class="text-[#CD212A]">{{ calcFalta(p) }} {{ p.unC }}</span>
                         </div>
                     </div>
                     <div class="p-4">
-                        <button @click="enviarZap(f)" class="w-full bg-[#25D366] text-white py-4 ios-card font-black">ENVIAR WHATSAPP</button>
+                        <button @click="enviarZap(f)" class="w-full bg-[#25D366] text-white py-4 ios-card font-black shadow-lg active:scale-95 transition-transform">ENVIAR WHATSAPP</button>
                     </div>
                 </div>
             </main>
 
             <main v-if="tab === 'ajustes'" class="p-5 animate-ios pb-40">
-                <header class="bg-[#CD212A] p-6 rounded-3xl text-white mb-6 shadow-lg">
-                    <h2 class="text-2xl font-black italic">Ajustes Master</h2>
-                    <div class="flex gap-2 mt-4 bg-black/20 p-1 rounded-xl">
-                        <button @click="subTab = 'itens'" class="flex-1 py-2 text-[9px] font-black uppercase rounded-lg" :class="subTab === 'itens' ? 'bg-white text-[#CD212A]' : ''">Itens</button>
-                        <button @click="subTab = 'equipe'" class="flex-1 py-2 text-[9px] font-black uppercase rounded-lg" :class="subTab === 'equipe' ? 'bg-white text-[#CD212A]' : ''">Equipe</button>
+                <header class="mb-8 pt-4"><h2 class="text-3xl font-black italic tracking-tighter">Painel Master</h2></header>
+                
+                <div class="space-y-4">
+                    <div class="glass p-5 ios-card flex justify-between items-center border-l-8 border-[#CD212A]">
+                        <span class="font-black text-[11px] uppercase">Modo Feriado (+50%)</span>
+                        <div @click="config.feriado = !config.feriado; saveHibrido()" class="w-12 h-6 rounded-full p-1 transition-all" :class="config.feriado ? 'bg-[#008C45]' : 'bg-gray-400'">
+                            <div class="w-4 h-4 bg-white rounded-full transition-all" :class="config.feriado ? 'translate-x-6' : ''"></div>
+                        </div>
                     </div>
-                </header>
-                <div v-if="subTab === 'itens'" class="space-y-3">
-                    <button @click="novoItem" class="w-full p-4 border-2 border-dashed border-[#CD212A] text-[#CD212A] rounded-2xl font-black text-[10px] uppercase">+ Novo Item</button>
-                    <div v-for="i in estoque" :key="i.id" class="glass p-4 ios-card flex justify-between">
-                        <span class="font-black text-xs uppercase">{{ i.nome }}</span>
-                        <button @click="removerItem(i.id)" class="text-red-500">🗑️</button>
-                    </div>
+
+                    <details class="glass ios-card overflow-hidden group">
+                        <summary class="p-5 flex justify-between items-center list-none cursor-pointer font-black text-[11px] uppercase">📍 Rota de Contagem</summary>
+                        <div class="p-4 bg-black/5 space-y-2">
+                            <div v-for="(loc, idx) in rota" :key="idx" class="flex justify-between items-center bg-white/5 p-3 rounded-xl">
+                                <span class="text-[10px] font-black uppercase">{{ idx+1 }}º {{ loc }}</span>
+                                <div class="flex gap-1">
+                                    <button @click="moverRota(idx, -1)" class="p-2 bg-white/10 rounded-lg text-xs">↑</button>
+                                    <button @click="moverRota(idx, 1)" class="p-2 bg-white/10 rounded-lg text-xs">↓</button>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
-                <div v-if="subTab === 'equipe'" class="space-y-4">
-                   <div v-for="u in equipe" :key="u.id" class="glass p-4 ios-card">
-                       <p class="font-black uppercase text-xs mb-2">{{ u.nome }}</p>
-                       <div class="flex flex-wrap gap-2">
-                           <label v-for="b in ['Sacolão', 'Limpeza', 'Gelo', 'Geral']" class="text-[8px] font-black flex items-center gap-1 bg-black/5 p-2 rounded-lg">
-                               <input type="checkbox" :value="b" v-model="u.modulos"> {{ b }}
-                           </label>
-                       </div>
-                   </div>
-                </div>
-                <button @click="logout" class="w-full mt-10 p-5 bg-black text-white rounded-2xl font-black text-xs uppercase">Sair do Sistema</button>
+
+                <button @click="logout" class="w-full mt-10 p-5 bg-black text-white rounded-[24px] font-black text-[10px] uppercase shadow-2xl">Deslogar</button>
             </main>
 
-            <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-4 pb-8 flex justify-around items-center rounded-t-[32px] z-[100]">
-                <button @click="tab = 'home'" :class="tab === 'home' ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
-                    <span class="text-xl">🏠</span><span class="text-[8px] font-black uppercase">Home</span>
-                </button>
-                <button @click="tab = 'carrinho'" :class="tab === 'carrinho' ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
-                    <span class="text-xl">🛒</span><span class="text-[8px] font-black uppercase">Carrinho</span>
-                </button>
-                <button v-if="isAdmin" @click="tab = 'ajustes'" :class="tab === 'ajustes' ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
-                    <span class="text-xl">⚙️</span><span class="text-[8px] font-black uppercase">Ajustes</span>
+            <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-4 pb-8 flex justify-around items-center rounded-t-[32px] z-50">
+                <button v-for="t in ['home', 'carrinho', 'ajustes']" :key="t" @click="tab = t" 
+                        :class="tab === t ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
+                    <span class="text-xl">{{ t === 'home' ? '🏠' : t === 'carrinho' ? '🛒' : '⚙️' }}</span>
+                    <span class="text-[8px] font-black uppercase">{{ t }}</span>
                 </button>
             </nav>
         </div>
