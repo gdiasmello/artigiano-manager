@@ -3,229 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano PRO v5</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Artigiano Elite v1.0.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root { --ios-green: #008C45; --ios-red: #CD212A; --ios-bg: #F2F2F7; }
+        [v-cloak] { display: none; }
+        body { background-color: var(--ios-bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .ios-card { border-radius: 22px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .ios-card:active { transform: scale(0.96); opacity: 0.8; }
+        .ios-input { background: rgba(255,255,255,0.8); border-radius: 14px; border: 1px solid #d1d1d6; padding: 14px; font-weight: 600; outline: none; transition: 0.2s; }
+        .ios-input:focus { border-color: var(--ios-green); box-shadow: 0 0 0 4px rgba(0, 140, 69, 0.1); }
+        .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0; color: #8e8e93; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .tab-btn.active { color: var(--ios-green); }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-ios { animation: slideUp 0.4s ease-out forwards; }
+    </style>
 </head>
-<body class="bg-[#F2F2F7] select-none">
+<body>
     <div id="app" v-cloak>
         
-        <audio id="snd-click" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
-        <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
-
-        <div v-if="!authenticated" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F2F2F7] p-6">
-            <div class="w-full max-w-sm glass-card p-10 text-center shadow-2xl" :class="{ 'shake-error': loginError }">
-                <div class="mb-8">
-                    <h1 class="text-5xl font-black text-[#008C45] italic leading-none">ARTIGIANO</h1>
-                    <h1 class="text-5xl font-black text-[#CD212A] italic leading-none">MANAGER</h1>
-                    <p class="text-[9px] font-black text-gray-400 mt-2 tracking-[4px]">SISTEMA DE GESTÃO CLOUD</p>
+        <div v-if="!auth" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-8 bg-[#F2F2F7]">
+            <div class="w-full max-w-sm text-center animate-ios">
+                <div class="mb-12">
+                    <div class="flex justify-center gap-1 mb-2">
+                        <div class="w-3 h-10 bg-[#008C45] rounded-full"></div>
+                        <div class="w-3 h-10 bg-white border rounded-full"></div>
+                        <div class="w-3 h-10 bg-[#CD212A] rounded-full"></div>
+                    </div>
+                    <h1 class="text-4xl font-black tracking-tighter italic text-gray-900">ARTIGIANO</h1>
+                    <p class="text-[10px] font-bold text-gray-400 tracking-[5px] uppercase">Elite Management</p>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="relative">
-                        <input v-model="loginNome" placeholder="DIGITE SEU NOME" class="ios-input text-center font-bold uppercase" @focus="playClick">
-                        <div v-if="equipe.length > 0" class="mt-2 flex flex-wrap justify-center gap-2">
-                            <span v-for="u in equipe" @click="loginNome = u.nome; playClick()" class="px-3 py-1 bg-white border rounded-full text-[10px] font-bold text-gray-400 cursor-pointer hover:bg-green-50">
-                                {{ u.nome }}
-                            </span>
-                        </div>
-                    </div>
+                <div class="glass p-8 ios-card shadow-2xl space-y-4">
+                    <input v-model="loginForm.nome" type="text" placeholder="UTILIZADOR" class="ios-input w-full text-center uppercase" @focus="vibrate(10)">
+                    <input v-model="loginForm.pin" type="password" placeholder="••••" class="ios-input w-full text-center text-2xl tracking-widest" maxlength="4" inputmode="numeric">
+                    <button @click="handleLogin" class="w-full bg-[#008C45] text-white ios-card py-4 font-black shadow-lg shadow-green-200">ENTRAR</button>
+                </div>
 
-                    <input type="password" v-model="pinInput" placeholder="PIN" class="ios-input text-center text-3xl tracking-[15px]" maxlength="4" inputmode="numeric">
-                    
-                    <button @click="login" class="ios-btn bg-[#008C45] w-full text-white shadow-xl h-16 text-lg">ENTRAR NO SISTEMA</button>
-                    
-                    <button @click="limparCacheManual" class="text-[8px] font-bold text-gray-300 uppercase tracking-widest mt-4">Limpar Cache e Sincronizar</button>
+                <div class="fixed bottom-10 left-0 right-0 text-center">
+                    <span class="text-[10px] font-black text-gray-300 tracking-widest uppercase">Versão 1.0.0</span>
                 </div>
             </div>
         </div>
 
-        <div v-if="authenticated">
-            <header class="p-5 bg-white/80 backdrop-blur-xl sticky top-0 z-40 border-b flex justify-between items-center">
-                <button v-if="currentTab !== 'home'" @click="irPara('home')" class="text-[#008C45] font-black uppercase text-[10px] flex items-center">
-                    <span class="text-2xl mr-1">‹</span> VOLTAR
-                </button>
-                <div v-else class="w-10"></div>
-                
-                <div class="text-center">
-                    <p class="font-black text-[10px] uppercase text-gray-800 tracking-tighter">{{ currentTab }}</p>
-                    <p class="text-[7px] font-bold" :class="loading ? 'text-blue-500 animate-pulse' : 'text-green-500'">● CLOUD ATIVA</p>
+        <div v-else class="min-h-screen pb-32">
+            <header class="sticky top-0 z-40 glass border-b p-5 flex justify-between items-end h-28">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ dataHoje }}</p>
+                    <h2 class="text-2xl font-black text-gray-900 leading-none">{{ saudacao }}</h2>
                 </div>
-
-                <button @click="irPara('carrinho')" class="relative p-2 scale-110">
-                    <span>🛒</span>
-                    <span v-if="totalFaltantes > 0" class="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
-                        {{ totalFaltantes }}
-                    </span>
-                </button>
+                <div class="flex items-center gap-3">
+                    <div @click="irPara('carrinho')" class="relative glass w-12 h-12 rounded-full flex items-center justify-center shadow-sm">
+                        <span>🛒</span>
+                        <div v-if="faltasTotal > 0" class="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+                            {{ faltasTotal }}
+                        </div>
+                    </div>
+                </div>
             </header>
 
-            <main v-if="currentTab === 'home'" class="p-6 animate-fade">
-                <div class="mb-10">
-                    <h2 class="text-3xl font-black text-gray-800">Ciao, {{ userSelected.nome }}!</h2>
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Artigiano Pizzaria • Londrina</p>
+            <main class="p-5 space-y-6">
+                
+                <div v-if="tab === 'home'" class="animate-ios space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div @click="abrirSetor('Sacolão')" class="glass p-6 ios-card bg-green-50/50">
+                            <span class="text-3xl block mb-2">🍎</span>
+                            <span class="font-black text-xs text-green-800 uppercase">Sacolão & Horti</span>
+                            <p class="text-[8px] text-green-600 font-bold mt-1 uppercase">{{ sextaFeira ? 'Meta Triplicada Ativa' : 'Meta Normal' }}</p>
+                        </div>
+                        <div @click="abrirSetor('Limpeza')" class="glass p-6 ios-card bg-blue-50/50">
+                            <span class="text-3xl block mb-2">🧼</span>
+                            <span class="font-black text-xs text-blue-800 uppercase">Limpeza</span>
+                        </div>
+                        <div @click="abrirSetor('Gelo')" class="glass p-6 ios-card bg-cyan-50/50">
+                            <span class="text-3xl block mb-2">🧊</span>
+                            <span class="font-black text-xs text-cyan-800 uppercase">Gelo</span>
+                        </div>
+                        <div @click="abrirSetor('Geral')" class="glass p-6 ios-card">
+                            <span class="text-3xl block mb-2">📦</span>
+                            <span class="font-black text-xs text-gray-400 uppercase">Insumos Geral</span>
+                        </div>
+                    </div>
+
+                    <div v-if="feriadoProximo" class="bg-orange-100 p-4 ios-card border border-orange-200 flex items-center gap-4">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <p class="text-[10px] font-black text-orange-800 uppercase">Alerta de Feriado</p>
+                            <p class="text-[9px] text-orange-700 font-bold italic">Metas aumentadas em 50% automaticamente.</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div v-if="podeVer('Sacolão')" @click="abrirSetor('Sacolão')" class="tile-apple bg-green-600 text-white shadow-xl">
-                        <span class="text-4xl mb-2">🍎</span>
-                        <span class="font-black text-[10px] uppercase">Sacolão</span>
+                <div v-if="tab === 'contagem'" class="animate-ios space-y-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-black text-gray-400 uppercase text-[10px] tracking-widest">{{ setorAtivo }}</h3>
+                        <button @click="tab = 'home'" class="text-[10px] font-black text-green-600 uppercase">Fechar</button>
                     </div>
-                    <div v-if="podeVer('Limpeza')" @click="abrirSetor('Limpeza')" class="tile-apple bg-blue-600 text-white shadow-xl">
-                        <span class="text-4xl mb-2">🧼</span>
-                        <span class="font-black text-[10px] uppercase">Limpeza</span>
-                    </div>
-                    <div v-if="podeVer('Gelo')" @click="abrirSetor('Gelo')" class="tile-apple bg-cyan-400 text-white shadow-xl">
-                        <span class="text-4xl mb-2">🧊</span>
-                        <span class="font-black text-[10px] uppercase">Gelo</span>
-                    </div>
-                    <div v-if="podeVer('Geral')" @click="abrirSetor('Geral')" class="tile-apple bg-white col-span-1 border-2 border-gray-100 shadow-sm">
-                        <span class="text-3xl mb-1">📦</span>
-                        <span class="font-black text-[10px] uppercase text-gray-400">Insumos</span>
-                    </div>
-                    <div v-if="isAdmin" @click="irPara('config')" class="tile-apple bg-red-600 text-white shadow-xl">
-                        <span class="text-3xl mb-1">⚙️</span>
-                        <span class="font-black text-[10px] uppercase text-red-100">Ajustes</span>
-                    </div>
-                    <div @click="logout" class="tile-apple bg-gray-200 text-gray-400 col-span-2">
-                        <span class="text-2xl mb-1">🚪</span>
-                        <span class="font-black text-[10px] uppercase tracking-widest">Sair do Sistema</span>
+
+                    <div v-for="i in insumosFiltrados" :key="i.id" class="glass p-5 ios-card flex flex-col border-l-8 shadow-sm" :class="calcFalta(i) > 0 ? 'border-red-500' : 'border-green-500'">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-black text-sm text-gray-800 uppercase">{{ i.nome }}</h4>
+                                <p class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{{ i.local }} • Meta: {{ getMetaFinal(i) }} {{ i.unQ }}</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="relative">
+                                <input v-model.number="i.contagem" type="number" @change="saveLocal" class="ios-input w-full text-center text-xl font-black bg-white" placeholder="0">
+                                <span class="absolute -top-2 left-3 bg-white px-1 text-[7px] font-black text-gray-300 uppercase">Estoque {{ i.unQ }}</span>
+                            </div>
+                            <div class="flex flex-col items-center justify-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                <span class="text-[7px] font-black text-gray-400 uppercase">Pedir {{ i.unC }}</span>
+                                <span class="text-xl font-black" :class="calcFalta(i) > 0 ? 'text-red-500' : 'text-green-500'">{{ calcFalta(i) }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div v-if="tab === 'carrinho'" class="animate-ios space-y-6">
+                    <h3 class="text-2xl font-black text-gray-800 italic">Lista de Pedidos</h3>
+                    <div v-for="f in fornecedoresComPedido" :key="f.id" class="glass p-6 ios-card shadow-lg border-t-8 border-green-600">
+                        <div class="flex justify-between mb-4">
+                            <span class="font-black text-green-800 uppercase">{{ f.nome }}</span>
+                            <span class="text-[10px] font-bold text-gray-400">{{ f.zap }}</span>
+                        </div>
+                        <div class="space-y-2 mb-6">
+                            <div v-for="p in getItensPorForn(f.id)" class="flex justify-between text-[11px] font-bold border-b border-gray-100 pb-1">
+                                <span class="text-gray-500">{{ p.nome }}</span>
+                                <span class="text-black font-black">{{ calcFalta(p) }} {{ p.unC }}</span>
+                            </div>
+                        </div>
+                        <button @click="enviarWhatsApp(f)" class="w-full bg-[#25D366] text-white ios-card py-4 font-black flex items-center justify-center gap-2">
+                            <span>ENVIAR WHATSAPP</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="tab === 'ajustes'" class="animate-ios space-y-4">
+                    <div class="glass p-6 ios-card space-y-4">
+                        <h3 class="font-black uppercase text-xs">Exportação de Segurança</h3>
+                        <p class="text-[9px] text-gray-400">Gere um backup manual de todos os dados do sistema.</p>
+                        <button @click="exportBackup" class="w-full bg-black text-white ios-card py-3 font-bold text-xs uppercase">Baixar Arquivo JSON</button>
+                    </div>
+                    <button @click="logout" class="w-full bg-red-100 text-red-600 ios-card py-4 font-black text-xs uppercase tracking-widest">Sair do Sistema</button>
+                </div>
+
             </main>
 
-            <div v-if="currentTab === 'contagem'" class="p-4 space-y-4 animate-fade pb-32">
-                <div v-for="item in insumosFiltrados" :key="item.id" class="glass-card p-5 border-l-8 transition-all" :class="calcularFalta(item) > 0 ? 'border-red-500' : 'border-green-500'">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="font-black uppercase text-xs text-gray-700">{{ item.nome }}</h4>
-                        <span class="text-[8px] font-black px-2 py-1 rounded bg-gray-100 text-gray-400 uppercase tracking-tighter">{{ item.local }}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="relative">
-                            <input type="number" v-model.number="item.contagem" @change="saveData(); playSuccess()" class="ios-input text-center text-xl font-black bg-gray-50 border-none shadow-inner" placeholder="0">
-                            <span class="absolute -top-2 left-3 bg-white px-1 text-[8px] font-black text-gray-400 uppercase">Estoque ({{ item.unQ }})</span>
-                        </div>
-                        <div class="flex flex-col items-center justify-center bg-gray-50 rounded-2xl border border-gray-100">
-                            <span class="text-[8px] font-black text-gray-300 uppercase">Pecisar ({{ item.unC }})</span>
-                            <span class="text-xl font-black" :class="calcularFalta(item) > 0 ? 'text-red-500' : 'text-green-500'">
-                                {{ calcularFalta(item) }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="currentTab === 'carrinho'" class="p-4 space-y-4 animate-fade pb-32">
-                <h3 class="text-2xl font-black text-gray-800 italic uppercase ml-2">Finalizar Pedidos</h3>
-                
-                <div v-if="totalFaltantes === 0" class="py-20 text-center">
-                    <span class="text-6xl block mb-4">✅</span>
-                    <p class="text-xs font-black text-gray-400 uppercase">Tudo em dia no estoque!</p>
-                </div>
-
-                <div v-for="forn in fornecedoresComPedido" :key="forn.id" class="glass-card p-6 border-t-8 border-green-600 shadow-xl">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="font-black text-lg uppercase text-green-700 leading-tight">{{ forn.nome }}</span>
-                        <div class="text-right">
-                            <p class="text-[7px] font-black text-gray-300 uppercase">WhatsApp</p>
-                            <p class="text-[10px] font-bold text-gray-400">{{ forn.zap }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-gray-50 rounded-2xl p-4 mb-6 space-y-2">
-                        <div v-for="p in getItensPorFornecedor(forn.id)" class="flex justify-between text-[11px] font-bold border-b border-gray-200 pb-1">
-                            <span class="text-gray-500">{{ p.nome }}</span>
-                            <span class="text-black font-black">{{ calcularFalta(p) }} {{ p.unC }}</span>
-                        </div>
-                    </div>
-
-                    <button @click="enviarWhatsApp(forn)" class="ios-btn bg-[#25D366] text-white w-full text-xs shadow-lg">ENVIAR LISTA AGORA</button>
-                </div>
-            </div>
-
-            <div v-if="currentTab === 'config'" class="p-4 space-y-4 pb-24 animate-fade">
-                
-                <div class="glass-card overflow-hidden">
-                    <div @click="toggleMenu('prod')" class="p-5 flex justify-between items-center font-black bg-white cursor-pointer">
-                        <span class="text-xs uppercase tracking-widest">📦 Catálogo de Insumos</span>
-                        <span>{{ menuAberto === 'prod' ? '−' : '+' }}</span>
-                    </div>
-                    <div v-if="menuAberto === 'prod'" class="p-5 bg-gray-50 border-t space-y-4">
-                        <div class="relative">
-                            <input v-model="buscaProd" placeholder="Buscar no catálogo..." class="ios-input bg-white shadow-sm border-none">
-                            <div v-if="sugestoes.length" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-1 border">
-                                <div v-for="s in sugestoes" @click="copiarDados(s)" class="p-4 border-b font-bold text-[10px] text-gray-400">
-                                    {{ s.nome }} <span class="text-blue-500 ml-2">● COPIAR</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-4 bg-white rounded-3xl space-y-3 shadow-inner">
-                            <input v-model="novoProd.nome" placeholder="NOME DO PRODUTO" class="ios-input bg-gray-50 border-none">
-                            
-                            <div class="grid grid-cols-2 gap-2">
-                                <select v-model="novoProd.destinoId" class="ios-input bg-gray-50 text-[10px] font-black">
-                                    <option value="" disabled>FORNECEDOR</option>
-                                    <option v-for="f in fornecedores" :value="f.id">{{ f.nome }}</option>
-                                </select>
-                                <select v-model="novoProd.local" class="ios-input bg-gray-50 text-[10px] font-black">
-                                    <option value="" disabled>ESTOQUE</option>
-                                    <option v-for="r in rota" :value="r">{{ r }}</option>
-                                </select>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <input v-model="novoProd.unQ" placeholder="Un. Contagem (Ex: un)" class="ios-input bg-gray-50 text-xs">
-                                <input v-model="novoProd.unC" placeholder="Un. Compra (Ex: cx)" class="ios-input bg-gray-50 text-xs">
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="relative">
-                                    <input v-model.number="novoProd.meta" type="number" class="ios-input bg-gray-50 text-xs" placeholder="Meta">
-                                    <span class="absolute -top-1 left-2 text-[7px] font-black text-gray-300">META EM {{ novoProd.unQ }}</span>
-                                </div>
-                                <div class="relative">
-                                    <input v-model.number="novoProd.fator" type="number" class="ios-input bg-gray-50 text-xs" placeholder="Qtd p/ Caixa">
-                                    <span class="absolute -top-1 left-2 text-[7px] font-black text-gray-300">QTD POR {{ novoProd.unC }}</span>
-                                </div>
-                            </div>
-
-                            <button @click="adicionarProduto" class="ios-btn bg-[#008C45] text-white w-full text-xs">SALVAR NO CATÁLOGO</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-card overflow-hidden">
-                    <div @click="toggleMenu('equipe')" class="p-5 flex justify-between items-center font-black bg-white cursor-pointer">
-                        <span class="text-xs uppercase tracking-widest">👥 Gestão de Pessoas</span>
-                        <span>{{ menuAberto === 'equipe' ? '−' : '+' }}</span>
-                    </div>
-                    <div v-if="menuAberto === 'equipe'" class="p-5 bg-gray-50 border-t space-y-4">
-                        <div v-for="u in equipe" :key="u.id" class="p-4 bg-white rounded-3xl shadow-sm space-y-3">
-                            <div class="flex justify-between font-black text-xs uppercase italic text-gray-800">
-                                <span>{{ u.nome }}</span>
-                                <span class="text-gray-300">PIN: {{ u.pin }}</span>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1">
-                                <label v-for="b in ['Sacolão', 'Limpeza', 'Gelo', 'Geral']" class="flex flex-col items-center p-2 bg-gray-50 rounded-xl">
-                                    <span class="text-[7px] font-black mb-1">{{ b }}</span>
-                                    <input type="checkbox" :value="b" v-model="u.modulos" @change="saveData" class="w-3 h-3 accent-green-600">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-6 text-center">
-                    <button @click="resetSistema" class="text-[8px] font-black text-red-300 uppercase tracking-widest border-b border-red-100">Zerar Tudo e Limpar Banco</button>
-                </div>
-            </div>
+            <nav class="fixed bottom-0 left-0 right-0 glass border-t flex justify-around items-center px-4 pb-8 pt-2 z-50">
+                <button @click="irPara('home')" class="tab-btn" :class="{active: tab === 'home'}">
+                    <span class="text-xl">🏠</span><span>Início</span>
+                </button>
+                <button @click="irPara('carrinho')" class="tab-btn" :class="{active: tab === 'carrinho'}">
+                    <span class="text-xl">🛒</span><span>Pedidos</span>
+                </button>
+                <button v-if="userSelected?.cargo === 'ADM'" @click="irPara('ajustes')" class="tab-btn" :class="{active: tab === 'ajustes'}">
+                    <span class="text-xl">⚙️</span><span>Ajustes</span>
+                </button>
+            </nav>
         </div>
     </div>
-    
+
     <script src="script.js"></script>
 </body>
 </html>
