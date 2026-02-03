@@ -3,84 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pizzeria Master Pro</title>
+  <title>Painel Master – Pizzaria</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#008C45">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#b71c1c" />
 </head>
 <body>
 
-<div id="app" class="glass">
-
-  <!-- LOGIN -->
-  <section id="login" class="view active">
-    <h1 class="logo">🍕 Pizzeria Master</h1>
-    <input id="nome" placeholder="Nome">
-    <input id="pin" type="password" maxlength="4" placeholder="PIN">
-    <label class="remember">
-      <input type="checkbox" id="remember"> Lembrar de mim
-    </label>
+  <!-- LOGIN ADM -->
+  <section id="login">
+    <h1>🔐 Acesso ADM</h1>
+    <input type="password" id="senha" placeholder="Senha de acesso" />
     <button onclick="login()">Entrar</button>
-    <p id="loginError" class="error"></p>
+    <p id="erroLogin"></p>
   </section>
 
-  <!-- DASHBOARD -->
-  <section id="dashboard" class="view">
-    <h2 id="welcome"></h2>
-    <span id="holidayBadge" class="badge">🔥 MODO FERIADO</span>
+  <!-- PAINEL MASTER -->
+  <section id="painel" class="hidden">
+    <header>
+      <h2>🍕 Painel Master – ADM</h2>
+      <button onclick="logout()">Sair</button>
+    </header>
 
-    <div class="grid">
-      <button onclick="openInventory('sacolao')">🥬 Sacolão</button>
-      <button onclick="openInventory('limpeza')">🧽 Limpeza</button>
-      <button onclick="openInventory('gelo')">🧊 Gelo</button>
-      <button onclick="openInventory('geral')">📦 Geral</button>
-      <button onclick="openAdmin()">🔐 ADM</button>
-    </div>
+    <main>
+      <h3>📦 Estoque</h3>
 
-    <button class="secondary" onclick="logout()">Sair</button>
+      <input id="produto" placeholder="Produto" />
+      <input id="quantidade" type="number" placeholder="Quantidade" />
+      <button onclick="adicionarProduto()">Adicionar</button>
+
+      <ul id="listaEstoque"></ul>
+    </main>
   </section>
 
-  <!-- INVENTÁRIO -->
-  <section id="inventory" class="view">
-    <h2 id="sectorTitle"></h2>
-    <div id="items"></div>
-    <button onclick="openCart()">🛒 Gerar Pedido</button>
-    <button class="secondary" onclick="goDashboard()">Voltar</button>
-  </section>
+  <script src="app.js"></script>
 
-  <!-- CARRINHO -->
-  <section id="cart" class="view">
-    <h2>🛒 Pedido</h2>
-    <pre id="cartText"></pre>
-    <button onclick="sendWhatsApp()">📲 Enviar WhatsApp</button>
-    <button class="secondary" onclick="goDashboard()">Concluir</button>
-  </section>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+  </script>
 
-  <!-- PAINEL ADM -->
-  <section id="admin" class="view">
-    <h2>🔐 Painel Master</h2>
-
-    <label>
-      <input type="checkbox" onchange="toggleHoliday(this.checked)">
-      Ativar Modo Feriado
-    </label>
-
-    <button onclick="exportData()">💾 Exportar Backup</button>
-    <button class="secondary" onclick="goDashboard()">Voltar</button>
-  </section>
-
-</div>
-
-<script src="app.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
-  }
-</script>
 </body>
 </html>
