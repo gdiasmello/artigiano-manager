@@ -1,10 +1,10 @@
-// CONFIGURAÇÕES FIREBASE
+// CONFIGURAÇÃO DO SEU FIREBASE
 const firebaseConfig = {
     apiKey: "SUA_API_KEY",
-    authDomain: "artigiano-manager.firebaseapp.com",
-    databaseURL: "https://artigiano-manager-default-rtdb.firebaseio.com",
-    projectId: "artigiano-manager",
-    storageBucket: "artigiano-manager.appspot.com",
+    authDomain: "artigiano-cloud.firebaseapp.com",
+    databaseURL: "https://artigiano-cloud-default-rtdb.firebaseio.com",
+    projectId: "artigiano-cloud",
+    storageBucket: "artigiano-cloud.appspot.com",
     appId: "SEU_APP_ID"
 };
 
@@ -21,23 +21,16 @@ const app = Vue.createApp({
             userSelected: null,
             loginError: false,
             currentTab: 'home',
-            setorAtivo: 'Ver Tudo',
+            setorAtivo: 'Geral',
             menuAberto: null,
-            buscaCatalogo: '',
-
-            // SONS
-            sounds: {
-                click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
-                success: new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'),
-                error: new Audio('https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3')
-            },
+            buscaProd: '',
 
             // DADOS CLOUD
             equipe: [],
             estoque: [],
             fornecedores: [],
             rota: [],
-            config: {}
+            config: { versao: 5.0 }
         }
     },
     computed: {
@@ -51,31 +44,36 @@ const app = Vue.createApp({
                 return true;
             });
         },
-        totalItensNoCarrinho() { return this.estoque.filter(i => this.calcularFalta(i) > 0).length; },
+        totalFaltantes() { return this.estoque.filter(i => this.calcularFalta(i) > 0).length; },
         fornecedoresComPedido() {
             const ids = [...new Set(this.estoque.filter(i => this.calcularFalta(i) > 0).map(i => i.destinoId))];
             return this.fornecedores.filter(f => ids.includes(f.id));
         },
-        produtosSugeridos() {
-            if (!this.buscaCatalogo) return [];
-            return this.estoque.filter(p => p.nome.toLowerCase().includes(this.buscaCatalogo.toLowerCase()));
+        sugestoes() {
+            if (!this.buscaProd) return [];
+            return this.estoque.filter(p => p.nome.toLowerCase().includes(this.buscaProd.toLowerCase())).slice(0, 5);
         }
     },
     methods: {
-        tocarSom(tipo) {
-            this.sounds[tipo].currentTime = 0;
-            this.sounds[tipo].play().catch(() => {});
-        },
+        // SONS
+        playClick() { document.getElementById('snd-click').play(); },
+        playSuccess() { document.getElementById('snd-success').play(); },
 
-        // FIREBASE SYNC
+        // FIREBASE & AUTO-LIMPEZA
         fetchData() {
             db.ref('artigiano_v5').on('value', (snap) => {
                 const d = snap.val();
                 if (d) {
-                    this.equipe = d.equipe || [{ id: 1821, nome: 'GABRIEL', pin: '1821', cargo: 'ADM', modulos: ['Sacolão', 'Limpeza', 'Gelo', 'Geral'] }];
+                    this.equipe = d.equipe || [];
                     this.estoque = d.estoque || [];
-                    this.fornecedores = d.fornecedores || [{id:1, nome: 'Sacolão', zap: '5543...', saudacao: 'Olá, segue pedido:'}];
-                    this.rota = d.rota || ['Geladeira 1', 'Freezer', 'Limpeza', 'Gelo'];
+                    this.fornecedores = d.fornecedores || [];
+                    this.rota = d.rota || ['Geladeira', 'Cozinha', 'Gelo', 'Limpeza'];
+                    
+                    // Se não houver ADM, cria o Gabriel
+                    if (this.equipe.length === 0) {
+                        this.equipe = [{ id: 1821, nome: 'GABRIEL', pin: '1821', cargo: 'ADM', modulos: ['Sacolão', 'Limpeza', 'Gelo', 'Geral'] }];
+                        this.saveData();
+                    }
                 }
                 this.loading = false;
             });
@@ -86,80 +84,88 @@ const app = Vue.createApp({
                 equipe: this.equipe,
                 estoque: this.estoque,
                 fornecedores: this.fornecedores,
-                rota: this.rota
-            });
+                rota: this.rota,
+                config: this.config
+            }).then(() => { this.loading = false; });
         },
 
-        // LOGIN MELHORADO
+        // LOGIN MANUAL
         login() {
-            const user = this.equipe.find(u => u.nome.toUpperCase() === this.loginNome.toUpperCase());
-            if (user && this.pinInput === user.pin) {
-                this.userSelected = user;
+            this.playClick();
+            const nomeProc = this.loginNome.trim().toUpperCase();
+            const u = this.equipe.find(x => x.nome.toUpperCase() === nomeProc && x.pin === this.pinInput);
+            
+            if (u) {
+                this.userSelected = u;
                 this.authenticated = true;
-                this.tocarSom('success');
+                this.playSuccess();
             } else {
                 this.loginError = true;
-                this.tocarSom('error');
                 setTimeout(() => { this.loginError = false; this.pinInput = ''; }, 600);
             }
         },
 
-        // LIMPEZA DE CACHE
-        limparTudoEResetar() {
-            if (confirm("Isso apagará todos os dados salvos neste navegador e reiniciará o app. Continuar?")) {
-                localStorage.clear();
-                sessionStorage.clear();
-                alert("Cache limpo! A página será reiniciada.");
-                location.reload();
-            }
+        // CÁLCULO CEIL (Sempre para cima)
+        calcularFalta(i) {
+            const falta = (parseFloat(i.meta) || 0) - (parseFloat(i.contagem) || 0);
+            return falta > 0 ? Math.ceil(falta / (i.fator || 1)) : 0;
         },
 
-        // NAVEGAÇÃO COM SOM
-        irPara(aba) {
-            this.tocarSom('click');
-            this.currentTab = aba;
+        // NAVEGAÇÃO
+        irPara(tab) { this.playClick(); this.currentTab = tab; },
+        abrirSetor(setor) { 
+            this.playClick(); 
+            this.setorAtivo = setor; 
+            this.currentTab = 'contagem'; 
         },
-        abrirSetor(setor) {
-            this.setorAtivo = setor;
-            this.irPara('insumos');
-        },
+        toggleMenu(m) { this.playClick(); this.menuAberto = this.menuAberto === m ? null : m; },
 
-        // LÓGICA DE ARREDONDAMENTO
-        calcularFalta(item) {
-            const meta = parseFloat(item.meta) || 0;
-            const estoque = parseFloat(item.contagem) || 0;
-            const faltaUnid = meta - estoque;
-            return faltaUnid > 0 ? Math.ceil(faltaUnid / (item.fator || 1)) : 0;
-        },
-
-        // WHATSAPP
-        getPedidosPorFornecedor(fornId) {
-            return this.estoque.filter(i => i.destinoId === fornId && this.calcularFalta(i) > 0);
-        },
-        dispararWhatsApp(forn) {
-            this.tocarSom('success');
-            const itens = this.getPedidosPorFornecedor(forn.id);
-            const lista = itens.map(i => `- ${this.calcularFalta(i)} ${i.unC} de ${i.nome}`).join('\n');
-            const texto = `${forn.saudacao}\n\n${lista}`;
-            window.open(`https://api.whatsapp.com/send?phone=${forn.zap}&text=${encodeURIComponent(texto)}`);
-        },
-
-        // GESTÃO
-        carregarProduto(p) {
-            this.novoProd = { ...p, id: null };
-            this.buscaCatalogo = '';
-            this.tocarSom('click');
+        // PRODUTOS
+        copiarDados(s) {
+            this.novoProd = { ...s, id: null, contagem: 0 };
+            this.buscaProd = '';
+            this.playSuccess();
         },
         adicionarProduto() {
             if (this.novoProd.nome && this.novoProd.destinoId) {
                 this.estoque.push({ ...this.novoProd, id: Date.now(), contagem: 0 });
                 this.saveData();
-                this.tocarSom('success');
-                alert("Produto salvo!");
+                this.playSuccess();
+                alert("Salvo no Catálogo!");
             }
         },
-        mudarCargo(u, c) { u.cargo = c; this.saveData(); },
+
+        // WHATSAPP LIMPO
+        getItensPorFornecedor(fid) { return this.estoque.filter(i => i.destinoId === fid && this.calcularFalta(i) > 0); },
+        enviarWhatsApp(f) {
+            this.playClick();
+            const itens = this.getItensPorFornecedor(f.id);
+            const lista = itens.map(i => `- ${this.calcularFalta(i)} ${i.unC} de ${i.nome}`).join('\n');
+            const msg = `${f.saudacao}\n\n${lista}`;
+            window.open(`https://api.whatsapp.com/send?phone=${f.zap}&text=${encodeURIComponent(msg)}`);
+        },
+
+        // MANUTENÇÃO
+        limparCacheManual() {
+            localStorage.clear();
+            sessionStorage.clear();
+            location.reload(true);
+        },
+        resetSistema() {
+            if(confirm("ISSO VAI APAGAR TUDO NO SERVIDOR. TEM CERTEZA?")) {
+                db.ref('artigiano_v5').remove();
+                this.limparCacheManual();
+            }
+        },
         logout() { this.authenticated = false; this.pinInput = ''; this.loginNome = ''; }
     },
-    mounted() { this.fetchData(); }
+    mounted() {
+        // Limpeza de cache automática se a versão mudar
+        const v = localStorage.getItem('artigiano_version');
+        if (v != 5.0) {
+            localStorage.clear();
+            localStorage.setItem('artigiano_version', 5.0);
+        }
+        this.fetchData();
+    }
 }).mount('#app');
