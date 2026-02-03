@@ -3,42 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano Manager PRO v1.1.0</title>
+    <title>Pizzeria Master PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <style>
-        :root { 
-            --ios-bg: #F2F2F7; 
-            --ios-card: rgba(255, 255, 255, 0.8);
-            --ios-text: #1C1C1E;
-            --ios-green: #008C45;
-            --ios-red: #CD212A;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root { 
-                --ios-bg: #000000; 
-                --ios-card: rgba(28, 28, 30, 0.8);
-                --ios-text: #FFFFFF;
-            }
-        }
-        body { background-color: var(--ios-bg); color: var(--ios-text); font-family: -apple-system, sans-serif; transition: all 0.3s ease; }
-        [v-cloak] { display: none; }
-        .glass { background: var(--ios-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
-        .ios-card { border-radius: 22px; transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .ios-card:active { transform: scale(0.96); opacity: 0.8; }
-        .ios-input { background: rgba(120,120,128,0.12); border-radius: 12px; padding: 12px; font-weight: 600; outline: none; width: 100%; border: 2px solid transparent; color: var(--ios-text); }
-        .ios-input:focus { border-color: var(--ios-green); background: rgba(120,120,128,0.2); }
-        
-        /* Animações */
-        .slide-up-enter-active { transition: all 0.4s ease-out; }
-        .slide-up-enter-from { transform: translateY(100%); opacity: 0; }
-        .shake { animation: shake 0.4s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="select-none overflow-x-hidden">
+<body>
     <div id="app" v-cloak>
         <audio id="snd-click" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
         <audio id="snd-success" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
@@ -46,120 +16,131 @@
         <transition name="fade">
             <div v-if="!auth" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-8 bg-[var(--ios-bg)]">
                 <div class="w-full max-w-sm text-center" :class="{ 'shake': loginError }">
-                    <div class="mb-12">
-                        <h1 class="text-5xl font-black italic tracking-tighter text-[#008C45]">ARTIGIANO</h1>
-                        <h1 class="text-5xl font-black italic tracking-tighter text-[#CD212A] -mt-2">MANAGER</h1>
-                        <p class="text-[9px] font-black opacity-40 tracking-[4px] uppercase mt-2">SISTEMA DE LOGÍSTICA ELITE</p>
+                    <div class="mb-6 flex justify-center">
+                        <img src="https://lh3.googleusercontent.com/d/1Xy_J_v1v_H_D_U_f_S_v_G_B_S_C_T_X" class="w-32 h-32 rounded-3xl shadow-2xl floating-pizza">
                     </div>
-
+                    <div class="mb-8">
+                        <h1 class="text-4xl font-black italic text-[#008C45]">PIZZERIA</h1>
+                        <h1 class="text-4xl font-black italic text-[#CD212A] -mt-2">MASTER PRO</h1>
+                    </div>
                     <div class="glass p-8 ios-card shadow-2xl space-y-4">
-                        <input v-model="loginForm.nome" type="text" placeholder="NOME" class="ios-input text-center uppercase" @focus="playClick">
+                        <input v-model="loginForm.nome" type="text" placeholder="NOME" class="ios-input text-center uppercase">
                         <input v-model="loginForm.pin" type="password" placeholder="PIN" class="ios-input text-center text-2xl tracking-[10px]" maxlength="4" inputmode="numeric">
-                        <button @click="handleLogin" class="w-full bg-[#008C45] text-white py-5 ios-card font-black shadow-lg">ENTRAR NO SISTEMA</button>
-                    </div>
-
-                    <div class="mt-20 text-center opacity-30">
-                        <span class="text-[10px] font-black tracking-widest uppercase">Versão 1.1.0</span>
+                        <div class="flex items-center justify-center gap-2 py-2 cursor-pointer" @click="lembrar = !lembrar">
+                            <div class="w-5 h-5 rounded-md border-2 border-[#008C45] flex items-center justify-center" :class="lembrar ? 'bg-[#008C45]' : ''">
+                                <span v-if="lembrar" class="text-white text-[10px]">✓</span>
+                            </div>
+                            <span class="text-[10px] font-black uppercase opacity-60">Lembrar de mim</span>
+                        </div>
+                        <button @click="handleLogin" class="w-full bg-[#008C45] text-white py-5 ios-card font-black shadow-lg">ENTRAR</button>
                     </div>
                 </div>
             </div>
         </transition>
 
-        <div v-if="auth" class="min-h-screen pb-32">
-            <header class="sticky top-0 z-40 glass p-6 flex justify-between items-end h-28 border-b border-white/10">
-                <div>
-                    <p class="text-[10px] font-black opacity-40 uppercase tracking-widest">{{ dataAtual }}</p>
-                    <h2 class="text-2xl font-black">{{ saudacao }}, {{ userSelected.nome }}!</h2>
-                </div>
-                <button @click="tab = 'carrinho'" class="relative w-12 h-12 glass rounded-full flex items-center justify-center shadow-lg">
-                    <span class="text-2xl">🛒</span>
-                    <div v-if="totalFaltantes > 0" class="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[var(--ios-bg)]">
-                        {{ totalFaltantes }}
+        <div v-if="auth" class="min-h-screen">
+            
+            <main v-if="tab === 'home'" class="p-5 animate-ios pb-32">
+                <header class="flex justify-between items-end mb-8 pt-4">
+                    <div>
+                        <p class="text-[10px] font-black opacity-40 uppercase">{{ dataAtual }}</p>
+                        <h2 class="text-3xl font-black italic">{{ saudacao }}, {{ userSelected.nome }}</h2>
                     </div>
-                </button>
-            </header>
-
-            <main class="p-5">
-                <div v-if="tab === 'home'" class="grid grid-cols-2 gap-4 animate-ios">
-                    <div v-if="podeAcessar('Sacolão')" @click="abrirSetor('Sacolão')" class="ios-card glass p-6 border-l-8 border-green-500">
-                        <span class="text-4xl block mb-2">🍎</span>
-                        <p class="font-black text-[11px] uppercase tracking-tighter">Sacolão & Horti</p>
+                </header>
+                <div class="grid grid-cols-2 gap-4">
+                    <div v-if="podeVer('Sacolão')" @click="abrirSetor('Sacolão')" class="ios-card glass p-6 border-l-[6px] border-[#008C45] relative overflow-hidden">
+                        <span class="text-3xl block mb-2">🍎</span>
+                        <h3 class="font-black text-[12px] uppercase">Sacolão</h3>
                     </div>
-                    <div v-if="podeAcessar('Limpeza')" @click="abrirSetor('Limpeza')" class="ios-card glass p-6 border-l-8 border-blue-500">
-                        <span class="text-4xl block mb-2">🧼</span>
-                        <p class="font-black text-[11px] uppercase tracking-tighter">Limpeza</p>
+                    <div v-if="podeVer('Limpeza')" @click="abrirSetor('Limpeza')" class="ios-card glass p-6 border-l-[6px] border-[#007AFF] relative overflow-hidden">
+                        <span class="text-3xl block mb-2">🧼</span>
+                        <h3 class="font-black text-[12px] uppercase">Limpeza</h3>
                     </div>
-                    <div v-if="podeAcessar('Gelo')" @click="abrirSetor('Gelo')" class="ios-card glass p-6 border-l-8 border-cyan-400">
-                        <span class="text-4xl block mb-2">🧊</span>
-                        <p class="font-black text-[11px] uppercase tracking-tighter">Gelo</p>
+                    <div v-if="podeVer('Gelo')" @click="abrirSetor('Gelo')" class="ios-card glass p-6 border-l-[6px] border-[#5AC8FA] relative overflow-hidden">
+                        <span class="text-3xl block mb-2">🧊</span>
+                        <h3 class="font-black text-[12px] uppercase">Gelo</h3>
                     </div>
-                    <div v-if="podeAcessar('Geral')" @click="abrirSetor('Geral')" class="ios-card glass p-6 border-l-8 border-gray-400">
-                        <span class="text-4xl block mb-2">📦</span>
-                        <p class="font-black text-[11px] uppercase tracking-tighter">Geral / Insumos</p>
+                    <div v-if="podeVer('Geral')" @click="abrirSetor('Geral')" class="ios-card glass p-6 border-l-[6px] border-[#8E8E93] relative overflow-hidden">
+                        <span class="text-3xl block mb-2">📦</span>
+                        <h3 class="font-black text-[12px] uppercase">Geral</h3>
                     </div>
-                </div>
-
-                <div v-if="tab === 'contagem'" class="space-y-4">
-                    <div class="flex justify-between items-center px-2">
-                        <h3 class="font-black text-gray-400 uppercase text-[10px] tracking-widest">{{ setorAtivo }}</h3>
-                        <button @click="tab = 'home'" class="text-[10px] font-black text-[#008C45] uppercase">Voltar</button>
-                    </div>
-                    <div v-for="i in insumosFiltrados" :key="i.id" class="glass p-5 ios-card border-l-8 flex flex-col shadow-sm" :class="calcFalta(i) > 0 ? 'border-red-500' : 'border-green-500'">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h4 class="font-black text-sm uppercase">{{ i.nome }}</h4>
-                                <p class="text-[8px] font-bold opacity-40 uppercase">{{ i.local }} • Meta: {{ i.meta }} {{ i.unQ }}</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="relative">
-                                <input v-model.number="i.contagem" type="number" @change="saveHibrido" class="ios-input text-center text-xl font-black bg-white/5" placeholder="0">
-                                <span class="absolute -top-2 left-3 bg-[var(--ios-card)] px-1 text-[7px] font-black opacity-40 uppercase">Estoque {{ i.unQ }}</span>
-                            </div>
-                            <div class="flex flex-col items-center justify-center bg-black/5 rounded-2xl border border-dashed border-white/10">
-                                <span class="text-[7px] font-black opacity-30 uppercase">Pedir {{ i.unC }}</span>
-                                <span class="text-xl font-black" :class="calcFalta(i) > 0 ? 'text-red-500' : 'text-green-500'">{{ calcFalta(i) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="tab === 'carrinho'" class="space-y-6">
-                    <h3 class="text-2xl font-black italic">Pedidos Pendentes</h3>
-                    <div v-for="f in fornecedoresComPedido" :key="f.id" class="glass p-6 ios-card border-t-8 border-green-600">
-                        <div class="flex justify-between mb-4">
-                            <span class="font-black uppercase text-green-600">{{ f.nome }}</span>
-                            <span class="text-[10px] opacity-40 font-bold">{{ f.zap }}</span>
-                        </div>
-                        <div class="space-y-2 mb-6 bg-black/5 p-4 rounded-2xl">
-                            <div v-for="p in getItensForn(f.id)" class="flex justify-between text-[11px] font-bold border-b border-white/5 pb-1">
-                                <span class="opacity-60">{{ p.nome }}</span>
-                                <span>{{ calcFalta(p) }} {{ p.unC }}</span>
-                            </div>
-                        </div>
-                        <button @click="enviarZap(f)" class="w-full bg-[#25D366] text-white py-4 ios-card font-black flex items-center justify-center gap-2">ENVIAR AGORA</button>
-                    </div>
-                </div>
-
-                <div v-if="tab === 'ajustes'" class="space-y-6">
-                    <div class="glass p-6 ios-card space-y-4">
-                        <h3 class="font-black uppercase text-xs">Gestão de Itens</h3>
-                        <button @click="exportarBackup" class="w-full bg-white/5 p-4 ios-card text-[10px] font-black uppercase">Exportar Banco JSON</button>
-                        <button @click="limparTudo" class="w-full bg-red-500/10 text-red-500 p-4 ios-card text-[10px] font-black uppercase">Zerar Tudo</button>
-                    </div>
-                    <button @click="logout" class="w-full bg-red-600 text-white p-5 ios-card font-black">SAIR DO SISTEMA</button>
                 </div>
             </main>
 
-            <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-4 pb-8 flex justify-around items-center rounded-t-[32px] z-50">
-                <button @click="tab = 'home'" :class="tab === 'home' ? 'text-green-500' : 'opacity-30'" class="flex flex-col items-center">
-                    <span class="text-xl">🏠</span><span class="text-[9px] font-black uppercase">Início</span>
+            <main v-if="tab === 'contagem'" class="p-4 animate-ios pb-40">
+                <div class="sticky top-0 z-50 glass p-5 flex justify-between items-center rounded-2xl mb-4">
+                    <button @click="tab = 'home'" class="text-[#008C45] font-black text-[10px] uppercase tracking-widest">‹ Voltar</button>
+                    <h3 class="font-black text-xs uppercase">{{ setorAtivo }}</h3>
+                    <div class="w-10"></div>
+                </div>
+                <div v-for="item in insumosFiltrados" :key="item.id" class="glass ios-card p-5 border-l-[8px] mb-4 shadow-sm" :class="calcFalta(item) > 0 ? 'border-[#CD212A]' : 'border-[#008C45]'">
+                    <div class="flex justify-between mb-4">
+                        <h4 class="font-black text-sm uppercase">{{ item.nome }}</h4>
+                        <p class="text-[10px] font-black opacity-40">META: {{ getMetaFinal(item) }} {{ item.unQ }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="number" v-model.number="item.contagem" @input="saveHibrido" class="ios-input text-center text-xl font-black" placeholder="0">
+                        <div class="flex flex-col items-center justify-center bg-black/5 rounded-2xl">
+                            <span class="text-[7px] font-black opacity-40 uppercase">Pedir {{ item.unC }}</span>
+                            <span class="text-xl font-black" :class="calcFalta(item) > 0 ? 'text-[#CD212A]' : 'text-[#008C45]'">{{ calcFalta(item) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <main v-if="tab === 'carrinho'" class="p-5 animate-ios pb-40">
+                <h2 class="text-3xl font-black italic mb-6">Pedidos</h2>
+                <div v-for="f in fornecedoresComPedido" :key="f.id" class="glass ios-card overflow-hidden mb-6">
+                    <div class="bg-[#008C45] p-4 text-white font-black text-xs uppercase">{{ f.nome }}</div>
+                    <div class="p-4 space-y-2">
+                        <div v-for="p in getItensForn(f.id)" class="flex justify-between text-xs font-bold">
+                            <span>{{ p.nome }}</span>
+                            <span class="text-[#CD212A]">{{ calcFalta(p) }} {{ p.unC }}</span>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <button @click="enviarZap(f)" class="w-full bg-[#25D366] text-white py-4 ios-card font-black">ENVIAR WHATSAPP</button>
+                    </div>
+                </div>
+            </main>
+
+            <main v-if="tab === 'ajustes'" class="p-5 animate-ios pb-40">
+                <header class="bg-[#CD212A] p-6 rounded-3xl text-white mb-6 shadow-lg">
+                    <h2 class="text-2xl font-black italic">Ajustes Master</h2>
+                    <div class="flex gap-2 mt-4 bg-black/20 p-1 rounded-xl">
+                        <button @click="subTab = 'itens'" class="flex-1 py-2 text-[9px] font-black uppercase rounded-lg" :class="subTab === 'itens' ? 'bg-white text-[#CD212A]' : ''">Itens</button>
+                        <button @click="subTab = 'equipe'" class="flex-1 py-2 text-[9px] font-black uppercase rounded-lg" :class="subTab === 'equipe' ? 'bg-white text-[#CD212A]' : ''">Equipe</button>
+                    </div>
+                </header>
+                <div v-if="subTab === 'itens'" class="space-y-3">
+                    <button @click="novoItem" class="w-full p-4 border-2 border-dashed border-[#CD212A] text-[#CD212A] rounded-2xl font-black text-[10px] uppercase">+ Novo Item</button>
+                    <div v-for="i in estoque" :key="i.id" class="glass p-4 ios-card flex justify-between">
+                        <span class="font-black text-xs uppercase">{{ i.nome }}</span>
+                        <button @click="removerItem(i.id)" class="text-red-500">🗑️</button>
+                    </div>
+                </div>
+                <div v-if="subTab === 'equipe'" class="space-y-4">
+                   <div v-for="u in equipe" :key="u.id" class="glass p-4 ios-card">
+                       <p class="font-black uppercase text-xs mb-2">{{ u.nome }}</p>
+                       <div class="flex flex-wrap gap-2">
+                           <label v-for="b in ['Sacolão', 'Limpeza', 'Gelo', 'Geral']" class="text-[8px] font-black flex items-center gap-1 bg-black/5 p-2 rounded-lg">
+                               <input type="checkbox" :value="b" v-model="u.modulos"> {{ b }}
+                           </label>
+                       </div>
+                   </div>
+                </div>
+                <button @click="logout" class="w-full mt-10 p-5 bg-black text-white rounded-2xl font-black text-xs uppercase">Sair do Sistema</button>
+            </main>
+
+            <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-4 pb-8 flex justify-around items-center rounded-t-[32px] z-[100]">
+                <button @click="tab = 'home'" :class="tab === 'home' ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
+                    <span class="text-xl">🏠</span><span class="text-[8px] font-black uppercase">Home</span>
                 </button>
-                <button @click="tab = 'carrinho'" :class="tab === 'carrinho' ? 'text-green-500' : 'opacity-30'" class="flex flex-col items-center">
-                    <span class="text-xl">🛒</span><span class="text-[9px] font-black uppercase">Pedidos</span>
+                <button @click="tab = 'carrinho'" :class="tab === 'carrinho' ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
+                    <span class="text-xl">🛒</span><span class="text-[8px] font-black uppercase">Carrinho</span>
                 </button>
-                <button v-if="isAdmin" @click="tab = 'ajustes'" :class="tab === 'ajustes' ? 'text-green-500' : 'opacity-30'" class="flex flex-col items-center">
-                    <span class="text-xl">⚙️</span><span class="text-[9px] font-black uppercase">Ajustes</span>
+                <button v-if="isAdmin" @click="tab = 'ajustes'" :class="tab === 'ajustes' ? 'text-[#008C45]' : 'opacity-30'" class="flex flex-col items-center">
+                    <span class="text-xl">⚙️</span><span class="text-[8px] font-black uppercase">Ajustes</span>
                 </button>
             </nav>
         </div>

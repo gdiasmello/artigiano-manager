@@ -1,69 +1,73 @@
-:root { 
-    --basil: #008C45; 
-    --pomodoro: #CD212A; 
-    --apple-bg: #F2F2F7; 
+:root {
+    --ios-bg: #F2F2F7;
+    --ios-card: rgba(255, 255, 255, 0.8);
+    --ios-text: #1C1C1E;
 }
 
-body { 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-    -webkit-font-smoothing: antialiased;
-    overscroll-behavior-y: contain;
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ios-bg: #000000;
+        --ios-card: rgba(28, 28, 30, 0.8);
+        --ios-text: #FFFFFF;
+    }
 }
 
-.glass-card { 
-    background: rgba(255, 255, 255, 0.85); 
-    backdrop-filter: blur(25px); 
-    -webkit-backdrop-filter: blur(25px);
-    border-radius: 35px; 
-    border: 1px solid rgba(255,255,255,0.6); 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.03); 
+body {
+    background-color: var(--ios-bg);
+    color: var(--ios-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.ios-input { 
-    width: 100%; 
-    padding: 22px; 
-    border-radius: 20px; 
-    background: #FFFFFF; 
-    border: 1px solid #E5E5EA; 
-    font-weight: 700; 
-    outline: none; 
-    color: #1C1C1E;
-    transition: all 0.2s;
+.glass {
+    background: var(--ios-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.ios-input:focus { border-color: var(--basil); background: #F2F2F7; }
-
-.ios-btn { 
-    padding: 22px; 
-    border-radius: 24px; 
-    font-weight: 900; 
-    text-transform: uppercase; 
-    letter-spacing: 2px; 
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+.ios-card {
+    border-radius: 24px;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ios-btn:active { transform: scale(0.94); opacity: 0.9; }
-
-.tile-apple { 
-    height: 160px; 
-    border-radius: 35px; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    transition: 0.2s ease-in-out; 
-    cursor: pointer; 
+.ios-card:active {
+    transform: scale(0.96);
 }
 
-.tile-apple:active { transform: scale(0.92); }
+.ios-input {
+    background: rgba(120, 120, 128, 0.12);
+    border-radius: 14px;
+    padding: 12px;
+    font-weight: 600;
+    outline: none;
+    border: 2px solid transparent;
+    color: var(--ios-text);
+}
 
-.shake-error { animation: shake 0.5s; }
-@keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-10px);} 75% {transform: translateX(10px);} }
+.ios-input:focus {
+    border-color: #008C45;
+}
 
-.animate-fade { animation: fadeIn 0.4s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+/* Animações */
+.floating-pizza {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); filter: brightness(1.1); }
+}
 
 [v-cloak] { display: none; }
 
-/* Custom Scrollbar for Accordions */
-::-webkit-scrollbar { width: 0px; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.4s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.shake { animation: shake 0.4s ease-in-out; }
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}

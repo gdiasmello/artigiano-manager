@@ -3,17 +3,17 @@ const app = Vue.createApp({
         return {
             auth: false,
             tab: 'home',
+            subTab: 'itens',
+            lembrar: false,
             loginForm: { nome: '', pin: '' },
             userSelected: null,
             loginError: false,
             setorAtivo: '',
             
-            // BANCO DE DADOS
-            equipe: [],
             estoque: [],
+            equipe: [],
             fornecedores: [],
             
-            // INTELIGÊNCIA
             sextaFeira: new Date().getDay() === 5
         }
     },
@@ -28,8 +28,6 @@ const app = Vue.createApp({
             return this.estoque.filter(i => {
                 const f = this.fornecedores.find(x => x.id === i.destinoId);
                 if (this.setorAtivo === 'Sacolão') return f && f.nome.toUpperCase().includes('SACOLÃO');
-                if (this.setorAtivo === 'Limpeza') return i.local === 'Limpeza' || i.nome.toUpperCase().includes('LIMPEZA');
-                if (this.setorAtivo === 'Gelo') return i.local === 'Gelo' || i.nome.toUpperCase().includes('GELO');
                 return i.local === this.setorAtivo || this.setorAtivo === 'Geral';
             });
         },
@@ -45,25 +43,15 @@ const app = Vue.createApp({
         vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); },
 
         handleLogin() {
-            this.playClick();
             const n = this.loginForm.nome.toUpperCase();
             const p = this.loginForm.pin;
 
-            // MASTER LOGIN GABRIEL 1821
             if (n === 'GABRIEL' && p === '1821') {
                 this.userSelected = { nome: 'GABRIEL', cargo: 'ADM', modulos: ['Sacolão', 'Limpeza', 'Gelo', 'Geral'] };
                 this.auth = true;
                 this.playSuccess();
+                if (this.lembrar) localStorage.setItem('pm_remember', n);
                 this.saveHibrido();
-                return;
-            }
-
-            // BUSCA NA EQUIPE
-            const u = this.equipe.find(x => x.nome.toUpperCase() === n && x.pin === p);
-            if (u) {
-                this.userSelected = u;
-                this.auth = true;
-                this.playSuccess();
             } else {
                 this.loginError = true;
                 this.vibrate(500);
@@ -71,22 +59,20 @@ const app = Vue.createApp({
             }
         },
 
-        calcFalta(i) {
+        getMetaFinal(i) {
             let meta = parseFloat(i.meta) || 0;
-            const forn = this.fornecedores.find(f => f.id === i.destinoId);
-            
-            // Regra de Sexta (3x Sacolão)
-            if (this.sextaFeira && forn && forn.nome.toUpperCase().includes('SACOLÃO')) {
-                meta *= 3;
-            }
+            const f = this.fornecedores.find(x => x.id === i.destinoId);
+            if (this.sextaFeira && f && f.nome.toUpperCase().includes('SACOLÃO')) return meta * 3;
+            return meta;
+        },
 
+        calcFalta(i) {
+            const meta = this.getMetaFinal(i);
             const falta = meta - (parseFloat(i.contagem) || 0);
             return falta > 0 ? Math.ceil(falta / (i.fator || 1)) : 0;
         },
 
-        podeAcessar(modulo) {
-            return this.userSelected && this.userSelected.modulos.includes(modulo);
-        },
+        podeVer(bloco) { return this.isAdmin || (this.userSelected.modulos && this.userSelected.modulos.includes(bloco)); },
 
         abrirSetor(s) {
             this.playClick();
@@ -94,54 +80,36 @@ const app = Vue.createApp({
             this.tab = 'contagem';
         },
 
+        enviarZap(f) {
+            this.playSuccess();
+            const itens = this.estoque.filter(i => i.destinoId === f.id && this.calcFalta(i) > 0);
+            let txt = `*PEDIDO PIZZERIA MASTER*\n*FORN:* ${f.nome}\n\n`;
+            itens.forEach(i => { txt += `✅ ${this.calcFalta(i)}${i.unC} - ${i.nome}\n`; });
+            window.open(`https://api.whatsapp.com/send?phone=${f.zap}&text=${encodeURIComponent(txt)}`);
+        },
+
         saveHibrido() {
-            this.vibrate(10);
-            const data = {
-                estoque: this.estoque,
-                equipe: this.equipe,
-                fornecedores: this.fornecedores,
-                user: this.userSelected
-            };
-            localStorage.setItem('artigiano_v110', JSON.stringify(data));
-            // Aqui entraria o db.ref('artigiano').set(data) se o Firebase estivesse configurado
+            const data = { estoque: this.estoque, equipe: this.equipe, fornecedores: this.fornecedores };
+            localStorage.setItem('pizzeria_master_data', JSON.stringify(data));
         },
 
         loadHibrido() {
-            const local = localStorage.getItem('artigiano_v110');
+            const local = localStorage.getItem('pizzeria_master_data');
             if (local) {
                 const p = JSON.parse(local);
-                this.estoque = p.estoque || [];
-                this.equipe = p.equipe || [];
-                this.fornecedores = p.fornecedores || [];
-                if (p.user) { this.userSelected = p.user; this.auth = true; }
+                this.estoque = p.estoque; this.equipe = p.equipe; this.fornecedores = p.fornecedores;
             } else {
-                // Mock inicial para você não entrar no app vazio
-                this.fornecedores = [{id: 1, nome: 'Sacolão Central', zap: '554399999999', saudacao: 'Olá, segue pedido:'}];
-                this.estoque = [{id: 10, nome: 'Tomate', destinoId: 1, local: 'Geladeira', unQ: 'kg', unC: 'cx', fator: 20, meta: 20, contagem: 0}];
+                // Mock inicial
+                this.fornecedores = [{id: 1, nome: 'SACOLÃO CENTRAL', zap: '554399999999'}];
+                this.estoque = [{id: 10, nome: 'TOMATE', destinoId: 1, local: 'Geladeira', unQ: 'KG', unC: 'CX', fator: 20, meta: 20, contagem: 0}];
+                this.equipe = [{id: 100, nome: 'MAYARA', cargo: 'COLABORADOR', pin: '1234', modulos: ['Sacolão']}];
             }
         },
-
-        getItensForn(fid) { return this.estoque.filter(i => i.destinoId === fid && this.calcFalta(i) > 0); },
-
-        enviarZap(f) {
-            this.playSuccess();
-            const itens = this.getItensForn(f.id);
-            const lista = itens.map(i => `- ${this.calcFalta(i)} ${i.unC} de ${i.nome}`).join('\n');
-            const texto = `*PEDIDO ARTIGIANO*\n\n${f.saudacao}\n\n${lista}`;
-            window.open(`https://api.whatsapp.com/send?phone=${f.zap}&text=${encodeURIComponent(texto)}`);
-        },
-
-        exportarBackup() {
-            const blob = new Blob([JSON.stringify(this.estoque, null, 2)], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = "backup_artigiano.json"; a.click();
-        },
-
-        limparTudo() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } },
-        logout() { this.auth = false; localStorage.removeItem('artigiano_session'); }
+        logout() { this.auth = false; localStorage.removeItem('pm_remember'); }
     },
     mounted() {
         this.loadHibrido();
+        const r = localStorage.getItem('pm_remember');
+        if (r) { this.loginForm.nome = r; this.lembrar = true; }
     }
 }).mount('#app');
