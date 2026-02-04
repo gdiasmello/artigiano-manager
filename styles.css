@@ -1,88 +1,92 @@
 :root {
     --it-green: #008C45;
-    --it-white: #FFFFFF;
     --it-red: #CD212A;
-    --bg: #f2f2f7;
-    --radius-ios: 28px;
+    --glass-bg: rgba(255, 255, 255, 0.2);
+    --glass-border: rgba(255, 255, 255, 0.4);
+}
+
+/* Modo Escuro Automático */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --glass-bg: rgba(0, 0, 0, 0.3);
+        --glass-border: rgba(255, 255, 255, 0.1);
+    }
+    body { background: #1c1c1e !important; }
 }
 
 body {
-    background: var(--bg);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
     margin: 0;
-}
-
-/* Faixa Animada no Topo */
-.animated-header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    height: 45px;
-    background: linear-gradient(-45deg, var(--it-green), #fff, var(--it-red), #fff, var(--it-green));
-    background-size: 400% 400%;
-    animation: gradientMove 10s ease infinite;
+    font-family: -apple-system, sans-serif;
+    background: linear-gradient(135deg, #008C45 0%, #ffffff 50%, #CD212A 100%);
+    background-attachment: fixed;
+    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
 }
 
-@keyframes gradientMove {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Grid de Quadrados Perfeitos */
-.grid-dashboard {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Duas colunas iguais */
-    gap: 20px;
-    padding: 10px;
-}
-
-/* Cartão Quadrado iOS */
-.card-ios {
-    background: white;
-    aspect-ratio: 1 / 1; /* FORÇA O QUADRADO PERFEITO */
-    border-radius: var(--radius-ios);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+/* Efeito Vidro Fosco */
+.glass-login {
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    border-radius: 35px;
+    padding: 40px 25px;
+    width: 85%;
+    max-width: 360px;
     text-align: center;
-    padding: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.04);
-    transition: transform 0.1s, box-shadow 0.2s;
-    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
 
-.card-ios:active {
-    transform: scale(0.92);
-    box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+/* Animação do Logótipo */
+.logo-pulse {
+    animation: pulse 3s ease-in-out infinite;
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
 }
 
-/* Ícones Grandes e Centralizados */
-.card-ios i {
-    width: 55px; /* Ícone bem grande */
-    height: 55px;
-    margin-bottom: 15px;
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
 }
 
-.card-ios span {
-    font-size: 17px;
-    font-weight: 700;
-    color: #1c1c1e;
-    letter-spacing: -0.4px;
+/* Animação de Erro (Shake) */
+.shake {
+    animation: shake 0.4s;
 }
 
-/* Vidro para o Header de Saudação */
-.glass-welcome {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+input {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--glass-border);
     border-radius: 22px;
-    padding: 20px;
-    margin-bottom: 25px;
-    border: 1px solid rgba(255,255,255,0.3);
+    padding: 15px;
+    color: white;
+    font-size: 18px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    text-align: center;
 }
+
+input::placeholder { color: rgba(255,255,255,0.6); }
+
+.btn-entrar {
+    background: var(--it-green);
+    color: white;
+    border: none;
+    border-radius: 22px;
+    padding: 18px;
+    font-weight: 800;
+    width: 100%;
+    margin-top: 20px;
+    box-shadow: 0 10px 20px rgba(0, 140, 69, 0.3);
+    transition: 0.2s;
+}
+
+.btn-entrar:active { transform: scale(0.95); }

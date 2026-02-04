@@ -2,44 +2,96 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Artigiano Manager Pro</title>
-    <link rel="stylesheet" href="style.css?v=0.0.03">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#008C45">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <link rel="stylesheet" href="style.css?v=0.0.05">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f2f2f7">
+    
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
     <div class="animated-header">
-        <div style="background: rgba(255,255,255,0.8); padding: 2px 15px; border-radius: 20px; font-size: 12px; font-weight: 800; color: #333;">
-            <span id="relogio-ios">12:10 PM</span>
+        <div style="background: rgba(255,255,255,0.85); padding: 3px 18px; border-radius: 20px; font-size: 13px; font-weight: 800; color: #1c1c1e; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="clock" style="width: 14px; height: 14px; color: #008C45;"></i>
+            <span id="relogio-ios">12:00 PM</span>
         </div>
     </div>
 
     <div id="app-container">
-        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#f9f9f9;">
-            <div style="width: 50px; height: 50px; border: 5px solid #ccc; border-top-color: #CD212A; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="margin-top:20px; font-family:-apple-system; color:#666; font-weight: 600;">Carregando Artigiano...</p>
+        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh;">
+            <div class="logo-pulse">
+                <div style="width: 60px; height: 60px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #CD212A; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            </div>
+            <p style="margin-top:20px; font-family:-apple-system, sans-serif; color:white; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                PREPARANDO AMBIENTE...
+            </p>
         </div>
     </div>
 
-    <div id="version-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-family: -apple-system; font-size: 12px; color: #8e8e93; pointer-events: none; z-index: 1000;">
-        v 0.0.03
+    <div id="version-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); pointer-events: none; z-index: 1000; text-transform: uppercase; letter-spacing: 1px;">
+        v 0.0.05
     </div>
 
     <style>
+        /* Animações Base */
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .logo-pulse { animation: pulse 2s ease-in-out infinite; }
+
+        /* Reset para garantir o preenchimento total da tela */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #008C45; /* Cor de fallback (Verde Itália) */
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+        }
     </style>
 
     <script>
+        // Atualização do Relógio Superior
         function atualizarRelogio() {
             const agora = new Date();
-            document.getElementById('relogio-ios').innerText = agora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const timeString = agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+            const el = document.getElementById('relogio-ios');
+            if(el) {
+                el.innerText = timeString;
+                // Reinicializa ícones se necessário após renderização
+                if (window.lucide) window.lucide.createIcons();
+            }
         }
         setInterval(atualizarRelogio, 1000);
         atualizarRelogio();
     </script>
-    <script type="module" src="main.js?v=0.0.03"></script>
+
+    <script type="module" src="main.js?v=0.0.05"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js?v=0.0.05')
+                    .then(reg => console.log("Artigiano Pro: SW v0.0.05 pronto."))
+                    .catch(err => console.log("Erro no SW:", err));
+            });
+        }
+    </script>
 </body>
 </html>
