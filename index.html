@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Artigiano Manager Pro</title>
-    <link rel="stylesheet" href="style.css?v=0.0.01">
+    
+    <link rel="stylesheet" href="style.css?v=0.0.02">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f2f2f7">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -13,27 +14,45 @@
 </head>
 <body>
 
+    <div class="animated-header">
+        <div style="background: rgba(255,255,255,0.8); padding: 2px 15px; border-radius: 20px; font-size: 12px; font-weight: 800; color: #333;">
+            <span id="relogio-ios">12:10 PM</span>
+        </div>
+    </div>
+
     <div id="app-container">
-        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#f2f2f7;">
-            <div style="width: 50px; height: 50px; border: 5px solid #ccc; border-top-color: #008C45; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="margin-top:20px; font-family:-apple-system; color:#666;">Carregando Artigiano...</p>
+        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#f9f9f9;">
+            <div style="width: 50px; height: 50px; border: 5px solid #ccc; border-top-color: #CD212A; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="margin-top:20px; font-family:-apple-system; color:#666; font-weight: 600;">Carregando Artigiano...</p>
         </div>
     </div>
 
     <div id="version-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-family: -apple-system; font-size: 12px; color: #8e8e93; pointer-events: none; z-index: 1000;">
-        v 0.0.01
+        v 0.0.02
     </div>
 
     <style>
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 
-    <script type="module" src="main.js?v=0.0.01"></script>
+    <script>
+        // Atualiza o relógio da barra animada em tempo real
+        function atualizarRelogio() {
+            const agora = new Date();
+            const timeString = agora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const el = document.getElementById('relogio-ios');
+            if(el) el.innerText = timeString;
+        }
+        setInterval(atualizarRelogio, 1000);
+        atualizarRelogio();
+    </script>
+
+    <script type="module" src="main.js?v=0.0.02"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js?v=0.0.01')
-                .then(() => console.log("Service Worker registrado com sucesso!"))
+            navigator.serviceWorker.register('./sw.js?v=0.0.02')
+                .then(() => console.log("Service Worker v0.0.02 registrado!"))
                 .catch(err => console.log("Erro ao registrar SW:", err));
         }
     </script>
