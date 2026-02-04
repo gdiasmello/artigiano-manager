@@ -3,21 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artigiano PRO</title>
+    <title>Artigiano Manager</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div id="app-container"></div>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
-          "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"
-        }
-      }
-    </script>
+    <div id="app-container" style="padding: 20px;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h1 style="font-size: 28px; font-weight: 800; margin: 0;">Artigiano</h1>
+            <div style="background: var(--it-red); color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">PRO</div>
+        </header>
+
+        <div class="grid-dashboard" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="card green" onclick="window.app.abrirSacolao()">
+                <i data-lucide="leaf"></i><span>Sacolão</span>
+            </div>
+            <div class="card yellow" onclick="window.app.abrirProducao()">
+                <i data-lucide="scale"></i><span>Produção</span>
+            </div>
+            <div class="card blue" onclick="window.app.abrirLimpeza()">
+                <i data-lucide="sparkles"></i><span>Limpeza</span>
+            </div>
+            <div class="card grey" onclick="window.app.abrirInsumos()">
+                <i data-lucide="package"></i><span>Insumos</span>
+            </div>
+            <div class="card red" onclick="window.app.abrirBebidas()">
+                <i data-lucide="beer"></i><span>Bebidas</span>
+            </div>
+            <div class="card purple" onclick="window.app.abrirHistorico()">
+                <i data-lucide="scroll-text"></i><span>Histórico</span>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="main.js"></script>
 </body>
 </html>

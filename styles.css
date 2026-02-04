@@ -1,39 +1,65 @@
 :root {
+    /* Cores da Itália (iOS Style) */
+    --it-green: #008C45;
+    --it-white: #F4F5F0;
+    --it-red: #CD212A;
+    
+    /* Sistema iOS */
     --bg: #f2f2f7;
-    --glass: rgba(255, 255, 255, 0.75);
-    --radius: 28px;
+    --glass: rgba(255, 255, 255, 0.85);
+    --border: rgba(255, 255, 255, 0.3);
+    --radius: 20px; /* Cantos mais suaves estilo Apple */
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
 }
+
 body {
     background: var(--bg);
-    font-family: -apple-system, sans-serif;
-    margin: 0; padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    color: #1c1c1e;
 }
+
+/* Efeito Vidro iOS */
 .glass-card {
     background: var(--glass);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    border: 1px solid rgba(255,255,255,0.4);
-    padding: 25px; text-align: center;
+    box-shadow: var(--shadow);
+    padding: 20px;
 }
-.grid-dashboard {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
-}
+
+/* Dashboard com cores da Bandeira */
 .card {
-    height: 140px; border-radius: var(--radius); display: flex;
-    flex-direction: column; justify-content: center; align-items: center;
-    font-weight: 700; color: white; gap: 10px;
+    height: 130px;
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    color: white;
+    transition: transform 0.2s ease;
 }
-.green { background: linear-gradient(135deg, #34c759, #248a3d); }
-.yellow { background: linear-gradient(135deg, #ffcc00, #ff9500); color: #333; }
+
+.card:active { transform: scale(0.95); }
+
+/* Cores específicas dos blocos */
+.green { background: linear-gradient(135deg, var(--it-green), #14a35a); }
+.red { background: linear-gradient(135deg, var(--it-red), #e32f38); }
+.yellow { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; } /* Cor da massa/farinha */
 .blue { background: linear-gradient(135deg, #007aff, #0051a8); }
-.red { background: linear-gradient(135deg, #ff3b30, #c41e15); }
-.grey { background: linear-gradient(135deg, #8e8e93, #48484a); }
+.grey { background: linear-gradient(135deg, #8e8e93, #636366); }
 .purple { background: linear-gradient(135deg, #af52de, #763696); }
-input {
-    width: 100%; padding: 15px; border-radius: 18px; border: none;
-    background: white; margin: 10px 0; box-sizing: border-box;
-}
+
+/* Botão Estilo iOS */
 .btn-primary {
-    width: 100%; padding: 16px; border-radius: 20px; border: none;
-    background: #1c1c1e; color: white; font-weight: 600;
+    background: var(--it-green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-weight: 600;
+    width: 100%;
 }
