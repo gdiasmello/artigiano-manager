@@ -20,9 +20,10 @@ createApp({
             sessaoAtiva: false, telaAtiva: null, mostrandoTermos: false,
             usuarioLogado: null, loginUser: '', loginPass: '', msgAuth: '', loginErro: false,
             localAtual: '', contagemAtiva: {}, mostrandoResumo: false, textoWhatsApp: '',
-            mostrandoHistorico: false, mostrarInstalacao: false, mostrandoPOP: true,
+            mostrandoHistorico: false, mostrarInstalacao: false, mostrandoPOP: true, mostrandoNovoUsuario: false,
             notificacao: { ativa: false, texto: '', tipo: '', icone: '' },
             novoLocal: '', novoInsumo: { nome: '', un_contagem: '', un_pedido: '', conversao: 1 },
+            novoUser: { nome: '', user: '', pass: '' },
             
             // Calculadora de Massa
             qtdBolinhas: 0,
@@ -49,7 +50,7 @@ createApp({
     computed: {
         blocosPermitidos() {
             if (!this.usuarioLogado) return [];
-            return this.listaTodosBlocos.filter(b => this.usuarioLogado.permissoes[b.id]);
+            return this.listaTodosBlocos.filter(b => this.usuarioLogado.permissoes && this.usuarioLogado.permissoes[b.id]);
         },
         tituloTela() {
             if (this.telaAtiva === 'config') return 'AJUSTES';
@@ -104,7 +105,7 @@ createApp({
             const p = String(this.loginPass).trim();
 
             if (u === 'gabriel' && p === '1821') {
-                this.entrar({ id: 'master', nome: 'Gabriel', user: 'gabriel', pass: '1821', permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, temp: true, bebidas: true, limpeza: true } });
+                this.entrar({ id: 'master', nome: 'Gabriel', user: 'gabriel', pass: '1821', permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, temp: true, bebidas: true, limpeza: true, checklist: true, pops: true, historico: true } });
                 return;
             }
 
@@ -163,13 +164,24 @@ createApp({
             this.telaAtiva = null; this.mostrandoResumo = false;
         },
 
-        // --- CONFIGURAÇÃO ---
+        // --- CONFIGURAÇÃO & USUÁRIOS ---
         adicionarAoDNA() { db.ref('catalogoDNA').push(this.novoInsumo); this.novoInsumo = { nome: '', un_contagem: '', un_pedido: '', conversao: 1 }; this.mostrarNotificacao('Item Salvo!'); },
         removerDoDNA(id) { if(confirm("Remover?")) db.ref('catalogoDNA').child(id).remove(); },
         adicionarLocal() { this.config.rota.push(this.novoLocal); db.ref('config/rota').set(this.config.rota); this.novoLocal = ''; },
         removerLocal(i) { this.config.rota.splice(i, 1); db.ref('config/rota').set(this.config.rota); },
-        atualizarUsuario(u) { db.ref('usuarios').child(u.id).set(u); },
-        removerUsuario(id) { if(confirm("Remover?")) db.ref('usuarios').child(id).remove(); },
+        atualizarUsuario(u) { db.ref('usuarios').child(u.id).update(u); this.mostrarNotificacao('Atualizado!', 'success'); },
+        removerUsuario(id) { if(confirm("Excluir funcionário?")) db.ref('usuarios').child(id).remove(); },
+        criarUsuario() {
+            if(!this.novoUser.user || !this.novoUser.pass) return;
+            const u = {
+                ...this.novoUser,
+                permissoes: { sacolao: true, insumos: true, producao: false, admin: false } // Permissões padrão
+            };
+            db.ref('usuarios').push(u);
+            this.mostrandoNovoUsuario = false;
+            this.novoUser = { nome: '', user: '', pass: '' };
+            this.mostrarNotificacao('Funcionário Criado!', 'success');
+        },
 
         // --- SYNC ---
         sincronizar() {
