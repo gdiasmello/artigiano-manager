@@ -1,99 +1,148 @@
 :root {
     --it-green: #008C45;
-    --it-red: #C41E3A;
-    --it-blue: #0078D7;
-    --it-gold: #FFB400;
-    --bg-black: #000000;
-    --tile-border: rgba(255, 255, 255, 0.15);
+    --it-white: #FFFFFF;
+    --it-red: #CD212A;
+    --gold: #D4AF37;
+    --dark: #1A1A1A;
+    --bg: #F8F9FA;
 }
+
+[v-cloak] { display: none; }
 
 body {
-    background-color: var(--bg-black);
-    color: #ffffff;
-    font-family: 'Segoe UI', 'Arial Black', sans-serif;
+    background-color: var(--bg);
     margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
 }
 
-/* Identidade PiZZA Maser */
+#app {
+    width: 100%;
+    max-width: 480px;
+    background: white;
+    min-height: 100vh;
+    box-shadow: 0 0 30px rgba(0,0,0,0.05);
+}
+
+/* Header Estilo Premium */
 .app-header {
-    padding: 25px 20px;
-    border-bottom: 2px solid var(--it-green);
-    background: #0a0a0a;
+    background: var(--dark);
+    color: white;
+    padding: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-.brand {
-    font-size: 32px;
-    font-weight: 900;
-    letter-spacing: -2px;
-    margin: 0;
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.brand span { color: var(--it-green); }
+.brand-title, .brand-small {
+    font-weight: 800;
+    letter-spacing: -1px;
+}
 
-/* Grade de Blocos (Tiles) */
-.tile-grid {
+.brand-title span, .brand-small span { color: var(--it-green); }
+.brand-title i, .brand-small i { color: var(--it-red); font-style: normal; }
+
+/* Menu de Cards */
+.menu-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 15px;
+    gap: 15px;
+    padding: 20px;
 }
 
-.tile {
-    aspect-ratio: 1 / 1;
+.menu-card {
+    height: 120px;
+    border: none;
+    border-radius: 20px;
+    color: white;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--tile-border);
-    text-align: center;
-    padding: 10px;
-    transition: transform 0.05s, brightness 0.2s;
+    gap: 10px;
+    font-weight: bold;
+    cursor: pointer;
 }
 
-.tile:active {
-    transform: scale(0.92);
-    filter: brightness(1.5);
-}
+.green { background: var(--it-green); }
+.red { background: var(--it-red); }
+.gold { background: var(--gold); }
+.dark { background: var(--dark); }
 
-.tile i {
-    width: 42px !important;
-    height: 42px !important;
+/* Cartões de Item e Locais */
+.item-card {
+    background: #FFF;
+    border: 1px solid #EEE;
+    border-radius: 20px;
+    padding: 15px;
     margin-bottom: 15px;
 }
 
-.tile-text {
-    font-size: 13px;
+.locais-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.local-box {
+    background: #F9FAFB;
+    padding: 10px;
+    border-radius: 12px;
+}
+
+.local-box label {
+    font-size: 9px;
     font-weight: 800;
+    color: #9CA3AF;
+    display: block;
     text-transform: uppercase;
 }
 
-/* Cores de Categoria */
-.bg-green { background-color: var(--it-green); }
-.bg-blue { background-color: var(--it-blue); }
-.bg-red { background-color: var(--it-red); }
-.bg-gold { background-color: var(--it-gold); }
-.bg-dark { background-color: #1a1a1a; }
-
-/* Lista de Locais (Chips) */
-.location-tag {
-    font-size: 10px;
-    background: rgba(255,255,255,0.1);
-    padding: 2px 6px;
-    margin: 2px;
-    border-radius: 2px;
-    display: inline-block;
+.local-box input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-weight: bold;
+    font-size: 16px;
+    outline: none;
 }
 
-/* Animações */
-.fade-in {
-    animation: fadeIn 0.2s ease-out;
+/* Botões e Inputs de Login */
+.form-container {
+    padding: 40px 20px;
+    text-align: center;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.input-field {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #DDD;
+    border-radius: 15px;
+    text-align: center;
+    box-sizing: border-box;
 }
+
+.btn-main {
+    width: 100%;
+    padding: 18px;
+    background: var(--it-green);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.qty { font-size: 24px; font-weight: 900; color: var(--it-red); }
+
+.fade-in { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

@@ -1,137 +1,93 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Pizzeria Master Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PiZZA Master - Artigiano</title>
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Artigiano">
-    <meta name="theme-color" content="#008C45">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    
-    <link rel="stylesheet" href="style.css?v=0.0.07">
-    <link rel="manifest" href="manifest.json">
-    
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <style>
-        /* Estilos críticos para evitar "pulo" de layout durante o carregamento */
-        :root {
-            --it-green: #008C45;
-            --it-red: #C41E3A;
-            --bg-light: #f2f2f7;
-            --bg-dark: #121212;
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Roboto", sans-serif;
-            background-color: var(--bg-light);
-            transition: background-color 0.3s ease;
-        }
-
-        /* Suporte ao Modo Escuro nativo antes do JS carregar */
-        @media (prefers-color-scheme: dark) {
-            html, body { background-color: var(--bg-dark); }
-        }
-
-        /* Animação de Spin do Loader */
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Animação de Respiração do Logo */
-        @keyframes pulseLogo {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; }
-        }
-
-        .loader-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100%;
-            background: linear-gradient(135deg, var(--it-green) 0%, #fff 50%, var(--it-red) 100%);
-            background-size: 400% 400%;
-            animation: gradientMove 15s ease infinite;
-        }
-
-        @keyframes gradientMove {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-    <div class="animated-header" style="position: fixed; top: 0; width: 100%; height: 44px; z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <div style="background: rgba(255,255,255,0.7); padding: 2px 14px; border-radius: 20px; font-size: 12px; font-weight: 800; color: #1c1c1e; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <i data-lucide="clock" style="width: 12px; height: 12px; color: var(--it-green);"></i>
-            <span id="relogio-ios">--:--</span>
+<div id="app" v-cloak>
+    <div v-if="!sessaoAtiva" class="form-container fade-in">
+        <div class="header-login">
+            <h1 class="brand-title">PiZZA <span>Mas</span><i>ter</i></h1>
+            <p class="tagline">TRADIZIONE E LOGISTICA</p>
+        </div>
+        <div class="login-box">
+            <input type="text" v-model="loginUser" class="input-field" placeholder="Teu Nome">
+            <input type="password" v-model="loginPass" class="input-field" placeholder="PIN de Acesso" maxlength="4">
+            <button class="btn-main" @click="efetuarLogin">ENTRAR NA COZINHA</button>
+            <p v-if="msgErro" class="error-msg">{{ msgErro }}</p>
         </div>
     </div>
 
-    <div id="app-container">
-        <div class="loader-container">
-            <div style="animation: pulseLogo 2s infinite;">
-                <i data-lucide="pizza" style="width: 60px; height: 60px; color: white;"></i>
+    <div v-else class="fade-in">
+        <header class="app-header">
+            <div class="header-content">
+                <i class="fas fa-chevron-left" v-if="telaAtiva !== 'dash'" @click="telaAtiva = 'dash'"></i>
+                <h2 class="brand-small">PiZZA <span>Mas</span><i>ter</i></h2>
+                <i class="fas fa-sign-out-alt" @click="logout"></i>
             </div>
-            <div class="spinner" style="margin-top: 20px;"></div>
-            <p style="margin-top: 15px; color: white; font-weight: 700; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">
-                Artigiano Pro
-            </p>
+        </header>
+
+        <div v-if="telaAtiva === 'dash'" class="menu-grid">
+            <button class="menu-card green" @click="abrirSetor('sacolao')">
+                <i class="fas fa-leaf"></i> <span>SACOLÃO</span>
+            </button>
+            <button class="menu-card red" @click="abrirSetor('insumos')">
+                <i class="fas fa-box"></i> <span>INSUMOS</span>
+            </button>
+            <button class="menu-card gold" @click="telaAtiva = 'producao'">
+                <i class="fas fa-mortar-pestle"></i> <span>MASSA</span>
+            </button>
+            <button class="menu-card dark" @click="telaAtiva = 'pedido'">
+                <i class="fas fa-shopping-cart"></i> <span>PEDIDO</span>
+            </button>
+        </div>
+
+        <div v-if="telaAtiva === 'contagem'" class="content-area">
+            <h3 class="section-title">Contagem: {{ setorAtivo.toUpperCase() }}</h3>
+            <div v-for="(item, id) in catalogo" :key="id">
+                <div v-if="item.setor === setorAtivo" class="item-card">
+                    <div class="item-header">
+                        <strong>{{ item.nome }}</strong>
+                        <span class="total-badge">{{ totalNoEstoque(setorAtivo, id) }} {{ item.unidade }}</span>
+                    </div>
+                    <div class="locais-grid">
+                        <div v-for="local in locais" :key="local" class="local-box">
+                            <label>{{ local }}</label>
+                            <input type="number" 
+                                   :value="contagens[setorAtivo] && contagens[setorAtivo][id] ? contagens[setorAtivo][id][local] : ''"
+                                   @input="salvarContagem(setorAtivo, id, local, $event.target.value)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="telaAtiva === 'pedido'" class="content-area">
+            <h3 class="section-title">Sugestão de Compra</h3>
+            <div v-for="(item, id) in catalogo" :key="id" class="order-card" v-if="calcularSugestao(item, id) > 0">
+                <div class="order-info">
+                    <strong>{{ item.nome }}</strong>
+                    <small>Estoque: {{ totalNoEstoque(item.setor, id) }} / Meta: {{ item.meta }}</small>
+                </div>
+                <div class="order-qty">
+                    <span class="qty">{{ calcularSugestao(item, id) }}</span>
+                    <span class="unit">{{ item.uCompra }}</span>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div id="version-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 10px; font-weight: 900; color: #8e8e93; pointer-events: none; z-index: 1000; opacity: 0.5; letter-spacing: 2px;">
-        V 0.0.07 • LONDRI-PR
-    </div>
-
-    <script>
-        // Inicialização de Relógio e Ícones
-        function startup() {
-            const elRelogio = document.getElementById('relogio-ios');
-            
-            const atualizar = () => {
-                const agora = new Date();
-                if(elRelogio) elRelogio.innerText = agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-            };
-
-            setInterval(atualizar, 1000);
-            atualizar();
-            
-            if (window.lucide) window.lucide.createIcons();
-        }
-
-        window.addEventListener('DOMContentLoaded', startup);
-    </script>
-
-    <script type="module" src="main.js?v=0.0.07"></script>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.0.07')
-                    .then(reg => console.log("Artigiano: SW v0.0.07 On"))
-                    .catch(err => console.log("Erro SW:", err));
-            });
-        }
-    </script>
+<script src="config.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
