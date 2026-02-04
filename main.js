@@ -1,69 +1,51 @@
+// Importando via CDN para funcionar direto no navegador
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// 1. CONFIGURAÇÃO FIREBASE (Substitua pelos seus dados do console Firebase)
 const firebaseConfig = {
-    databaseURL: "https://SEU-PROJETO.firebaseio.com", 
+  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
+  authDomain: "artigiano-app.firebaseapp.com",
+  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+  projectId: "artigiano-app",
+  storageBucket: "artigiano-app.firebasestorage.app",
+  messagingSenderId: "212218495726",
+  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
 };
 
+// Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 
-// 2. FUNÇÃO DE RENDERIZAÇÃO
+// Função de renderização principal
 export function render(html) {
     const container = document.getElementById('app-container');
-    container.innerHTML = html;
-    if (window.lucide) window.lucide.createIcons();
+    if (container) {
+        container.innerHTML = html;
+        if (window.lucide) window.lucide.createIcons();
+    }
 }
 
-// 3. NAMESPACE GLOBAL (Para os botões do HTML funcionarem)
+// Namespace global para funções de botões
 window.app = {};
 
-// 4. LÓGICA DE INICIALIZAÇÃO
+// Função de inicialização
 async function inicializar() {
     const usuarioLogado = localStorage.getItem('artigiano_user');
 
     if (usuarioLogado) {
-        // Se já estiver logado, vai direto para o Dashboard
         const { carregarDash } = await import("./modules/dashboard.js");
         carregarDash(JSON.parse(usuarioLogado));
     } else {
-        // Senão, carrega a tela de login
         const { carregarLogin } = await import("./modules/auth.js");
         carregarLogin();
     }
 }
 
-// 5. MAPEAMENTO DE ROTAS (Para os menus e botões funcionarem)
-window.app.abrirCarrinho = async () => {
-    const { carregarCheckout } = await import("./modules/checkout.js");
-    carregarCheckout();
-};
+// Mapeamento de rotas para navegação
+window.app.abrirCarrinho = () => import("./modules/checkout.js").then(m => m.carregarCheckout());
+window.app.abrirConfig = () => import("./modules/config.js").then(m => m.carregarConfig());
+window.app.abrirFornecedores = () => import("./modules/fornecedores.js").then(m => m.carregarFornecedores());
+window.app.abrirHistorico = () => import("./modules/historico.js").then(m => m.carregarHistorico());
+window.app.logout = () => { localStorage.removeItem('artigiano_user'); location.reload(); };
 
-window.app.abrirConfig = async () => {
-    const { carregarConfig } = await import("./modules/config.js");
-    carregarConfig();
-};
-
-window.app.abrirFornecedores = async () => {
-    const { carregarFornecedores } = await import("./modules/fornecedores.js");
-    carregarFornecedores();
-};
-
-window.app.abrirHistorico = async () => {
-    const { carregarHistorico } = await import("./modules/historico.js");
-    carregarHistorico();
-};
-
-window.app.abrirGestaoItens = async (setor) => {
-    const { carregarGestaoItens } = await import("./modules/gestao_itens.js");
-    carregarGestaoItens(setor);
-};
-
-window.app.logout = () => {
-    localStorage.removeItem('artigiano_user');
-    location.reload();
-};
-
-// Inicia o app
 inicializar();
