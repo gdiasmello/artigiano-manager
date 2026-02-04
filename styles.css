@@ -1,90 +1,33 @@
 :root {
-    --bg-gradient: linear-gradient(180deg, #d1d5db 0%, #f3f4f6 100%);
-    --glass: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.5);
-    --radius-xl: 40px;
-    --radius-m: 22px;
+    --ios-bg: linear-gradient(180deg, #d1d5db 0%, #f3f4f6 100%);
+    --glass: rgba(255, 255, 255, 0.75);
+    --radius-xl: 35px;
 }
 
 body {
-    background: var(--bg-gradient);
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
-    margin: 0; height: 100vh; overflow: hidden; color: #1d1d1f;
+    background: var(--ios-bg);
+    font-family: -apple-system, system-ui, sans-serif;
+    margin: 0; padding: 0;
+    height: 100vh; display: flex; align-items: center; justify-content: center;
 }
 
-.glass {
+.glass-card {
     background: var(--glass);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(255,255,255,0.4);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    padding: 30px; width: 85%; max-width: 380px; text-align: center;
 }
 
-.screen { display: none; height: 100vh; flex-direction: column; padding: 20px; box-sizing: border-box; }
-.active { display: flex; }
-
-/* Login */
-.login-card {
-    margin: auto; width: 90%; max-width: 350px; padding: 40px 20px;
-    border-radius: var(--radius-xl); text-align: center;
+input {
+    width: 100%; padding: 15px; margin: 10px 0;
+    border-radius: 15px; border: none; background: white;
+    box-sizing: border-box; font-size: 16px;
 }
 
-.input-group input {
-    width: 85%; padding: 16px; margin: 8px 0; border-radius: 20px;
-    border: none; background: rgba(255,255,255,0.8); font-size: 16px;
-}
-
-.btn-login {
-    width: 90%; padding: 16px; border-radius: 25px; border: none;
-    background: #1c1c1e; color: white; font-weight: 600; margin-top: 20px;
-}
-
-/* Header */
-.header-ios {
-    padding: 25px; border-radius: var(--radius-m);
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
-}
-
-.badge-feriado {
-    background: #34c759; color: white; padding: 6px 12px;
-    border-radius: 10px; font-size: 12px; font-weight: bold;
-}
-
-/* Grid */
-.grid-dashboard {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
-}
-
-.card-ios {
-    background: white; border-radius: var(--radius-m); height: 150px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 4px solid transparent;
-}
-
-.card-ios span { margin-top: 10px; font-weight: 600; color: #333; }
-
-.icon-box i { width: 40px; height: 40px; }
-.card-ios:nth-child(1) { border-color: #34c759; } /* Verde */
-.card-ios:nth-child(2) { border-color: #ffcc00; } /* Amarelo */
-.card-ios:nth-child(3) { border-color: #007aff; } /* Azul */
-.card-ios:nth-child(4) { border-color: #8e8e93; } /* Cinza */
-.card-ios:nth-child(5) { border-color: #ff3b30; } /* Vermelho */
-.card-ios:nth-child(6) { border-color: #af52de; } /* Roxo */
-
-/* Tab Bar */
-.tab-bar-ios {
-    position: fixed; bottom: 25px; left: 20px; right: 20px;
-    height: 75px; border-radius: 40px; display: flex;
-    justify-content: space-around; align-items: center; padding: 0 10px;
-}
-
-.cart-floating {
-    width: 65px; height: 65px; border-radius: 50%;
-    margin-top: -40px; display: flex; align-items: center; justify-content: center;
-    position: relative; background: white;
-}
-
-.badge-count {
-    position: absolute; top: 12px; right: 12px; background: #ff3b30;
-    color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px;
+.btn-primary {
+    width: 100%; padding: 16px; border-radius: 20px; border: none;
+    background: #1c1c1e; color: white; font-weight: 600; cursor: pointer;
 }

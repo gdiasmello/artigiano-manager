@@ -3,86 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pizzeria Master PRO</title>
+    <title>Artigiano PRO</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
-    <div id="modal-terms" class="modal-overlay">
-        <div class="modal-content glass">
-            <h1 style="font-size: 3rem; margin-bottom: 10px;">🍕</h1>
-            <h2>Segurança Jurídica</h2>
-            <p>App independente desenvolvido por <strong>Gabriel</strong>. Sem vínculo jurídico com a Artigiano. Uso sob responsabilidade do usuário.</p>
-            <button onclick="acceptTerms()" class="btn-primary">Concordar e Entrar</button>
-        </div>
-    </div>
+    <div id="app-container"></div>
 
-    <div id="screen-login" class="screen active">
-        <div class="login-card glass">
-            <div class="pizza-icon">🍕</div>
-            <h1 class="logo-text">Artigiano <span>PRO</span></h1>
-            <div class="input-group">
-                <input type="text" id="user-input" placeholder="Usuário">
-                <input type="password" id="pin-input" placeholder="PIN" maxlength="4" inputmode="numeric">
-            </div>
-            <button onclick="handleLogin()" class="btn-login">Entrar</button>
-            <span class="version-tag">v1.5.0-PWA</span>
-        </div>
-    </div>
-
-    <div id="screen-dash" class="screen">
-        <header class="header-ios glass">
-            <div class="welcome-text">
-                <h1 id="user-name">Olá, Gabriel</h1>
-            </div>
-            <div id="badge-feriado" class="badge-feriado hidden">
-                Feriado Ativo <i data-lucide="power"></i>
-            </div>
-        </header>
-
-        <div class="grid-dashboard">
-            <div class="card-ios" onclick="openInventory('sacolao')">
-                <div class="icon-box green"><i data-lucide="leaf"></i></div>
-                <span>Sacolão</span>
-            </div>
-            <div class="card-ios" onclick="openProduction()">
-                <div class="icon-box yellow"><i data-lucide="scale"></i></div>
-                <span>Produção</span>
-            </div>
-            <div class="card-ios" onclick="openInventory('limpeza')">
-                <div class="icon-box blue"><i data-lucide="sparkles"></i></div>
-                <span>Limpeza</span>
-            </div>
-            <div class="card-ios" onclick="openInventory('insumos')">
-                <div class="icon-box grey"><i data-lucide="package"></i></div>
-                <span>Insumos</span>
-            </div>
-            <div class="card-ios" onclick="openInventory('bebidas')">
-                <div class="icon-box red"><i data-lucide="beer"></i></div>
-                <span>Bebidas</span>
-            </div>
-            <div class="card-ios" onclick="openHistory()">
-                <div class="icon-box purple"><i data-lucide="scroll-text"></i></div>
-                <span>Histórico</span>
-            </div>
-        </div>
-
-        <nav class="tab-bar-ios glass">
-            <button class="nav-item active"><i data-lucide="home"></i></button>
-            <div class="nav-item cart-wrapper" onclick="openCart()">
-                <div class="cart-floating glass">
-                    <i data-lucide="shopping-cart"></i>
-                    <span id="cart-badge" class="badge-count">3</span>
-                </div>
-            </div>
-            <button class="nav-item" onclick="openSettings()"><i data-lucide="settings"></i></button>
-        </nav>
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script src="app.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+          "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"
+        }
+      }
+    </script>
+    
+    <script type="module" src="main.js"></script>
 </body>
 </html>
