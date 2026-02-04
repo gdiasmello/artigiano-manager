@@ -1,116 +1,79 @@
-/* 1. VARIÁVEIS E CORES DA ITÁLIA */
 :root {
     --it-green: #008C45;
     --it-red: #C41E3A;
-    --it-white: #FDFDFD;
-    --bg-light: #f2f2f7;
-    --bg-dark: #121212;
-    
-    /* Glassmorphism */
-    --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-border: rgba(255, 255, 255, 0.4);
-    --blur: blur(15px);
-    
-    /* Geometria iOS */
-    --radius-ios: 22px;
-    --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --it-gold: #FFB400;
+    --it-blue: #0078D7;
+    --it-purple: #744DA9;
+    --bg-dark: #050505;
 }
 
-/* 2. MODO ESCURO AUTOMÁTICO */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --glass-bg: rgba(30, 30, 30, 0.85);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --bg-light: #000000;
-    }
-    body { color: white; }
-    input, select { background: rgba(255,255,255,0.05) !important; color: white; }
-}
-
-/* 3. RESET E ESTRUTURA */
 body {
-    background-color: var(--bg-light);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    background: var(--bg-dark);
+    color: white;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
     margin: 0;
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 4. COMPONENTES GLASSMORPHISM */
-.glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: var(--blur);
-    -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-ios);
-    box-shadow: var(--shadow-soft);
-    padding: 20px;
-    margin-bottom: 15px;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* Sistema de Blocos (Tiles) */
+.tile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 15px;
 }
 
-.active-press:active { transform: scale(0.96); opacity: 0.9; }
-
-/* 5. INPUTS E BOTÕES (Touch Targets 44px+) */
-input, select, .btn-primary {
-    min-height: 52px;
-    border-radius: 14px;
-    border: 1px solid rgba(0,0,0,0.1);
-    padding: 0 15px;
-    font-size: 16px;
-    outline: none;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.btn-primary {
+.tile {
+    aspect-ratio: 1 / 1;
     border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     color: white;
-    font-weight: 800;
+    font-weight: 900;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(0, 140, 69, 0.2);
+    transition: transform 0.1s;
+    cursor: pointer;
 }
 
-/* 6. NOTIFICAÇÕES (TOAST) & SILENCIADOR */
-#confirmacao-toast {
-    animation: slideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+.tile i { 
+    width: 38px !important; 
+    height: 38px !important; 
+    margin-bottom: 12px; 
 }
 
-@keyframes slideUp {
-    from { transform: translateY(100px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+.tile:active { 
+    transform: scale(0.94); 
+    filter: brightness(1.2); 
 }
 
-.btn-silence {
-    background: rgba(0, 122, 255, 0.15);
-    color: #007aff;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
+/* Cores Sólidas Windows 10 */
+.bg-green { background: var(--it-green); }
+.bg-red { background: var(--it-red); }
+.bg-blue { background: var(--it-blue); }
+.bg-purple { background: var(--it-purple); }
+.bg-gold { background: var(--it-gold); }
+
+/* Animações de Transição */
+.page-transition {
+    animation: slideIn 0.25s ease-out forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(30px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Input Estilo Industrial */
+input, select {
+    background: #1a1a1a !important;
+    border: 2px solid #333 !important;
+    color: white !important;
+    border-radius: 0px !important; /* Bordas retas Windows 10 */
+    height: 55px;
     font-weight: 700;
-    margin-top: 8px;
-}
-
-/* 7. HEADER ANIMADO */
-.animated-header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 2000;
-    padding-top: env(safe-area-inset-top); /* Para o Notch do iPhone */
-    display: flex;
-    justify-content: center;
-}
-
-/* 8. ANIMAÇÃO DE SHAKE (ERRO NO PIN) */
-.shake {
-    animation: shakeAnim 0.4s ease-in-out;
-}
-
-@keyframes shakeAnim {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-8px); }
-    75% { transform: translateX(8px); }
 }
