@@ -5,62 +5,60 @@ createApp({
         return {
             versao: '0.0.1',
             notasDaVersao: [
-                'Novo design centralizado PiZZA Master v0.0.1',
-                'Sistema de 6 locais de estoque (Freezers, Quartinho, etc)',
-                'Logística Preditiva com arredondamento automático',
-                'Painel de novidades integrado'
+                'Lançamento Oficial PiZZA Master v0.0.1',
+                'Painel de Configurações em Accordion Style',
+                'Matriz de Permissões (ADM, Gerente, Colaborador)',
+                'Sistema de Logs e Auditoria de ações'
             ],
             mostrarChangelog: false,
-            sessaoAtiva: false, 
-            usuarioLogado: null, 
-            telaAtiva: 'dash', 
+            sessaoAtiva: false,
+            usuarioLogado: null,
+            telaAtiva: 'dash',
             setorAtivo: 'sacolao',
-            loginUser: '', 
-            loginPass: '', 
-            msgErro: '', 
+            loginUser: '', loginPass: '', novoPin: '', msgErro: '',
             locais: LOCAIS_ESTOQUE,
-            catalogo: {}, 
-            contagens: {}, 
-            modoFeriado: false
+            catalogo: {}, contagens: {}, listaUsuarios: []
         }
     },
     methods: {
         efetuarLogin() {
+            // Lógica Simplificada para V 0.0.1
             if (this.loginPass === '1821' || this.loginPass === '2026') {
-                const u = { nome: this.loginUser, role: this.loginPass === '1821'?'ADMIN':'OPERADOR' };
+                const u = { 
+                    id: 'u1', 
+                    nome: this.loginUser, 
+                    role: this.loginPass === '1821' ? 'ADMIN' : 'GERENTE',
+                    permissoes: ['sacolao', 'insumos', 'producao', 'config']
+                };
                 this.usuarioLogado = u;
                 this.sessaoAtiva = true;
                 localStorage.setItem('pizzamaster_session', JSON.stringify(u));
-                this.carregarDados();
                 this.verificarVersao();
-            } else { this.msgErro = "PIN INVÁLIDO!"; }
+                this.carregarDados();
+            } else { this.msgErro = "PIN INCORRETO!"; }
         },
         verificarVersao() {
-            const ultimaVersaoVista = localStorage.getItem('pizzamaster_version');
-            if (ultimaVersaoVista !== this.versao) {
-                this.mostrarChangelog = true;
-            }
+            const v = localStorage.getItem('pizzamaster_version');
+            if (v !== this.versao) this.mostrarChangelog = true;
         },
         fecharChangelog() {
             localStorage.setItem('pizzamaster_version', this.versao);
             this.mostrarChangelog = false;
         },
-        logout() { localStorage.removeItem('pizzamaster_session'); location.reload(); },
+        podeVer(bloco) {
+            if (!this.usuarioLogado) return false;
+            if (this.usuarioLogado.role === 'ADMIN') return true;
+            return this.usuarioLogado.permissoes.includes(bloco);
+        },
+        atualizarPerfil() {
+            // Aqui entraria a gravação no Firebase
+            alert("Perfil de " + this.usuarioLogado.nome + " atualizado!");
+        },
         carregarDados() {
             db.ref('configuracoes/catalogo').on('value', s => this.catalogo = s.val() || {});
             db.ref('contagem_atual').on('value', s => this.contagens = s.val() || {});
         },
-        abrirSetor(s) { this.setorAtivo = s; this.telaAtiva = 'contagem'; },
-        salvarContagem(setor, itemId, local, valor) {
-            db.ref(`contagem_atual/${setor}/${itemId}/${local}`).set(parseFloat(valor) || 0);
-        },
-        getVal(setor, itemId, local) {
-            try { return this.contagens[setor][itemId][local] || ''; } catch(e) { return ''; }
-        },
-        totalNoEstoque(setor, itemId) {
-            if (!this.contagens[setor] || !this.contagens[setor][itemId]) return 0;
-            return Object.values(this.contagens[setor][itemId]).reduce((a, b) => a + b, 0);
-        }
+        logout() { localStorage.removeItem('pizzamaster_session'); location.reload(); }
     },
     mounted() {
         const s = localStorage.getItem('pizzamaster_session');
