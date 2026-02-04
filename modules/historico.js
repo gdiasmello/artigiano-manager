@@ -1,41 +1,79 @@
 import { db, render } from "../main.js";
-import { ref, onValue, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { ref, onValue, query, limitToLast, orderByKey } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 export function carregarHistorico() {
     render(`
-        <div class="glass-card" style="margin-top: 20px;">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <button onclick="location.reload()" style="background:none; border:none; font-size: 20px;">🔙</button>
-                <h2 style="margin:0;">Histórico de Pedidos</h2>
-                <div></div>
+        <div style="padding: 20px; padding-top: 65px; background: #f2f2f7; min-height: 100vh; font-family: -apple-system, sans-serif;">
+            
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <button onclick="location.reload()" style="background: white; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <i data-lucide="chevron-left" style="color: #333;"></i>
+                </button>
+                <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #1c1c1e;">Auditoria</h2>
+                <div style="width: 45px;"></div>
             </header>
-            <div id="lista-historico" style="text-align: left; max-height: 450px; overflow-y: auto; padding-right: 5px;">
-                Carregando histórico...
+
+            <div id="timeline-pedidos" style="display: flex; flex-direction: column; gap: 15px;">
+                <p style="text-align: center; color: #8e8e93; margin-top: 40px;">Buscando registros...</p>
             </div>
         </div>
     `);
 
-    const histRef = query(ref(db, 'historico'), limitToLast(20));
-    
-    onValue(histRef, (snapshot) => {
+    const listaDiv = document.getElementById('timeline-pedidos');
+    const historicoRef = query(ref(db, 'history'), orderByKey(), limitToLast(30));
+
+    onValue(historicoRef, (snapshot) => {
         const dados = snapshot.val();
-        const listaDiv = document.getElementById('lista-historico');
-        
         if (!dados) {
-            listaDiv.innerHTML = "<p style='text-align:center; opacity:0.5;'>Nenhum pedido registrado ainda.</p>";
+            listaDiv.innerHTML = `
+                <div style="text-align:center; padding:40px; opacity:0.5;">
+                    <i data-lucide="archive" style="width:48px; height:48px; margin-bottom:10px;"></i>
+                    <p>Nenhum pedido registrado ainda.</p>
+                </div>`;
             return;
         }
 
-        // Converter objeto em array e inverter para mostrar o mais novo primeiro
-        const listaOrdenada = Object.values(dados).reverse();
+        // Inverter para mostrar os mais recentes primeiro
+        const logs = Object.keys(dados).reverse().map(id => {
+            const item = dados[id];
+            const dataObj = new Date(item.data);
+            const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+            const horaFormatada = dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
 
-        listaDiv.innerHTML = listaOrdenada.map(item => `
-            <div style="background:white; padding:15px; border-radius:15px; margin-bottom:12px; border-left: 5px solid #af52de;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <small style="font-weight:bold; color:#af52de;">${item.data}</small>
+            return `
+                <div class="glass-card" style="padding: 18px; border-left: 5px solid #007aff; position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div>
+                            <span style="display: block; font-weight: 800; font-size: 16px; color: #1c1c1e;">${item.fornecedor}</span>
+                            <small style="color: #8e8e93; font-weight: 600;">${dataFormatada} às ${horaFormatada}</small>
+                        </div>
+                        <div style="background: #eef7ff; color: #007aff; padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: 900;">
+                            POR: ${item.usuario.toUpperCase()}
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(0,0,0,0.02); padding: 12px; border-radius: 12px; font-family: monospace; font-size: 12px; color: #444; white-space: pre-wrap; line-height: 1.5;">${item.pedido}</div>
+                    
+                    <button onclick="window.app.recompartilhar('${id}')" style="margin-top: 12px; width: 100%; background: white; border: 1px solid #e5e5ea; border-radius: 12px; padding: 10px; font-size: 12px; font-weight: 700; color: #007aff; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i data-lucide="share-2" style="width: 14px;"></i> REENVIAR / COMPARTILHAR
+                    </button>
                 </div>
-                <div style="white-space: pre-wrap; font-size: 13px; color: #333; line-height: 1.4;">${item.pedido}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
+
+        listaDiv.innerHTML = logs;
+        window.lucide.createIcons();
+
+        // Lógica de Recompartilhamento
+        window.app.recompartilhar = (id) => {
+            const pedido = dados[id].pedido;
+            if (navigator.share) {
+                navigator.share({ title: 'Pedido Artigiano', text: pedido });
+            } else {
+                // Fallback para cópia
+                navigator.clipboard.writeText(pedido);
+                alert("Copiado para a área de transferência!");
+            }
+        };
     });
 }
