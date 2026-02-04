@@ -1,40 +1,42 @@
+/* 1. VARIÁVEIS E CORES DA ITÁLIA */
 :root {
-    /* Cores da Itália - Identidade Artigiano */
-    --it-green: #008C45; /* Verde Manjericão */
-    --it-red: #C41E3A;   /* Vermelho Pomodoro */
-    --it-white: #FDFDFD; /* Branco Creme */
+    --it-green: #008C45;
+    --it-red: #C41E3A;
+    --it-white: #FDFDFD;
     --bg-light: #f2f2f7;
-    --bg-dark: #1c1c1e;
+    --bg-dark: #121212;
     
-    /* Efeito Vidro */
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.3);
-    --blur: blur(12px);
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --blur: blur(15px);
     
-    /* Geometria Apple */
-    --radius-ios: 28px;
+    /* Geometria iOS */
+    --radius-ios: 22px;
     --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
-/* Modo Escuro Automático */
+/* 2. MODO ESCURO AUTOMÁTICO */
 @media (prefers-color-scheme: dark) {
     :root {
-        --glass-bg: rgba(28, 28, 30, 0.8);
+        --glass-bg: rgba(30, 30, 30, 0.85);
         --glass-border: rgba(255, 255, 255, 0.1);
         --bg-light: #000000;
     }
     body { color: white; }
+    input, select { background: rgba(255,255,255,0.05) !important; color: white; }
 }
 
+/* 3. RESET E ESTRUTURA */
 body {
-    background: var(--bg-light);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Roboto", sans-serif;
+    background-color: var(--bg-light);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
     margin: 0;
-    -webkit-tap-highlight-color: transparent; /* Remove brilho azul ao clicar no iOS */
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Glassmorphism Card */
+/* 4. COMPONENTES GLASSMORPHISM */
 .glass-card {
     background: var(--glass-bg);
     backdrop-filter: var(--blur);
@@ -43,39 +45,72 @@ body {
     border-radius: var(--radius-ios);
     box-shadow: var(--shadow-soft);
     padding: 20px;
+    margin-bottom: 15px;
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Touch Targets Otimizados (Mínimo 44px) */
-button, .card-ios, input {
-    min-height: 48px;
-    cursor: pointer;
-}
+.active-press:active { transform: scale(0.96); opacity: 0.9; }
 
-/* Animação de Feedback ao Tocar */
-.active-press:active {
-    transform: scale(0.96);
-    filter: brightness(0.9);
-}
-
-/* Estilo dos Inputs (Teclado Numérico focado) */
-input[type="number"] {
-    background: rgba(255,255,255,0.5);
-    border: 2px solid transparent;
-    border-radius: 15px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: 700;
-    transition: border-color 0.3s;
-}
-
-input[type="number"]:focus {
-    border-color: var(--it-green);
+/* 5. INPUTS E BOTÕES (Touch Targets 44px+) */
+input, select, .btn-primary {
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.1);
+    padding: 0 15px;
+    font-size: 16px;
     outline: none;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-/* Alerta Vermelho Pomodoro */
-.status-critical {
-    border: 2px solid var(--it-red) !important;
-    background: rgba(196, 30, 58, 0.05) !important;
+.btn-primary {
+    border: none;
+    color: white;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 140, 69, 0.2);
+}
+
+/* 6. NOTIFICAÇÕES (TOAST) & SILENCIADOR */
+#confirmacao-toast {
+    animation: slideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.btn-silence {
+    background: rgba(0, 122, 255, 0.15);
+    color: #007aff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+/* 7. HEADER ANIMADO */
+.animated-header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 2000;
+    padding-top: env(safe-area-inset-top); /* Para o Notch do iPhone */
+    display: flex;
+    justify-content: center;
+}
+
+/* 8. ANIMAÇÃO DE SHAKE (ERRO NO PIN) */
+.shake {
+    animation: shakeAnim 0.4s ease-in-out;
+}
+
+@keyframes shakeAnim {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
 }
