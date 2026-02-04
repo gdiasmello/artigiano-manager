@@ -3,93 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Artigiano Manager Pro</title>
+    <title>Pizzeria Master Pro</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Artigiano">
     <meta name="theme-color" content="#008C45">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     
-    <link rel="stylesheet" href="style.css?v=0.0.05">
+    <link rel="stylesheet" href="style.css?v=0.0.07">
     <link rel="manifest" href="manifest.json">
     
     <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body>
-
-    <div class="animated-header">
-        <div style="background: rgba(255,255,255,0.85); padding: 3px 18px; border-radius: 20px; font-size: 13px; font-weight: 800; color: #1c1c1e; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 6px;">
-            <i data-lucide="clock" style="width: 14px; height: 14px; color: #008C45;"></i>
-            <span id="relogio-ios">12:00 PM</span>
-        </div>
-    </div>
-
-    <div id="app-container">
-        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh;">
-            <div class="logo-pulse">
-                <div style="width: 60px; height: 60px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #CD212A; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-            </div>
-            <p style="margin-top:20px; font-family:-apple-system, sans-serif; color:white; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                PREPARANDO AMBIENTE...
-            </p>
-        </div>
-    </div>
-
-    <div id="version-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5); pointer-events: none; z-index: 1000; text-transform: uppercase; letter-spacing: 1px;">
-        v 0.0.05
-    </div>
-
+    
     <style>
-        /* Animações Base */
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 1; }
+        /* Estilos críticos para evitar "pulo" de layout durante o carregamento */
+        :root {
+            --it-green: #008C45;
+            --it-red: #C41E3A;
+            --bg-light: #f2f2f7;
+            --bg-dark: #121212;
         }
 
-        .logo-pulse { animation: pulse 2s ease-in-out infinite; }
-
-        /* Reset para garantir o preenchimento total da tela */
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #008C45; /* Cor de fallback (Verde Itália) */
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Roboto", sans-serif;
+            background-color: var(--bg-light);
+            transition: background-color 0.3s ease;
         }
 
-        #app-container {
+        /* Suporte ao Modo Escuro nativo antes do JS carregar */
+        @media (prefers-color-scheme: dark) {
+            html, body { background-color: var(--bg-dark); }
+        }
+
+        /* Animação de Spin do Loader */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Animação de Respiração do Logo */
+        @keyframes pulseLogo {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             width: 100%;
-            height: 100%;
+            background: linear-gradient(135deg, var(--it-green) 0%, #fff 50%, var(--it-red) 100%);
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
     </style>
+</head>
+<body>
+
+    <div class="animated-header" style="position: fixed; top: 0; width: 100%; height: 44px; z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="background: rgba(255,255,255,0.7); padding: 2px 14px; border-radius: 20px; font-size: 12px; font-weight: 800; color: #1c1c1e; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <i data-lucide="clock" style="width: 12px; height: 12px; color: var(--it-green);"></i>
+            <span id="relogio-ios">--:--</span>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div class="loader-container">
+            <div style="animation: pulseLogo 2s infinite;">
+                <i data-lucide="pizza" style="width: 60px; height: 60px; color: white;"></i>
+            </div>
+            <div class="spinner" style="margin-top: 20px;"></div>
+            <p style="margin-top: 15px; color: white; font-weight: 700; font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">
+                Artigiano Pro
+            </p>
+        </div>
+    </div>
+
+    <div id="version-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 10px; font-weight: 900; color: #8e8e93; pointer-events: none; z-index: 1000; opacity: 0.5; letter-spacing: 2px;">
+        V 0.0.07 • LONDRI-PR
+    </div>
 
     <script>
-        // Atualização do Relógio Superior
-        function atualizarRelogio() {
-            const agora = new Date();
-            const timeString = agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-            const el = document.getElementById('relogio-ios');
-            if(el) {
-                el.innerText = timeString;
-                // Reinicializa ícones se necessário após renderização
-                if (window.lucide) window.lucide.createIcons();
-            }
+        // Inicialização de Relógio e Ícones
+        function startup() {
+            const elRelogio = document.getElementById('relogio-ios');
+            
+            const atualizar = () => {
+                const agora = new Date();
+                if(elRelogio) elRelogio.innerText = agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+            };
+
+            setInterval(atualizar, 1000);
+            atualizar();
+            
+            if (window.lucide) window.lucide.createIcons();
         }
-        setInterval(atualizarRelogio, 1000);
-        atualizarRelogio();
+
+        window.addEventListener('DOMContentLoaded', startup);
     </script>
 
-    <script type="module" src="main.js?v=0.0.05"></script>
+    <script type="module" src="main.js?v=0.0.07"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.0.05')
-                    .then(reg => console.log("Artigiano Pro: SW v0.0.05 pronto."))
-                    .catch(err => console.log("Erro no SW:", err));
+                navigator.serviceWorker.register('./sw.js?v=0.0.07')
+                    .then(reg => console.log("Artigiano: SW v0.0.07 On"))
+                    .catch(err => console.log("Erro SW:", err));
             });
         }
     </script>
