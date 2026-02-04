@@ -3,59 +3,67 @@ import { ref, get, query, orderByChild, equalTo } from "https://www.gstatic.com/
 
 export function carregarLogin() {
     render(`
-        <div id="login-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f9f9f9; transition: all 0.5s;">
-            
-            <div class="animated-header">
-                <div style="background: rgba(255,255,255,0.8); padding: 2px 15px; border-radius: 20px; font-size: 12px; font-weight: 800; color: #333;">
-                    ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+        <div id="login-container" class="glass-login">
+            <div class="logo-pulse" style="margin-bottom: 30px;">
+                <div style="background: white; width: 90px; height: 90px; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; border: 3px solid var(--it-red);">
+                    <i data-lucide="pizza" style="color: var(--it-red); width: 50px; height: 50px;"></i>
                 </div>
             </div>
 
-            <div class="glass-card" style="width: 85%; max-width: 350px; text-align: center;">
-                <div style="width: 100px; height: 100px; background: var(--it-red); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(205, 33, 42, 0.2);">
-                    <i data-lucide="pizza" style="color: white; width: 50px; height: 50px;"></i>
-                </div>
+            <h1 style="color: white; font-size: 36px; font-weight: 800; margin: 0;">Artigiano</h1>
+            <p style="color: rgba(255,255,255,0.7); margin-bottom: 30px;">Inicie o seu turno</p>
 
-                <h1 style="color: #004225; font-size: 42px; font-weight: 800; margin: 0; letter-spacing: -1px;">Artigiano</h1>
-                <p style="color: #8e8e93; font-size: 14px; margin-bottom: 30px;">Gestão Pro</p>
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="text" id="user-name" placeholder="Nome do Funcionário" style="color: #333; background: white;">
+                
+                <input type="password" id="pin-input" placeholder="••••" maxlength="4" inputmode="numeric" 
+                       style="letter-spacing: 10px; font-size: 24px;">
+                
+                <label style="color: white; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <input type="checkbox" id="keep-session" style="width: 18px; height: 18px; margin:0;"> Manter Sessão
+                </label>
 
-                <div style="position: relative; margin-bottom: 15px; text-align: left;">
-                    <input type="password" id="pin-input" placeholder="PIN de Acesso" maxlength="4" inputmode="numeric" 
-                        style="padding: 15px; height: 50px; border-radius: 25px; border: 1px solid #e5e5ea; background: #fafafa; width: 100%; text-align: center; letter-spacing: 5px; font-size: 20px;">
-                </div>
-
-                <button class="btn-primary" onclick="window.app.handleLogin()">ENTRAR</button>
+                <button class="btn-entrar" onclick="window.app.handleLogin()">ENTRAR</button>
             </div>
         </div>
     `);
 
+    // UX: Auto-Focus no PIN ao carregar
+    setTimeout(() => document.getElementById('pin-input').focus(), 500);
+
     window.app.handleLogin = async () => {
         const pin = document.getElementById('pin-input').value;
-        if (!pin) return;
+        const nome = document.getElementById('user-name').value;
+        const container = document.getElementById('login-container');
+        const persistir = document.getElementById('keep-session').checked;
 
-        const realizarLogin = async (userData) => {
-            const screen = document.getElementById('login-screen');
-            screen.classList.add('zoom-out'); // Ativa o zoom
-            
-            setTimeout(async () => {
-                const { carregarDash } = await import("./dashboard.js");
-                carregarDash(userData);
-            }, 500); // Aguarda a animação terminar
+        const erroLogin = () => {
+            container.classList.add('shake');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Vibração iOS/Android
+            setTimeout(() => container.classList.remove('shake'), 400);
+            alert("Acesso Negado.");
         };
 
-        if (pin === "1821") {
-            realizarLogin({ nome: "Gabriel", cargo: "admin" });
-            return;
-        }
-
-        const userQuery = query(ref(db, 'usuarios'), orderByChild('pin'), equalTo(pin));
-        const snapshot = await get(userQuery);
-        
-        if (snapshot.exists()) {
-            const userData = Object.values(snapshot.val())[0];
-            realizarLogin(userData);
+        if (pin === "1821" && nome.toLowerCase() === "gabriel") {
+            const user = { nome: "Gabriel", cargo: "admin" };
+            if (persistir) localStorage.setItem('artigiano_user', JSON.stringify(user));
+            irParaDash(user);
         } else {
-            alert("PIN incorreto.");
+            const userQuery = query(ref(db, 'usuarios'), orderByChild('pin'), equalTo(pin));
+            const snapshot = await get(userQuery);
+            if (snapshot.exists()) {
+                const userData = Object.values(snapshot.val())[0];
+                if (persistir) localStorage.setItem('artigiano_user', JSON.stringify(userData));
+                irParaDash(userData);
+            } else {
+                erroLogin();
+            }
         }
     };
+
+    async function irParaDash(user) {
+        document.body.style.background = "#f2f2f7"; // Limpa o gradiente
+        const { carregarDash } = await import("./dashboard.js");
+        carregarDash(user);
+    }
 }
