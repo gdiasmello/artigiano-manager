@@ -1,57 +1,60 @@
-:root {
-    --it-green: #008C45; --it-white: #FFFFFF; --it-red: #CD212A;
-    --gold: #D4AF37; --dark: #121212; --bg-light: #F4F7F6;
-    --purple: #8B5CF6; --blue: #3B82F6;
-}
+:root { --ita-green: #008C45; --ita-red: #CD212A; --dark: #121212; --bg: #F3F4F6; --primary: #CD212A; --accent: #008C45; }
+body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #333; overflow-x: hidden; }
+#app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg); margin: 0 auto; position: relative; }
 
-[v-cloak] { display: none; }
-body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--dark); display: flex; justify-content: center; }
-#app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-light); position: relative; }
+/* Login */
+.login-screen { height: 100vh; background: #FFF; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+.italy-stripe-top, .italy-stripe-bottom { position: absolute; width: 100%; height: 12px; background: linear-gradient(to right, var(--ita-green) 33.3%, #FFF 33.3%, #FFF 66.6%, var(--ita-red) 66.6%); }
+.italy-stripe-top { top: 0; } .italy-stripe-bottom { bottom: 0; }
+.login-card { width: 85%; padding: 25px; background: #FFF; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #EEE; text-align: center; }
+.shake-error { animation: shake 0.4s both; border: 2px solid var(--ita-red); }
+@keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } }
+.input-group { display: flex; align-items: center; background: #F9F9F9; padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #DDD; }
+.input-group input { border: none; background: transparent; width: 100%; text-align: center; outline: none; font-size: 1rem; }
+.btn-entrar { width: 100%; padding: 15px; background: var(--ita-green); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
+.terms-link { font-size: 0.75rem; color: #888; margin-top: 15px; } .terms-link span { color: var(--ita-green); text-decoration: underline; cursor: pointer; }
 
-/* Login (Igual ao anterior) */
-.login-screen { height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top, #1a1a1a 0%, #000 100%); padding: 20px; }
-.login-container { width: 100%; text-align: center; }
-.brand-box { margin-bottom: 40px; }
-.logo-circle { width: 80px; height: 80px; background: var(--it-green); border: 4px solid var(--it-red); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; }
-.brand-title { font-size: 42px; font-weight: 900; color: white; margin: 0; letter-spacing: -2px; }
-.brand-title span { color: var(--it-green); }
-.brand-title i { color: var(--it-red); font-style: normal; }
-.tagline { color: #888; letter-spacing: 3px; font-size: 11px; margin-top: 5px; font-weight: 700; }
-.login-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); padding: 30px 20px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); }
-.input-group { background: rgba(255,255,255,0.1); border-radius: 15px; margin-bottom: 15px; display: flex; align-items: center; padding: 5px 15px; }
-.input-group input { background: transparent; border: none; padding: 15px 10px; color: white; width: 100%; outline: none; }
-.btn-login { width: 100%; padding: 20px; background: var(--it-green); color: white; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; }
+/* Dashboard & Header */
+.app-header { background: var(--dark); color: white; padding: 15px; border-radius: 0 0 20px 20px; position: sticky; top: 0; z-index: 100; }
+.header-inner { display: flex; justify-content: space-between; align-items: center; }
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
+.menu-card { height: 95px; border: none; border-radius: 20px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 0.7rem; gap: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
 
-/* Header do App */
-.app-header { background: var(--dark); color: white; padding: 20px; border-radius: 0 0 25px 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-.header-content { display: flex; justify-content: space-between; align-items: center; }
-.brand-small { font-size: 18px; margin: 0; font-weight: 900; }
-.brand-small span { color: var(--it-green); }
-.brand-small i { color: var(--it-red); font-style: normal; }
-.user-name { font-size: 12px; margin-right: 15px; opacity: 0.8; font-weight: 600; }
+/* Produção & POPs */
+.producao-area { padding: 15px; }
+.producao-card { background: white; border-radius: 15px; padding: 0; margin-bottom: 15px; overflow: hidden; border: 1px solid #ddd; }
+.prod-header { background: #f8fafc; padding: 15px; font-weight: 800; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
+.prod-body { padding: 20px; }
+.input-bolinhas { text-align: center; margin-bottom: 20px; }
+.input-wrapper { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
+.input-wrapper input { width: 80px; padding: 10px; text-align: center; font-size: 1.5rem; font-weight: 900; border: 2px solid var(--gold); border-radius: 10px; }
+.receita-box { background: #fdfdfd; border: 1px solid #eee; border-radius: 10px; padding: 15px; }
+.ingrediente-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 0.9rem; }
+.highlight { color: var(--ita-green); font-weight: 900; } .highlight-blue { color: #0ea5e9; font-weight: 900; }
+.pop-step { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
+.checked { text-decoration: line-through; color: #aaa; }
 
-/* Grid de Menu (Estilo Versão Anterior) */
-.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; margin-top: 10px; }
-.menu-card { height: 140px; border: none; border-radius: 25px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 15px rgba(0,0,0,0.05); transition: 0.2s; }
-.menu-card:active { transform: scale(0.95); }
-.icon-box { font-size: 30px; }
+/* Contagem & Config */
+.contagem-area, .config-area { padding: 15px; padding-bottom: 80px; }
+.rota-tabs { display: flex; overflow-x: auto; padding: 10px; gap: 8px; background: #eee; border-radius: 10px; margin-bottom: 15px; }
+.rota-tabs button { padding: 8px 15px; border-radius: 20px; border: none; background: white; font-weight: 700; white-space: nowrap; }
+.rota-tabs button.active { background: var(--ita-green); color: white; }
+.item-card-contagem { background: white; padding: 12px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border: 1px solid #EEE; }
+.item-input-box input { width: 60px; padding: 8px; text-align: center; border-radius: 8px; border: 1px solid #DDD; font-weight: 800; }
 
-.green { background: linear-gradient(135deg, var(--it-green), #006b35); }
-.red { background: linear-gradient(135deg, var(--it-red), #9c1920); }
-.gold { background: linear-gradient(135deg, var(--gold), #b3922d); }
-.purple { background: linear-gradient(135deg, var(--purple), #6d3ecf); }
-.blue { background: linear-gradient(135deg, var(--blue), #1e5bbd); }
-.dark { background: linear-gradient(135deg, #333, var(--dark)); }
+/* Notifications & Install */
+.notification-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 30px; display: flex; align-items: center; gap: 10px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-size: 0.85rem; font-weight: 600; }
+.notification-toast.success { background: var(--ita-green); }
+.install-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 3000; }
+.install-content { display: flex; align-items: center; gap: 15px; }
+.install-content i { font-size: 24px; color: var(--ita-green); }
+.install-banner button { background: var(--dark); color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 700; }
 
-.dashboard-footer { text-align: center; padding: 20px; color: #bbb; font-size: 11px; font-weight: 800; letter-spacing: 2px; }
-
-/* Changelog Modal */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.modal-content { background: white; border-radius: 30px; padding: 30px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-.it-header-modal { color: var(--it-green); font-weight: 900; border-bottom: 3px solid var(--it-red); margin-bottom: 20px; display: inline-block; padding-bottom: 5px; }
-.changelog-list { text-align: left; list-style: none; padding: 0; margin-bottom: 25px; }
-.changelog-list li { margin-bottom: 12px; font-size: 14px; color: #444; display: flex; gap: 10px; line-height: 1.4; }
-.changelog-list i { color: var(--it-green); margin-top: 3px; }
-
-.fade-in { animation: fadeIn 0.4s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* Utils */
+.green { background: var(--ita-green); } .red { background: var(--ita-red); } .gold { background: #D4AF37; } .ice { background: #0ea5e9; }
+.temp { background: #fb7185; } .purple { background: #8b5cf6; } .blue { background: #3b82f6; } .gray { background: #6b7280; } .dark { background: #333; }
+.full { width: 100%; } .modal-backdrop { position: fixed; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-window { background: white; width: 90%; border-radius: 20px; overflow: hidden; }
+.modal-content { padding: 20px; max-height: 70vh; overflow-y: auto; }
+.whatsapp-preview { background: #f0f0f0; padding: 15px; white-space: pre-wrap; font-size: 0.8rem; font-family: monospace; }
+.btn-whatsapp { background: #25D366; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 800; font-size: 1rem; }

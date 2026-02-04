@@ -3,96 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PiZZA Master v0.0.1</title>
+    <title>PiZZA Master Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="app" v-cloak>
+<div id="app" v-cloak>
+
+    <div v-if="mostrarInstalacao" class="install-banner slide-up">
+        <div class="install-content">
+            <i class="fas fa-download"></i>
+            <div>
+                <strong>Instalar App</strong>
+                <span>Adicione o PiZZA Master à sua tela inicial</span>
+            </div>
+        </div>
+        <button @click="instalarApp">INSTALAR</button>
+        <i class="fas fa-times close-install" @click="mostrarInstalacao = false"></i>
+    </div>
+
+    <div v-if="notificacao.ativa" class="notification-toast slide-in" :class="notificacao.tipo">
+        <i :class="notificacao.icone"></i>
+        <span>{{ notificacao.texto }}</span>
+    </div>
+
+    <div v-if="mostrandoTermos" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Termos de Uso & Propriedade</h3></div>
+            <div class="modal-content">
+                <div class="legal-box">
+                    <p><strong>1. Propriedade Intelectual:</strong> Todo o código-fonte, lógica de algoritmos (Regra de Sexta, Feriados) e design são propriedade exclusiva do desenvolvedor <strong>Gabriel</strong>. O uso é concedido à Pizzaria Artigiano em caráter precário.</p>
+                    <p><strong>2. Isenção de Responsabilidade:</strong> Este app é uma ferramenta de auxílio logístico. A conferência final das quantidades e valores antes do envio é responsabilidade <strong>exclusiva</strong> do operador.</p>
+                    <p><strong>3. Dados e Segurança:</strong> O sistema utiliza armazenamento híbrido. O desenvolvedor não se responsabiliza por falhas de conexão ou serviços de terceiros (WhatsApp/Firebase).</p>
+                    <p>Ao utilizar este sistema, você concorda integralmente com estes termos.</p>
+                </div>
+                <button class="btn-primary full" @click="aceitarTermos">LI E ACEITO OS TERMOS</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="!sessaoAtiva" class="login-screen">
+        <div class="italy-stripe-top"></div>
+        <div class="brand-box">
+            <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
+            <h1>PiZZA <span>Mas</span><i>ter</i></h1>
+            <p>ARTIGIANO · v1.0.0</p>
+        </div>
         
-        <div v-if="mostrarChangelog" class="modal-overlay">
-            <div class="modal-content fade-in">
-                <div class="it-header-modal">NOVIDADES v{{versao}}</div>
-                <ul class="changelog-list">
-                    <li v-for="nota in notasDaVersao"><i class="fas fa-check-circle"></i> {{ nota }}</li>
-                </ul>
-                <button class="btn-main" @click="fecharChangelog">VAMOS COZINHAR!</button>
+        <div class="login-card" :class="{ 'shake-error': loginErro }">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" v-model="loginUser" placeholder="Usuário" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input 
+                    type="password" 
+                    v-model="loginPass" 
+                    placeholder="PIN" 
+                    maxlength="4" 
+                    inputmode="numeric" 
+                    pattern="[0-9]*"
+                    @keyup.enter="efetuarLogin"
+                >
+            </div>
+            <button @click="efetuarLogin" class="btn-entrar">ENTRAR NA COZINHA</button>
+            <p class="terms-link">Ao entrar, você concorda com os <span @click="mostrandoTermos = true">Termos de Uso</span></p>
+            <p v-if="msgAuth" class="error-msg">{{ msgAuth }}</p>
+        </div>
+        <div class="italy-stripe-bottom"></div>
+    </div>
+
+    <div v-else class="app-layout">
+        <header class="app-header">
+            <div class="header-inner">
+                <i class="fas fa-chevron-left" v-if="telaAtiva" @click="voltarInicio"></i>
+                <h2>{{ tituloTela }}</h2>
+                <div class="user-badge" @click="telaAtiva = 'config'">
+                    <span>{{ usuarioLogado.nome }}</span>
+                    <i class="fas fa-cog"></i>
+                </div>
+            </div>
+        </header>
+
+        <div v-if="!telaAtiva" class="menu-grid">
+            <button v-for="bloco in blocosPermitidos" :key="bloco.id" 
+                    :class="['menu-card', bloco.cor]" @click="abrirBloco(bloco.id)">
+                <i :class="bloco.icon"></i>
+                <span>{{ bloco.nome }}</span>
+            </button>
+            
+            <button class="menu-card gray" @click="mostrandoHistorico = true">
+                <i class="fas fa-history"></i><span>HISTÓRICO</span>
+            </button>
+            <button class="menu-card dark" @click="telaAtiva = 'config'">
+                <i class="fas fa-tools"></i><span>AJUSTES</span>
+            </button>
+        </div>
+
+        <div v-if="telaAtiva === 'producao'" class="producao-area">
+            
+            <div class="producao-card">
+                <div class="prod-header"><i class="fas fa-calculator"></i> Calculadora de Massa</div>
+                <div class="prod-body">
+                    <div class="input-bolinhas">
+                        <label>Quantas bolinhas hoje?</label>
+                        <div class="input-wrapper">
+                            <input type="number" v-model.number="qtdBolinhas" inputmode="numeric">
+                            <span>UN</span>
+                        </div>
+                    </div>
+
+                    <div class="receita-box" v-if="qtdBolinhas > 0">
+                        <div class="ingrediente-row">
+                            <span>Farinha</span>
+                            <strong>{{ receita.farinha }} g</strong>
+                        </div>
+                        <div class="ingrediente-row highlight">
+                            <span>Água (Líquida)</span>
+                            <strong>{{ receita.agua }} g</strong>
+                        </div>
+                        <div class="ingrediente-row highlight-blue">
+                            <span>Gelo (30%)</span>
+                            <strong>{{ receita.gelo }} g</strong>
+                        </div>
+                        <div class="ingrediente-row">
+                            <span>Levain</span>
+                            <strong>{{ receita.levain }} g</strong>
+                        </div>
+                        <div class="ingrediente-row">
+                            <span>Sal</span>
+                            <strong>{{ receita.sal }} g</strong>
+                        </div>
+                        <div class="total-agua">Total Hidratação: {{ receita.totalAgua }} g</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="producao-card">
+                <div class="prod-header" @click="mostrandoPOP = !mostrandoPOP">
+                    <i class="fas fa-clipboard-check"></i> POP de Produção
+                    <i :class="mostrandoPOP ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" style="margin-left:auto"></i>
+                </div>
+                <div class="prod-body" v-if="mostrandoPOP">
+                    <div v-for="(passo, i) in popsMassa" :key="i" class="pop-step">
+                        <input type="checkbox" v-model="passo.feito">
+                        <span :class="{ checked: passo.feito }">{{ passo.texto }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary full" @click="finalizarProducao" :disabled="qtdBolinhas <= 0">
+                REGISTRAR PRODUÇÃO
+            </button>
+        </div>
+
+        <div v-if="telaAtiva && telaAtiva !== 'config' && telaAtiva !== 'producao'" class="contagem-area">
+            <div class="rota-tabs">
+                <button v-for="(local, idx) in config.rota" :key="idx" 
+                        :class="{ active: localAtual === local }" @click="localAtual = local">
+                    {{ local }}
+                </button>
+            </div>
+            
+            <div class="lista-contagem">
+                <div v-for="item in catalogoDNA" :key="item.id" class="item-card-contagem">
+                    <div class="item-info">
+                        <strong>{{ item.nome }}</strong>
+                        <small>Conta em: {{ item.un_contagem }}</small>
+                    </div>
+                    <div class="item-input-box">
+                        <input type="number" v-model.number="contagemAtiva[localAtual][item.nome]" inputmode="numeric" placeholder="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="contagem-footer">
+                <button class="btn-cancelar" @click="telaAtiva = null">CANCELAR</button>
+                <button class="btn-primary" @click="gerarResumo">FINALIZAR PEDIDO</button>
             </div>
         </div>
 
-        <div v-if="!sessaoAtiva" class="login-screen fade-in">
-            <div class="login-container">
-                <div class="brand-box">
-                    <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
-                    <h1 class="brand-title">PiZZA <span>Mas</span><i>ter</i></h1>
-                    <p class="tagline">ARTIGIANO · INVENTÁRIO</p>
-                </div>
-                <div class="login-card">
-                    <div class="input-group">
-                        <i class="fas fa-user"></i>
-                        <input type="text" v-model="loginUser" placeholder="Seu nome">
+        <div v-if="telaAtiva === 'config'" class="config-area">
+            
+            <div class="config-section" v-if="usuarioLogado.permissoes.admin">
+                <h3><i class="fas fa-dna"></i> DNA de Insumos</h3>
+                <div class="add-item-box">
+                    <input v-model="novoInsumo.nome" placeholder="Nome (Ex: Tomate)">
+                    <div class="row">
+                        <input v-model="novoInsumo.un_contagem" placeholder="Conta (Un)">
+                        <input v-model="novoInsumo.un_pedido" placeholder="Pede (Cx)">
                     </div>
-                    <div class="input-group">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" v-model="loginPass" placeholder="PIN de acesso" maxlength="4">
-                    </div>
-                    <button class="btn-login" @click="efetuarLogin">
-                        <span v-if="!loadingAuth">ENTRAR NA COZINHA</span>
-                        <i v-else class="fas fa-spinner fa-spin"></i>
-                    </button>
-                    <p v-if="msgErro" class="error-msg">{{ msgErro }}</p>
+                    <input type="number" v-model="novoInsumo.conversao" placeholder="Fator (Ex: 6)" inputmode="numeric">
+                    <button class="btn-primary full" @click="adicionarAoDNA">CADASTRAR</button>
                 </div>
-                <div class="version-badge">v{{versao}}</div>
-            </div>
-        </div>
-
-        <div v-else class="app-layout fade-in">
-            <header class="app-header">
-                <div class="header-content">
-                    <i class="fas fa-chevron-left" v-if="telaAtiva !== 'dash'" @click="telaAtiva = 'dash'"></i>
-                    <h2 class="brand-small">PiZZA <span>Mas</span><i>ter</i></h2>
-                    <div class="header-right">
-                        <span class="user-name">{{ usuarioLogado.nome }}</span>
-                        <i class="fas fa-sign-out-alt" @click="logout"></i>
+                <div class="dna-list">
+                    <div v-for="item in catalogoDNA" :key="item.id" class="dna-item">
+                        <span>{{ item.nome }} ({{ item.un_contagem }} → {{ item.un_pedido }} x{{ item.conversao }})</span>
+                        <i class="fas fa-trash text-red" @click="removerDoDNA(item.id)"></i>
                     </div>
                 </div>
-            </header>
-
-            <div v-if="telaAtiva === 'dash'" class="menu-grid">
-                <button class="menu-card green" @click="abrirSetor('sacolao')">
-                    <div class="icon-box"><i class="fas fa-leaf"></i></div>
-                    <span>SACOLÃO</span>
-                </button>
-                <button class="menu-card red" @click="abrirSetor('insumos')">
-                    <div class="icon-box"><i class="fas fa-box"></i></div>
-                    <span>INSUMOS</span>
-                </button>
-                <button class="menu-card gold" @click="telaAtiva = 'producao'">
-                    <div class="icon-box"><i class="fas fa-mortar-pestle"></i></div>
-                    <span>PRODUÇÃO</span>
-                </button>
-                <button class="menu-card purple" @click="telaAtiva = 'bebidas'">
-                    <div class="icon-box"><i class="fas fa-wine-bottle"></i></div>
-                    <span>BEBIDAS</span>
-                </button>
-                <button class="menu-card blue" @click="telaAtiva = 'limpeza'">
-                    <div class="icon-box"><i class="fas fa-hands-bubbles"></i></div>
-                    <span>LIMPEZA</span>
-                </button>
-                <button class="menu-card dark" @click="telaAtiva = 'config'">
-                    <div class="icon-box"><i class="fas fa-cog"></i></div>
-                    <span>AJUSTES</span>
-                </button>
             </div>
 
-            <div class="dashboard-footer">v{{versao}}</div>
+            <div class="config-section" v-if="usuarioLogado.permissoes.admin">
+                <h3><i class="fas fa-users-cog"></i> Equipe</h3>
+                <div v-for="u in usuarios" :key="u.id" class="user-config-card">
+                    <div class="user-head">
+                        <strong>{{ u.nome }} ({{ u.pass }})</strong>
+                        <i class="fas fa-trash text-red" @click="removerUsuario(u.id)"></i>
+                    </div>
+                    <div class="perms-grid">
+                        <label v-for="b in listaTodosBlocos" :key="b.id">
+                            <input type="checkbox" v-model="u.permissoes[b.id]" @change="atualizarUsuario(u)"> {{ b.nome }}
+                        </label>
+                        <label class="admin-label"><input type="checkbox" v-model="u.permissoes.admin" @change="atualizarUsuario(u)"> ADMIN</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section" v-if="usuarioLogado.permissoes.admin">
+                <h3><i class="fas fa-map-marker-alt"></i> Rota Física</h3>
+                <div class="locais-list">
+                    <div v-for="(l, i) in config.rota" :key="i" class="local-tag">
+                        {{ l }} <i class="fas fa-times" @click="removerLocal(i)"></i>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:10px">
+                    <input v-model="novoLocal" placeholder="Novo Local">
+                    <button class="btn-primary" @click="adicionarLocal">+</button>
+                </div>
+            </div>
+
+            <button class="btn-outline full" @click="mostrandoTermos = true">LER TERMOS DE USO</button>
+            <button class="btn-danger full" @click="logout" style="margin-top:10px">SAIR DO SISTEMA</button>
         </div>
 
     </div>
-    <script src="config.js"></script>
-    <script src="script.js"></script>
+
+    <div v-if="mostrandoResumo" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Resumo do Pedido</h3></div>
+            <div class="modal-content">
+                <pre class="whatsapp-preview">{{ textoWhatsApp }}</pre>
+                <button class="btn-whatsapp full" @click="enviarWhatsApp">
+                    <i class="fab fa-whatsapp"></i> ENVIAR PEDIDO
+                </button>
+                <button class="btn-cancelar full" @click="mostrandoResumo = false" style="margin-top:10px">VOLTAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="mostrandoHistorico" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Histórico de Ações</h3><button @click="mostrandoHistorico = false">×</button></div>
+            <div class="modal-content">
+                <div v-for="h in historico" :key="h.id" class="history-card">
+                    <div class="h-head"><span>{{ h.data }}</span><strong>{{ h.usuario }}</strong></div>
+                    <p>{{ h.itens }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script src="script.js"></script>
 </body>
 </html>

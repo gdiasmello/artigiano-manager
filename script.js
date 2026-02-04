@@ -1,75 +1,193 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
+  authDomain: "artigiano-app.firebaseapp.com",
+  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+  projectId: "artigiano-app",
+  storageBucket: "artigiano-app.firebasestorage.app",
+  messagingSenderId: "212218495726",
+  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 const { createApp } = Vue;
+
+let deferredPrompt;
 
 createApp({
     data() {
         return {
-            versao: '0.0.1',
-            notasDaVersao: [
-                'Lançamento Oficial v0.0.1',
-                'Tela de Login Premium (Italo-Glass style)',
-                'Menu principal unificado com 6 categorias',
-                'Sistema de alerta de novidades'
+            sessaoAtiva: false, telaAtiva: null, mostrandoTermos: false,
+            usuarioLogado: null, loginUser: '', loginPass: '', msgAuth: '', loginErro: false,
+            localAtual: '', contagemAtiva: {}, mostrandoResumo: false, textoWhatsApp: '',
+            mostrandoHistorico: false, mostrarInstalacao: false, mostrandoPOP: true,
+            notificacao: { ativa: false, texto: '', tipo: '', icone: '' },
+            novoLocal: '', novoInsumo: { nome: '', un_contagem: '', un_pedido: '', conversao: 1 },
+            
+            // Calculadora de Massa
+            qtdBolinhas: 0,
+            popsMassa: [
+                { texto: 'Mise en place (Pesagem)', feito: false },
+                { texto: 'Mistura Base (Água + Gelo + Sal + 50% Farinha)', feito: false },
+                { texto: 'Ponto de Cera (Restante Farinha + Levain)', feito: false },
+                { texto: 'Descanso e Limpeza', feito: false },
+                { texto: 'Bolear (220g) e Armazenar', feito: false }
             ],
-            mostrarChangelog: false,
-            loadingAuth: false,
-            sessaoAtiva: false,
-            usuarioLogado: null,
-            telaAtiva: 'dash',
-            setorAtivo: 'sacolao',
-            loginUser: '', loginPass: '', msgErro: '',
-            locais: LOCAIS_ESTOQUE,
-            catalogo: {}, contagens: {}
+
+            listaTodosBlocos: [
+                { id: 'sacolao', nome: 'SACOLÃO', icon: 'fas fa-leaf', cor: 'green' },
+                { id: 'insumos', nome: 'INSUMOS', icon: 'fas fa-box', cor: 'red' },
+                { id: 'producao', nome: 'PRODUÇÃO', icon: 'fas fa-mortar-pestle', cor: 'gold' },
+                { id: 'gelo', nome: 'GELO', icon: 'fas fa-cube', cor: 'ice' },
+                { id: 'temp', nome: 'TEMP.', icon: 'fas fa-thermometer-half', cor: 'temp' },
+                { id: 'bebidas', nome: 'BEBIDAS', icon: 'fas fa-wine-bottle', cor: 'purple' },
+                { id: 'limpeza', nome: 'LIMPEZA', icon: 'fas fa-hands-bubbles', cor: 'blue' }
+            ],
+            usuarios: [], catalogoDNA: [], config: { rota: [] }, historico: []
+        }
+    },
+    computed: {
+        blocosPermitidos() {
+            if (!this.usuarioLogado) return [];
+            return this.listaTodosBlocos.filter(b => this.usuarioLogado.permissoes[b.id]);
+        },
+        tituloTela() {
+            if (this.telaAtiva === 'config') return 'AJUSTES';
+            const bloco = this.listaTodosBlocos.find(b => b.id === this.telaAtiva);
+            return bloco ? bloco.nome : 'PIZZA MASTER';
+        },
+        receita() {
+            // Regra Artigiano: 220g/bolinha
+            // Farinha base: 133g | Sal: 4g | Levain: 6% | Água Total 70%
+            const farinha = Math.ceil(this.qtdBolinhas * 133);
+            const sal = Math.ceil(this.qtdBolinhas * 4);
+            const levain = Math.ceil(farinha * 0.06);
+            const totalAgua = Math.ceil(farinha * 0.70);
+            
+            return {
+                farinha: farinha,
+                sal: sal,
+                levain: levain,
+                totalAgua: totalAgua,
+                agua: Math.ceil(totalAgua * 0.70), // 70% Líquida
+                gelo: Math.ceil(totalAgua * 0.30)  // 30% Gelo
+            };
         }
     },
     methods: {
+        // --- SISTEMA ---
+        mostrarNotificacao(texto, tipo = 'info') {
+            this.notificacao = { 
+                ativa: true, 
+                texto, 
+                tipo, 
+                icone: tipo === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle' 
+            };
+            setTimeout(() => this.notificacao.ativa = false, 3000);
+        },
+        instalarApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        this.mostrarInstalacao = false;
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        },
+
+        // --- AUTH ---
         efetuarLogin() {
-            if (!this.loginUser || !this.loginPass) {
-                this.msgErro = "Preencha todos os campos!";
+            this.loginErro = false;
+            const u = this.loginUser.trim().toLowerCase();
+            const p = String(this.loginPass).trim();
+
+            if (u === 'gabriel' && p === '1821') {
+                this.entrar({ id: 'master', nome: 'Gabriel', user: 'gabriel', pass: '1821', permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, temp: true, bebidas: true, limpeza: true } });
                 return;
             }
-            this.loadingAuth = true;
-            setTimeout(() => {
-                if (this.loginPass === '1821' || this.loginPass === '2026') {
-                    const u = { nome: this.loginUser, role: this.loginPass === '1821' ? 'ADMIN' : 'GERENTE' };
-                    this.usuarioLogado = u;
-                    this.sessaoAtiva = true;
-                    localStorage.setItem('pizzamaster_session', JSON.stringify(u));
-                    this.carregarDados();
-                    this.verificarVersao();
-                } else {
-                    this.msgErro = "PIN INVÁLIDO!";
-                }
-                this.loadingAuth = false;
-            }, 800);
+
+            const user = this.usuarios.find(x => x.user.toLowerCase() === u && String(x.pass) === p);
+            if (user) this.entrar(user);
+            else { 
+                this.loginErro = true; 
+                this.msgAuth = "PIN INCORRETO";
+                if(navigator.vibrate) navigator.vibrate(200);
+                setTimeout(() => this.loginErro = false, 500);
+            }
         },
-        verificarVersao() {
-            const v = localStorage.getItem('pizzamaster_version');
-            if (v !== this.versao) this.mostrarChangelog = true;
+        entrar(user) { 
+            this.usuarioLogado = user; 
+            this.sessaoAtiva = true; 
+            localStorage.setItem('artigiano_session_v1', JSON.stringify(user)); 
+            this.verificarTermos();
+            this.mostrarNotificacao(`Bem-vindo, ${user.nome}!`, 'success');
         },
-        fecharChangelog() {
-            localStorage.setItem('pizzamaster_version', this.versao);
-            this.mostrarChangelog = false;
+        verificarTermos() { this.mostrandoTermos = !localStorage.getItem('artigiano_terms_v1'); },
+        aceitarTermos() { localStorage.setItem('artigiano_terms_v1', 'true'); this.mostrandoTermos = false; },
+        logout() { localStorage.removeItem('artigiano_session_v1'); location.reload(); },
+
+        // --- NAVEGAÇÃO ---
+        abrirBloco(id) {
+            this.telaAtiva = id; 
+            this.localAtual = this.config.rota[0] || 'Geral';
+            this.config.rota.forEach(l => { if(!this.contagemAtiva[l]) this.contagemAtiva[l] = {}; });
         },
-        logout() {
-            localStorage.removeItem('pizzamaster_session');
-            location.reload();
+        voltarInicio() { this.telaAtiva = null; },
+
+        // --- CONTAGEM & PRODUÇÃO ---
+        gerarResumo() {
+            let texto = `*PEDIDO: ${this.telaAtiva.toUpperCase()}*\n`;
+            let totais = {};
+            this.config.rota.forEach(l => {
+                for(let item in this.contagemAtiva[l]) totais[item] = (totais[item] || 0) + this.contagemAtiva[l][item];
+            });
+            for(let item in totais) { 
+                const dna = this.catalogoDNA.find(d => d.nome === item);
+                if(totais[item] > 0) texto += `• ${item}: ${totais[item]} ${dna ? dna.un_contagem : ''}\n`; 
+            }
+            this.textoWhatsApp = texto; this.mostrandoResumo = true;
         },
-        carregarDados() {
-            db.ref('configuracoes/catalogo').on('value', s => this.catalogo = s.val() || {});
-            db.ref('contagem_atual').on('value', s => this.contagens = s.val() || {});
+        finalizarProducao() {
+            const texto = `*PRODUÇÃO DE MASSA*\nQuant: ${this.qtdBolinhas} un\nFarinha: ${this.receita.farinha}g\nResponsável: ${this.usuarioLogado.nome}`;
+            db.ref('historico').push({ data: new Date().toLocaleString(), usuario: this.usuarioLogado.nome, itens: texto });
+            this.mostrarNotificacao('Produção Registrada!', 'success');
+            this.qtdBolinhas = 0;
+            this.popsMassa.forEach(p => p.feito = false);
+            this.telaAtiva = null;
         },
-        abrirSetor(s) {
-            this.setorAtivo = s;
-            this.telaAtiva = 'contagem';
+        enviarWhatsApp() {
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(this.textoWhatsApp)}`, '_blank');
+            db.ref('historico').push({ data: new Date().toLocaleString(), usuario: this.usuarioLogado.nome, itens: this.textoWhatsApp });
+            this.telaAtiva = null; this.mostrandoResumo = false;
+        },
+
+        // --- CONFIGURAÇÃO ---
+        adicionarAoDNA() { db.ref('catalogoDNA').push(this.novoInsumo); this.novoInsumo = { nome: '', un_contagem: '', un_pedido: '', conversao: 1 }; this.mostrarNotificacao('Item Salvo!'); },
+        removerDoDNA(id) { if(confirm("Remover?")) db.ref('catalogoDNA').child(id).remove(); },
+        adicionarLocal() { this.config.rota.push(this.novoLocal); db.ref('config/rota').set(this.config.rota); this.novoLocal = ''; },
+        removerLocal(i) { this.config.rota.splice(i, 1); db.ref('config/rota').set(this.config.rota); },
+        atualizarUsuario(u) { db.ref('usuarios').child(u.id).set(u); },
+        removerUsuario(id) { if(confirm("Remover?")) db.ref('usuarios').child(id).remove(); },
+
+        // --- SYNC ---
+        sincronizar() {
+            db.ref('usuarios').on('value', s => { const d=s.val(); this.usuarios = d ? Object.keys(d).map(k=>({...d[k], id:k})) : []; });
+            db.ref('catalogoDNA').on('value', s => { const d=s.val(); this.catalogoDNA = d ? Object.keys(d).map(k=>({...d[k], id:k})) : []; });
+            db.ref('config/rota').on('value', s => this.config.rota = s.val() || []);
+            db.ref('historico').limitToLast(50).on('value', s => { const d=s.val(); this.historico = d ? Object.values(d).reverse() : []; });
         }
     },
-    mounted() {
-        const s = localStorage.getItem('pizzamaster_session');
-        if (s) {
-            this.usuarioLogado = JSON.parse(s);
-            this.sessaoAtiva = true;
-            this.carregarDados();
-            this.verificarVersao();
-        }
+    mounted() { 
+        this.sincronizar(); 
+        const s = localStorage.getItem('artigiano_session_v1'); 
+        if(s) { this.usuarioLogado = JSON.parse(s); this.sessaoAtiva = true; }
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            this.mostrarInstalacao = true;
+        });
     }
 }).mount('#app');
