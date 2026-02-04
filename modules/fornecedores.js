@@ -1,100 +1,108 @@
 import { db, render } from "../main.js";
-import { ref, onValue, push, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { ref, onValue, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-export function carregarFornecedores() {
+export function carregarConfig() {
     render(`
-        <div style="padding: 20px; padding-top: 65px; background: #f2f2f7; min-height: 100vh; font-family: -apple-system, sans-serif;">
-            
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <button onclick="location.reload()" style="background: white; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                    <i data-lucide="chevron-left" style="color: #333;"></i>
+        <div style="padding-bottom: 100px; background: #000; min-height: 100vh;">
+            <header style="padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 2px solid #333; background: #0a0a0a;">
+                <button onclick="location.reload()" style="background:none; border:none; color:#fff;">
+                    <i data-lucide="chevron-left"></i>
                 </button>
-                <h2 style="margin:0; font-size: 22px; font-weight: 800; color: #1c1c1e;">Fornecedores</h2>
-                <div style="width: 45px;"></div>
+                <h2 style="margin:0; font-size:18px; font-weight:900; letter-spacing:1px;">AJUSTES DO SISTEMA</h2>
             </header>
 
-            <div class="glass-card" style="margin-bottom: 30px; border-top: 5px solid #25D366;">
-                <h3 style="margin-top:0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="user-plus" style="width: 18px; color: #25D366;"></i> Novo Contacto
-                </h3>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <input type="text" id="forn-nome" placeholder="Nome (Ex: Distribuidora Silva)">
-                    <input type="tel" id="forn-tel" placeholder="WhatsApp (Ex: 43999999999)" inputmode="tel">
-                    
-                    <div style="background: rgba(0,0,0,0.03); padding: 12px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 15px;">
+                <div class="tile bg-dark" style="aspect-ratio: auto; padding: 20px; border: 1px solid #222; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 12px; color: var(--it-gold);">INTELIGÊNCIA DE CALENDÁRIO</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <span style="display:block; font-weight:700; font-size: 14px;">Regra de Sexta-feira</span>
-                            <small style="color: #8e8e93;">Triplicar metas (3x) no fim de semana</small>
+                            <span style="display: block; font-weight: 900;">MODO FERIADO (1.5x)</span>
+                            <small style="color: #666;">Aumenta todas as metas de segurança</small>
                         </div>
-                        <label class="ios-switch">
-                            <input type="checkbox" id="forn-sexta">
-                            <span class="slider"></span>
-                        </label>
+                        <button id="toggle-feriado" onclick="window.app.toggleModoFeriado()" 
+                                style="padding: 10px 20px; border: none; font-weight: 900; cursor: pointer;">
+                            CARREGANDO...
+                        </button>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Catálogo de Itens</h3>
+                <div id="lista-ajuste-itens" style="display: flex; flex-direction: column; gap: 10px;">
                     </div>
 
-                    <button class="btn-primary" onclick="window.app.salvarFornecedor()" style="background: #25D366; box-shadow: 0 8px 15px rgba(37, 211, 102, 0.2);">
-                        CADASTRAR FORNECEDOR
-                    </button>
-                </div>
-            </div>
-
-            <div id="lista-fornecedores" style="display: flex; flex-direction: column; gap: 12px;">
-                <p style="text-align: center; color: #8e8e93;">Carregando fornecedores...</p>
+                <button onclick="window.app.adicionarNovoItem()" 
+                        style="width: 100%; margin-top: 20px; padding: 15px; background: var(--it-green); border: none; color: #000; font-weight: 900; text-transform: uppercase;">
+                    + Adicionar Novo Item
+                </button>
             </div>
         </div>
     `);
 
-    const listaDiv = document.getElementById('lista-fornecedores');
+    // Sincronização de Configurações
+    onValue(ref(db, 'configuracoes'), (snap) => {
+        const config = snap.val() || {};
+        const catalogo = config.catalogo || {};
+        const feriadoAtivo = config.modoFeriado || false;
 
-    // Listagem em Tempo Real
-    onValue(ref(db, 'configuracoes/fornecedores'), (snap) => {
-        const forns = snap.val();
-        if (!forns) { listaDiv.innerHTML = "<p style='text-align:center; opacity:0.5;'>Nenhum fornecedor cadastrado.</p>"; return; }
+        // Atualiza Botão Feriado
+        const btnFeriado = document.getElementById('toggle-feriado');
+        if (btnFeriado) {
+            btnFeriado.innerText = feriadoAtivo ? "ATIVADO" : "DESATIVADO";
+            btnFeriado.style.background = feriadoAtivo ? "var(--it-red)" : "#222";
+            btnFeriado.style.color = feriadoAtivo ? "#fff" : "#666";
+        }
 
-        listaDiv.innerHTML = Object.keys(forns).map(id => `
-            <div class="glass-card" style="display: flex; justify-content: space-between; align-items: center; padding: 15px;">
-                <div>
-                    <strong style="display: block; font-size: 16px;">${forns[id].nome}</strong>
-                    <div style="display: flex; gap: 10px; margin-top: 4px;">
-                        <small style="color: #25D366; font-weight: 700;"><i data-lucide="phone" style="width:10px; height:10px;"></i> ${forns[id].telefone}</small>
-                        ${forns[id].regraSexta ? '<small style="color: #ff9500; font-weight: 700;">● Regra 3x Ativa</small>' : ''}
+        // Renderiza Lista de Itens para Edição
+        let html = "";
+        Object.keys(catalogo).forEach(id => {
+            const item = catalogo[id];
+            html += `
+                <div style="background: #111; padding: 15px; border-left: 4px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="display: block;">${item.nome}</strong>
+                        <small style="color: #444;">META: ${item.meta} | FATOR: ${item.fator}</small>
                     </div>
+                    <button onclick="window.app.removerItem('${id}')" style="background:none; border:none; color:var(--it-red);">
+                        <i data-lucide="trash-2" style="width: 18px;"></i>
+                    </button>
                 </div>
-                <button onclick="window.app.excluirFornecedor('${id}')" style="background: #fff1f0; border: none; width: 35px; height: 35px; border-radius: 10px; color: #ff3b30;">
-                    <i data-lucide="user-minus" style="width: 18px;"></i>
-                </button>
-            </div>
-        `).join('');
+            `;
+        });
+        document.getElementById('lista-ajuste-itens').innerHTML = html;
         window.lucide.createIcons();
     });
 
-    // Lógica de Salvar
-    window.app.salvarFornecedor = () => {
-        const nome = document.getElementById('forn-nome').value;
-        const telefone = document.getElementById('forn-tel').value;
-        const regraSexta = document.getElementById('forn-sexta').checked;
-
-        if (!nome || !telefone) return alert("Nome e Telefone são obrigatórios!");
-
-        const novoForn = {
-            nome,
-            telefone: telefone.replace(/\D/g, ''), // Remove parênteses e traços
-            regraSexta
-        };
-
-        push(ref(db, 'configuracoes/fornecedores'), novoForn);
-        
-        // Limpar campos
-        document.getElementById('forn-nome').value = '';
-        document.getElementById('forn-tel').value = '';
-        document.getElementById('forn-sexta').checked = false;
-    };
-
-    window.app.excluirFornecedor = (id) => {
-        if (confirm("Remover este fornecedor? Isso afetará os itens vinculados a ele.")) {
-            remove(ref(db, `configuracoes/fornecedores/${id}`));
+    // Funções Administrativas
+    window.app.toggleModoFeriado = () => {
+        if (window.app.verificarPermissaoMaster()) {
+            const btn = document.getElementById('toggle-feriado');
+            const statusAtual = btn.innerText === "ATIVADO";
+            update(ref(db, 'configuracoes'), { modoFeriado: !statusAtual });
+            window.app.tocarSom('click');
         }
     };
 
-    window.lucide.createIcons();
+    window.app.removerItem = (id) => {
+        if (window.app.verificarPermissaoMaster()) {
+            if (confirm("Deseja excluir permanentemente este item?")) {
+                set(ref(db, `configuracoes/catalogo/${id}`), null);
+            }
+        }
+    };
+
+    window.app.adicionarNovoItem = () => {
+        if (window.app.verificarPermissaoMaster()) {
+            const nome = prompt("Nome do Item (ex: Mussarela):");
+            const meta = prompt("Meta de Segurança (unidade final):");
+            const fator = prompt("Fator de Embalagem (ex: 5 para peça de 5kg):");
+            const setor = prompt("Setor (sacolao ou insumos):");
+
+            if (nome && meta && fator && setor) {
+                const novoId = Date.now();
+                set(ref(db, `configuracoes/catalogo/${novoId}`), {
+                    nome, meta, fator, setor, unidade: 'kg', uCompra: 'un'
+                });
+            }
+        }
+    };
 }

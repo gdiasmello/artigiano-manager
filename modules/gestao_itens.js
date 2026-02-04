@@ -1,88 +1,77 @@
 import { db, render } from "../main.js";
-import { ref, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-let silenciarAte = 0;
-
-export function carregarGestaoItens(setorAlvo = 'sacolao') {
+export function carregarGestaoItens(setor) {
+    // 1. Renderiza a casca industrial da tela
     render(`
-        <div style="padding: 20px; padding-top: 65px; background: #f2f2f7; min-height: 100vh;">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <button onclick="location.reload()" style="background: white; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                    <i data-lucide="chevron-left" style="color: #333;"></i>
+        <div style="padding-bottom: 100px; background: #000; min-height: 100vh;">
+            <header style="padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 2px solid var(--it-green);">
+                <button onclick="location.reload()" style="background:none; border:none; color:#fff;">
+                    <i data-lucide="chevron-left"></i>
                 </button>
-                <h2 style="margin:0; font-size: 20px; font-weight: 800;">Setor: ${setorAlvo.toUpperCase()}</h2>
-                <div style="width: 45px;"></div>
+                <h2 style="margin:0; text-transform: uppercase; font-weight: 900;">Contagem: ${setor}</h2>
             </header>
 
-            <div class="glass-card" style="margin-bottom: 25px; border-top: 5px solid var(--it-green);">
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <input type="text" id="item-nome" placeholder="Nome do Produto">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="item-meta" placeholder="Meta" inputmode="numeric">
-                        <input type="text" id="item-unidade" placeholder="Unidade (KG/UN)">
-                    </div>
-                    <select id="item-fornecedor" style="height: 50px; border-radius: 15px; border: 1px solid #ddd;"></select>
-                    <button class="btn-primary" onclick="window.app.salvarItem('${setorAlvo}')" style="background: var(--it-green);">ADICIONAR</button>
-                </div>
-            </div>
-
-            <div id="lista-itens-config" style="display: flex; flex-direction: column; gap: 10px;"></div>
-
-            <div id="confirmacao-toast" style="display:none; position:fixed; bottom:100px; left:20px; right:20px; background:#1c1c1e; color:white; padding:15px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:9999;">
-                <p style="margin:0 0 10px 0; font-size:14px;">✅ Item adicionado ao catálogo!</p>
-                <button onclick="window.app.silenciarConfirmacao()" style="background:none; border:none; color:#007aff; font-weight:800; padding:0;">Silenciar por 5 min</button>
+            <div id="lista-itens-contagem" style="padding: 10px;">
+                <p style="text-align:center; color:#444; margin-top:50px;">Acessando Banco de Dados...</p>
             </div>
         </div>
     `);
 
-    // Carregar dados e popular lista
-    const listaDiv = document.getElementById('lista-itens-config');
-    onValue(ref(db, 'configuracoes/catalogo'), (snap) => {
-        const itens = snap.val() || {};
-        listaDiv.innerHTML = Object.keys(itens).filter(id => itens[id].setor === setorAlvo).map(id => `
-            <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; border-left: 5px solid ${itens[id].cor}">
-                <span><strong>${itens[id].nome}</strong> (${itens[id].meta}${itens[id].unidade})</span>
-                <button onclick="window.app.excluirItem('${id}')" style="background:none; border:none; color:var(--it-red);">
-                    <i data-lucide="trash-2"></i>
-                </button>
-            </div>
-        `).join('');
+    // 2. Busca o catálogo e as contagens atuais
+    onValue(ref(db, 'configuracoes/catalogo'), async (snap) => {
+        const catalogo = snap.val() || {};
+        const contagemSnapshot = await get(ref(db, `contagem_atual/${setor}`));
+        const contagemExistente = contagemSnapshot.val() || {};
+
+        let html = "";
+
+        Object.keys(catalogo).forEach(id => {
+            const item = catalogo[id];
+            if (item.setor !== setor) return;
+
+            // Soma total de todos os locais para exibição rápida
+            const locaisDoItem = contagemExistente[id] || {};
+            const totalSoma = Object.values(locaisDoItem).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+
+            html += `
+                <div class="tile bg-dark" style="aspect-ratio: auto; margin-bottom: 15px; padding: 20px; border-left: 5px solid ${totalSoma >= item.meta ? 'var(--it-green)' : 'var(--it-red)'};">
+                    <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <div style="text-align:left;">
+                            <strong style="font-size:18px; display:block;">${item.nome}</strong>
+                            <small style="color:#666;">META: ${item.meta} ${item.unidade}</small>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:24px; font-weight:900; color:${totalSoma >= item.meta ? 'var(--it-green)' : 'var(--it-red)'};">
+                                ${totalSoma}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+                        ${window.app.locaisArmazenamento.map(local => `
+                            <div style="display:flex; align-items:center; background:#111; padding:5px 10px; border:1px solid #222;">
+                                <label style="font-size:10px; flex:1; color:#888;">${local.toUpperCase()}</label>
+                                <input type="number" 
+                                    value="${locaisDoItem[local] || ''}" 
+                                    placeholder="0"
+                                    onchange="window.app.salvarContagemLocal('${setor}', '${id}', '${local}', this.value)"
+                                    style="width:80px; background:none!important; border:none!important; border-bottom:1px solid var(--it-green)!important; text-align:right; font-size:16px;">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('lista-itens-contagem').innerHTML = html || '<p style="text-align:center;">Nenhum item neste setor.</p>';
         window.lucide.createIcons();
     });
 
-    // Função Salvar (Qualquer um pode adicionar)
-    window.app.salvarItem = (setor) => {
-        const nome = document.getElementById('item-nome').value;
-        const meta = document.getElementById('item-meta').value;
-        if (!nome || !meta) return alert("Preencha nome e meta!");
-
-        const novo = { nome, meta, setor, unidade: document.getElementById('item-unidade').value, cor: "#008C45" };
-        push(ref(db, 'configuracoes/catalogo'), novo);
-
-        // Mostrar confirmação se não estiver silenciado
-        if (Date.now() > silenciarAte) {
-            const toast = document.getElementById('confirmacao-toast');
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 4000);
-        }
-        
-        document.getElementById('item-nome').value = '';
-        document.getElementById('item-meta').value = '';
-    };
-
-    // Silenciador
-    window.app.silenciarConfirmacao = () => {
-        silenciarAte = Date.now() + (5 * 60 * 1000);
-        document.getElementById('confirmacao-toast').style.display = 'none';
-    };
-
-    // Exclusão (Apenas ADM ou Gerente via PIN)
-    window.app.excluirItem = (id) => {
-        const pin = prompt("Para excluir, insira o PIN Administrativo ou Gerente:");
-        if (pin === "1821" || pin === "2026") {
-            remove(ref(db, `configuracoes/catalogo/${id}`));
-        } else {
-            alert("Acesso Negado: PIN incorreto.");
-        }
+    // 3. Função para salvar individualmente cada local
+    window.app.salvarContagemLocal = (setor, itemId, local, valor) => {
+        window.app.tocarSom('click');
+        const path = `contagem_atual/${setor}/${itemId}/${local}`;
+        set(ref(db, path), parseFloat(valor) || 0);
     };
 }

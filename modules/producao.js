@@ -1,58 +1,72 @@
+
 import { render } from "../main.js";
-import { Logistica } from "./logistica.js";
 
 export function carregarProducao() {
     render(`
-        <div style="padding: 20px; padding-top: 65px; background: #f2f2f7; min-height: 100vh;">
-            <header style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px;">
-                <button onclick="location.reload()" class="active-press" style="background: white; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        <div style="padding-bottom: 100px; background: #000; min-height: 100vh;">
+            <header style="padding: 20px; display: flex; align-items: center; gap: 15px; border-bottom: 2px solid var(--it-blue);">
+                <button onclick="location.reload()" style="background:none; border:none; color:#fff;">
                     <i data-lucide="chevron-left"></i>
                 </button>
-                <h2 style="margin:0; font-size: 20px; font-weight: 900;">Massa Artigiano</h2>
+                <h2 style="margin:0; text-transform: uppercase; font-weight: 900;">Produção de Massa</h2>
             </header>
 
-            <div class="glass-card" style="margin-bottom: 20px;">
-                <label style="display:block; margin-bottom:10px; font-weight:700; color: #8e8e93; font-size: 12px; text-transform: uppercase;">Meta de Bolinhas</label>
-                <input type="number" id="input-bolinhas" placeholder="Ex: 60" inputmode="numeric" 
-                       oninput="window.app.atualizarReceita()" 
-                       style="font-size: 32px; height: 70px; text-align: center; font-weight: 800; border: 2px solid #008C45;">
-            </div>
-
-            <div id="resultado-massa" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="padding: 15px;">
+                <div class="tile bg-dark" style="aspect-ratio: auto; padding: 30px; border: 2px solid #222; margin-bottom: 15px;">
+                    <label style="color: var(--it-blue); font-weight: 900; font-size: 12px; letter-spacing: 2px; margin-bottom: 15px; display: block;">META DE BOLINHAS (UN)</label>
+                    <input type="number" id="input-calc-bolinhas" placeholder="00" 
+                           oninput="window.app.calcularReceitaMaser()"
+                           style="width: 100%; background: none!important; border: none!important; border-bottom: 4px solid var(--it-blue)!important; font-size: 64px; text-align: center; font-weight: 900; color: #fff;">
                 </div>
-            
-            <p style="text-align:center; font-size: 11px; color: #8e8e93; margin-top: 20px;">
-                *Cálculo baseado em 133g/bolinha e 70% de hidratação.
-            </p>
+
+                <div id="painel-resultados-massa" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    </div>
+
+                <div style="margin-top: 20px; background: #111; padding: 15px; border-left: 4px solid var(--it-blue);">
+                    <p style="margin:0; font-size: 11px; color: #666; font-weight: 700; line-height: 1.5;">
+                        <i data-lucide="info" style="width:12px; vertical-align: middle;"></i>
+                        PADRÃO ARTIGIANO: 133g/un | Hidratação 70% | 30% Gelo para controle térmico na masseira.
+                    </p>
+                </div>
+            </div>
         </div>
     `);
 
-    window.app.atualizarReceita = () => {
-        const qtd = document.getElementById('input-bolinhas').value;
+    window.app.calcularReceitaMaser = () => {
+        const qtd = document.getElementById('input-calc-bolinhas').value;
+        const painel = document.getElementById('painel-resultados-massa');
+        
         if (!qtd || qtd <= 0) {
-            document.getElementById('resultado-massa').innerHTML = "";
+            painel.innerHTML = "";
             return;
         }
 
-        const r = Logistica.calcularMassa(qtd);
-        document.getElementById('resultado-massa').innerHTML = `
-            <div class="glass-card" style="border-top: 5px solid #008C45; padding: 15px;">
-                <small style="color:#8e8e93; font-weight:700;">FARINHA</small>
-                <div style="font-size:22px; font-weight:900;">${r.farinha}<span style="font-size:12px;">kg</span></div>
+        // Lógica Técnica PiZZA Maser
+        const farinhaTotal = qtd * 133; 
+        const salTotal = qtd * 4;
+        const aguaTotal = farinhaTotal * 0.70;
+        const aguaMineral = aguaTotal * 0.70;
+        const gelo = aguaTotal * 0.30;
+
+        painel.innerHTML = `
+            <div class="tile bg-dark" style="aspect-ratio: auto; padding: 15px; border: 1px solid #333;">
+                <span style="font-size: 10px; color: #888; font-weight: 800;">FARINHA</span>
+                <span style="font-size: 24px; font-weight: 900; color: var(--it-green);">${(farinhaTotal/1000).toFixed(2)}kg</span>
             </div>
-            <div class="glass-card" style="border-top: 5px solid #008C45; padding: 15px;">
-                <small style="color:#8e8e93; font-weight:700;">SAL</small>
-                <div style="font-size:22px; font-weight:900;">${r.sal}<span style="font-size:12px;">g</span></div>
+            <div class="tile bg-dark" style="aspect-ratio: auto; padding: 15px; border: 1px solid #333;">
+                <span style="font-size: 10px; color: #888; font-weight: 800;">SAL</span>
+                <span style="font-size: 24px; font-weight: 900; color: var(--it-green);">${salTotal.toFixed(0)}g</span>
             </div>
-            <div class="glass-card" style="border-top: 5px solid #007aff; padding: 15px;">
-                <small style="color:#007aff; font-weight:700;">ÁGUA MINERAL</small>
-                <div style="font-size:22px; font-weight:900;">${r.aguaMineral}<span style="font-size:12px;">ml</span></div>
+            <div class="tile bg-dark" style="aspect-ratio: auto; padding: 15px; border: 1px solid #333;">
+                <span style="font-size: 10px; color: #888; font-weight: 800;">ÁGUA</span>
+                <span style="font-size: 24px; font-weight: 900; color: var(--it-blue);">${aguaMineral.toFixed(0)}ml</span>
             </div>
-            <div class="glass-card" style="border-top: 5px solid #5ac8fa; padding: 15px;">
-                <small style="color:#5ac8fa; font-weight:700;">GELO (30%)</small>
-                <div style="font-size:22px; font-weight:900;">${r.gelo}<span style="font-size:12px;">g</span></div>
+            <div class="tile bg-dark" style="aspect-ratio: auto; padding: 15px; border: 1px solid #333;">
+                <span style="font-size: 10px; color: #888; font-weight: 800;">GELO (30%)</span>
+                <span style="font-size: 24px; font-weight: 900; color: #5ac8fa;">${gelo.toFixed(0)}g</span>
             </div>
         `;
+        
         window.lucide.createIcons();
     };
 }
