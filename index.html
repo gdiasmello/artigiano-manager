@@ -26,13 +26,10 @@
         <div v-if="!sessaoAtiva" class="login-screen fade-in">
             <div class="login-container">
                 <div class="brand-box">
-                    <div class="logo-circle">
-                        <i class="fas fa-pizza-slice"></i>
-                    </div>
+                    <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
                     <h1 class="brand-title">PiZZA <span>Mas</span><i>ter</i></h1>
                     <p class="tagline">ARTIGIANO · INVENTÁRIO</p>
                 </div>
-                
                 <div class="login-card">
                     <div class="input-group">
                         <i class="fas fa-user"></i>
@@ -48,7 +45,6 @@
                     </button>
                     <p v-if="msgErro" class="error-msg">{{ msgErro }}</p>
                 </div>
-
                 <div class="version-badge">v{{versao}}</div>
             </div>
         </div>
@@ -58,16 +54,41 @@
                 <div class="header-content">
                     <i class="fas fa-chevron-left" v-if="telaAtiva !== 'dash'" @click="telaAtiva = 'dash'"></i>
                     <h2 class="brand-small">PiZZA <span>Mas</span><i>ter</i></h2>
-                    <i class="fas fa-sign-out-alt" @click="logout"></i>
+                    <div class="header-right">
+                        <span class="user-name">{{ usuarioLogado.nome }}</span>
+                        <i class="fas fa-sign-out-alt" @click="logout"></i>
+                    </div>
                 </div>
             </header>
 
             <div v-if="telaAtiva === 'dash'" class="menu-grid">
-                <button class="menu-card green" @click="abrirSetor('sacolao')"><i class="fas fa-leaf"></i> SACOLÃO</button>
-                <button class="menu-card red" @click="abrirSetor('insumos')"><i class="fas fa-box"></i> INSUMOS</button>
-                <button class="menu-card gold" @click="telaAtiva = 'producao'"><i class="fas fa-mortar-pestle"></i> MASSA</button>
-                <button class="menu-card dark" @click="telaAtiva = 'config'"><i class="fas fa-cog"></i> AJUSTES</button>
+                <button class="menu-card green" @click="abrirSetor('sacolao')">
+                    <div class="icon-box"><i class="fas fa-leaf"></i></div>
+                    <span>SACOLÃO</span>
+                </button>
+                <button class="menu-card red" @click="abrirSetor('insumos')">
+                    <div class="icon-box"><i class="fas fa-box"></i></div>
+                    <span>INSUMOS</span>
+                </button>
+                <button class="menu-card gold" @click="telaAtiva = 'producao'">
+                    <div class="icon-box"><i class="fas fa-mortar-pestle"></i></div>
+                    <span>PRODUÇÃO</span>
+                </button>
+                <button class="menu-card purple" @click="telaAtiva = 'bebidas'">
+                    <div class="icon-box"><i class="fas fa-wine-bottle"></i></div>
+                    <span>BEBIDAS</span>
+                </button>
+                <button class="menu-card blue" @click="telaAtiva = 'limpeza'">
+                    <div class="icon-box"><i class="fas fa-hands-bubbles"></i></div>
+                    <span>LIMPEZA</span>
+                </button>
+                <button class="menu-card dark" @click="telaAtiva = 'config'">
+                    <div class="icon-box"><i class="fas fa-cog"></i></div>
+                    <span>AJUSTES</span>
+                </button>
             </div>
+
+            <div class="dashboard-footer">v{{versao}}</div>
         </div>
 
     </div>

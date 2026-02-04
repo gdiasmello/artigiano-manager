@@ -5,10 +5,10 @@ createApp({
         return {
             versao: '0.0.1',
             notasDaVersao: [
-                'Nova Tela de Login Premium v0.0.1',
-                'Design centralizado com efeito glassmorphism',
-                'Sistema automático de avisos de atualização',
-                'Estrutura de permissões ADM/Gerente preparada'
+                'Lançamento Oficial v0.0.1',
+                'Tela de Login Premium (Italo-Glass style)',
+                'Menu principal unificado com 6 categorias',
+                'Sistema de alerta de novidades'
             ],
             mostrarChangelog: false,
             loadingAuth: false,
@@ -28,14 +28,9 @@ createApp({
                 return;
             }
             this.loadingAuth = true;
-            
-            // Simulação de delay para efeito visual
             setTimeout(() => {
                 if (this.loginPass === '1821' || this.loginPass === '2026') {
-                    const u = { 
-                        nome: this.loginUser, 
-                        role: this.loginPass === '1821' ? 'ADMIN' : 'GERENTE' 
-                    };
+                    const u = { nome: this.loginUser, role: this.loginPass === '1821' ? 'ADMIN' : 'GERENTE' };
                     this.usuarioLogado = u;
                     this.sessaoAtiva = true;
                     localStorage.setItem('pizzamaster_session', JSON.stringify(u));
