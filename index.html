@@ -17,27 +17,43 @@
             <div class="modal-content fade-in">
                 <div class="it-header-modal">NOVIDADES v{{versao}}</div>
                 <ul class="changelog-list">
-                    <li v-for="nota in notasDaVersao">{{ nota }}</li>
+                    <li v-for="nota in notasDaVersao"><i class="fas fa-check-circle"></i> {{ nota }}</li>
                 </ul>
                 <button class="btn-main" @click="fecharChangelog">VAMOS COZINHAR!</button>
             </div>
         </div>
 
-        <div v-if="!sessaoAtiva" class="form-container fade-in">
-            <div class="header-login">
-                <h1 class="brand-title">PiZZA <span>Mas</span><i>ter</i></h1>
-                <p class="tagline">TRADIZIONE E LOGISTICA</p>
+        <div v-if="!sessaoAtiva" class="login-screen fade-in">
+            <div class="login-container">
+                <div class="brand-box">
+                    <div class="logo-circle">
+                        <i class="fas fa-pizza-slice"></i>
+                    </div>
+                    <h1 class="brand-title">PiZZA <span>Mas</span><i>ter</i></h1>
+                    <p class="tagline">ARTIGIANO · INVENTÁRIO</p>
+                </div>
+                
+                <div class="login-card">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" v-model="loginUser" placeholder="Seu nome">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" v-model="loginPass" placeholder="PIN de acesso" maxlength="4">
+                    </div>
+                    <button class="btn-login" @click="efetuarLogin">
+                        <span v-if="!loadingAuth">ENTRAR NA COZINHA</span>
+                        <i v-else class="fas fa-spinner fa-spin"></i>
+                    </button>
+                    <p v-if="msgErro" class="error-msg">{{ msgErro }}</p>
+                </div>
+
+                <div class="version-badge">v{{versao}}</div>
             </div>
-            <div class="login-box">
-                <input type="text" v-model="loginUser" class="input-field" placeholder="Teu Nome">
-                <input type="password" v-model="loginPass" class="input-field" placeholder="PIN de Acesso" maxlength="4">
-                <button class="btn-main" @click="efetuarLogin">ENTRAR NA COZINHA</button>
-                <p v-if="msgErro" class="error-msg">{{ msgErro }}</p>
-            </div>
-            <div class="version-footer">v{{versao}}</div>
         </div>
 
-        <div v-else class="fade-in">
+        <div v-else class="app-layout fade-in">
             <header class="app-header">
                 <div class="header-content">
                     <i class="fas fa-chevron-left" v-if="telaAtiva !== 'dash'" @click="telaAtiva = 'dash'"></i>
@@ -47,53 +63,13 @@
             </header>
 
             <div v-if="telaAtiva === 'dash'" class="menu-grid">
-                <button v-if="podeVer('sacolao')" class="menu-card green" @click="abrirSetor('sacolao')"><i class="fas fa-leaf"></i> SACOLÃO</button>
-                <button v-if="podeVer('insumos')" class="menu-card red" @click="abrirSetor('insumos')"><i class="fas fa-box"></i> INSUMOS</button>
-                <button v-if="podeVer('producao')" class="menu-card gold" @click="telaAtiva = 'producao'"><i class="fas fa-mortar-pestle"></i> MASSA</button>
-                <button v-if="podeVer('config')" class="menu-card dark" @click="telaAtiva = 'config'"><i class="fas fa-cog"></i> AJUSTES</button>
-            </div>
-
-            <div v-if="telaAtiva === 'config'" class="content-area fade-in">
-                <h3 class="section-title">⚙️ Painel de Ajustes</h3>
-
-                <details class="config-accordion" v-if="usuarioLogado.role === 'ADMIN' || usuarioLogado.role === 'GERENTE'">
-                    <summary><i class="fas fa-dna"></i> Gestão de Insumos</summary>
-                    <div class="accordion-content">
-                        <button class="btn-small"> + Novo Item</button>
-                        <div v-for="(item, id) in catalogo" class="config-row">
-                            <span>{{ item.nome }}</span>
-                            <small>Meta: {{ item.meta }}</small>
-                        </div>
-                    </div>
-                </details>
-
-                <details class="config-accordion" v-if="usuarioLogado.role === 'ADMIN'">
-                    <summary><i class="fas fa-user-shield"></i> Painel de Acessos</summary>
-                    <div class="accordion-content">
-                        <div v-for="user in listaUsuarios" class="config-row">
-                            <span>{{ user.nome }}</span>
-                            <div class="perms">
-                                <i class="fas fa-eye" :class="{active: user.podeVerSacolao}"></i>
-                                <i class="fas fa-pizza-slice" :class="{active: user.podeVerMassa}"></i>
-                            </div>
-                        </div>
-                    </div>
-                </details>
-
-                <details class="config-accordion">
-                    <summary><i class="fas fa-user-circle"></i> Meu Perfil</summary>
-                    <div class="accordion-content">
-                        <input type="text" v-model="usuarioLogado.nome" class="input-field" placeholder="Nome">
-                        <input type="password" v-model="novoPin" class="input-field" placeholder="Novo PIN (4 dígitos)">
-                        <input type="date" v-model="usuarioLogado.nascimento" class="input-field">
-                        <input type="email" v-model="usuarioLogado.email" class="input-field" placeholder="Email (Opcional)">
-                        <button class="btn-main" @click="atualizarPerfil">SALVAR PERFIL</button>
-                    </div>
-                </details>
-                
-                <div class="version-footer">v{{versao}}</div>
+                <button class="menu-card green" @click="abrirSetor('sacolao')"><i class="fas fa-leaf"></i> SACOLÃO</button>
+                <button class="menu-card red" @click="abrirSetor('insumos')"><i class="fas fa-box"></i> INSUMOS</button>
+                <button class="menu-card gold" @click="telaAtiva = 'producao'"><i class="fas fa-mortar-pestle"></i> MASSA</button>
+                <button class="menu-card dark" @click="telaAtiva = 'config'"><i class="fas fa-cog"></i> AJUSTES</button>
             </div>
         </div>
+
     </div>
     <script src="config.js"></script>
     <script src="script.js"></script>

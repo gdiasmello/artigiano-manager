@@ -1,30 +1,107 @@
-:root { --it-green: #008C45; --it-white: #FFFFFF; --it-red: #CD212A; --gold: #D4AF37; --dark: #1A1A1A; --bg: #F8F9FA; }
+:root {
+    --it-green: #008C45;
+    --it-white: #FFFFFF;
+    --it-red: #CD212A;
+    --gold: #D4AF37;
+    --dark: #121212;
+    --bg-light: #F4F7F6;
+}
+
 [v-cloak] { display: none; }
-body { background-color: #111; margin: 0; font-family: 'Inter', sans-serif; display: flex; justify-content: center; overflow-x: hidden; }
-#app { width: 100%; max-width: 480px; background: var(--bg); min-height: 100vh; position: relative; }
 
-/* Modal Novidades */
-.modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;}
-.modal-content { background: white; border-radius: 30px; padding: 25px; width: 100%; text-align: center; }
-.it-header-modal { color: var(--it-green); font-weight: 900; border-bottom: 2px solid var(--it-red); margin-bottom: 15px; display: inline-block; }
-.changelog-list { text-align: left; font-size: 14px; margin-bottom: 20px; }
+body { 
+    margin: 0; 
+    font-family: 'Inter', sans-serif; 
+    background-color: var(--dark); 
+    display: flex; 
+    justify-content: center;
+}
 
-/* Login */
-.header-login { padding: 60px 20px; text-align: center; background: var(--dark); border-radius: 0 0 50px 50px; color: white; }
-.brand-title { font-size: 42px; font-weight: 900; letter-spacing: -2px; }
+#app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg-light); position: relative; }
+
+/* Nova Tela de Login Centralizada */
+.login-screen {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #1a1a1a 0%, #000 100%);
+    padding: 20px;
+}
+
+.login-container { width: 100%; text-align: center; }
+
+.brand-box { margin-bottom: 40px; }
+
+.logo-circle {
+    width: 80px; height: 80px;
+    background: var(--it-green);
+    border: 4px solid var(--it-red);
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+    color: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.brand-title { font-size: 42px; font-weight: 900; color: white; margin: 0; letter-spacing: -2px; }
 .brand-title span { color: var(--it-green); }
 .brand-title i { color: var(--it-red); font-style: normal; }
-.version-footer { padding: 20px; text-align: center; font-size: 11px; font-weight: 800; color: #999; letter-spacing: 2px; }
+.tagline { color: #888; letter-spacing: 3px; font-size: 11px; margin-top: 5px; font-weight: 700; }
 
-/* Accordion iOS Style */
-details.config-accordion { background: white; margin: 10px 15px; border-radius: 15px; border: 1px solid #EEE; }
-summary { padding: 15px; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-summary::after { content: '\f054'; font-family: 'Font Awesome 6 Free'; margin-left: auto; font-size: 10px; transition: 0.3s; }
-details[open] summary::after { transform: rotate(90deg); }
-.accordion-content { padding: 15px; background: #FAFAFA; border-top: 1px solid #EEE; }
+.login-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    padding: 30px 20px;
+    border-radius: 30px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
 
-.config-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #EEE; font-size: 14px; }
-.btn-main { width: 100%; padding: 18px; background: var(--it-green); color: white; border: none; border-radius: 18px; font-weight: 800; cursor: pointer; }
-.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
-.menu-card { height: 120px; border: none; border-radius: 20px; color: white; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-.green { background: var(--it-green); } .red { background: var(--it-red); } .gold { background: var(--gold); } .dark { background: var(--dark); }
+.input-group {
+    background: rgba(255,255,255,0.1);
+    border-radius: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    padding: 5px 15px;
+}
+
+.input-group i { color: var(--it-green); width: 25px; }
+.input-group input {
+    background: transparent;
+    border: none;
+    padding: 15px 10px;
+    color: white;
+    width: 100%;
+    outline: none;
+    font-size: 16px;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 20px;
+    background: var(--it-green);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-weight: 800;
+    margin-top: 10px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(0,140,69,0.3);
+}
+
+.version-badge { margin-top: 30px; color: #555; font-weight: 800; font-size: 12px; letter-spacing: 2px; }
+
+/* Modal Novidades */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-content { background: white; border-radius: 30px; padding: 30px; width: 100%; text-align: center; }
+.it-header-modal { color: var(--it-green); font-weight: 900; font-size: 1.2rem; border-bottom: 3px solid var(--it-red); margin-bottom: 20px; display: inline-block; }
+.changelog-list { text-align: left; list-style: none; padding: 0; margin-bottom: 25px; }
+.changelog-list li { margin-bottom: 10px; font-size: 14px; color: #444; display: flex; gap: 10px; }
+.changelog-list i { color: var(--it-green); }
+
+.fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
