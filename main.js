@@ -1,44 +1,69 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { carregarLogin } from "./modules/auth.js";
 
-// Configuração do Firebase da Artigiano
+// 1. CONFIGURAÇÃO FIREBASE (Substitua pelos seus dados do console Firebase)
 const firebaseConfig = {
-  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
-  authDomain: "artigiano-app.firebaseapp.com",
-  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
-  projectId: "artigiano-app",
-  storageBucket: "artigiano-app.firebasestorage.app",
-  messagingSenderId: "212218495726",
-  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+    databaseURL: "https://SEU-PROJETO.firebaseio.com", 
 };
 
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 
-// Função mestre de renderização (Estilo iOS)
+// 2. FUNÇÃO DE RENDERIZAÇÃO
 export function render(html) {
     const container = document.getElementById('app-container');
-    if(container) {
-        container.innerHTML = html;
-        // Reinicializa os ícones do Lucide sempre que a tela muda
-        if (window.lucide) {
-            window.lucide.createIcons();
-        }
+    container.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+}
+
+// 3. NAMESPACE GLOBAL (Para os botões do HTML funcionarem)
+window.app = {};
+
+// 4. LÓGICA DE INICIALIZAÇÃO
+async function inicializar() {
+    const usuarioLogado = localStorage.getItem('artigiano_user');
+
+    if (usuarioLogado) {
+        // Se já estiver logado, vai direto para o Dashboard
+        const { carregarDash } = await import("./modules/dashboard.js");
+        carregarDash(JSON.parse(usuarioLogado));
+    } else {
+        // Senão, carrega a tela de login
+        const { carregarLogin } = await import("./modules/auth.js");
+        carregarLogin();
     }
 }
 
-// Objeto global de navegação do App
-window.app = {
-    abrirProducao: () => import("./modules/producao.js").then(m => m.carregarProducao()),
-    abrirSacolao: () => import("./modules/sacolao.js").then(m => m.carregarSacolao()),
-    abrirLimpeza: () => import("./modules/limpeza.js").then(m => m.carregarLimpeza()),
-    abrirInsumos: () => import("./modules/insumos.js").then(m => m.carregarInsumos()),
-    abrirBebidas: () => import("./modules/bebidas.js").then(m => m.carregarBebidas()),
-    abrirHistorico: () => import("./modules/historico.js").then(m => m.carregarHistorico()),
-    abrirConfig: () => import("./modules/config.js").then(m => m.carregarConfig()),
-    abrirGestaoItens: () => import("./modules/gestao_itens.js").then(m => m.carregarGestaoItens())
+// 5. MAPEAMENTO DE ROTAS (Para os menus e botões funcionarem)
+window.app.abrirCarrinho = async () => {
+    const { carregarCheckout } = await import("./modules/checkout.js");
+    carregarCheckout();
 };
 
-// Inicia o sistema pela tela de Login
-document.addEventListener('DOMContentLoaded', carregarLogin);
+window.app.abrirConfig = async () => {
+    const { carregarConfig } = await import("./modules/config.js");
+    carregarConfig();
+};
+
+window.app.abrirFornecedores = async () => {
+    const { carregarFornecedores } = await import("./modules/fornecedores.js");
+    carregarFornecedores();
+};
+
+window.app.abrirHistorico = async () => {
+    const { carregarHistorico } = await import("./modules/historico.js");
+    carregarHistorico();
+};
+
+window.app.abrirGestaoItens = async (setor) => {
+    const { carregarGestaoItens } = await import("./modules/gestao_itens.js");
+    carregarGestaoItens(setor);
+};
+
+window.app.logout = () => {
+    localStorage.removeItem('artigiano_user');
+    location.reload();
+};
+
+// Inicia o app
+inicializar();
