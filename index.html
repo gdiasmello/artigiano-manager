@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Pizzeria Master PRO</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-
-    <!-- Splash / Termos -->
     <div id="modal-terms" class="modal-overlay">
         <div class="modal-content glass">
             <h2>🛡️ Segurança Jurídica</h2>
@@ -19,16 +17,14 @@
         </div>
     </div>
 
-    <!-- Login -->
     <div id="screen-login" class="screen active">
         <div class="login-card glass">
-            <h1 class="logo-text">Artigiano <span>PRO</span></h1>
+            <h1>Artigiano <span>PRO</span></h1>
             <input type="password" id="pin-input" placeholder="PIN de 4 dígitos" maxlength="4" inputmode="numeric">
             <button onclick="handleLogin()" class="btn-login">Entrar</button>
         </div>
     </div>
 
-    <!-- Dashboard -->
     <div id="screen-dash" class="screen">
         <header class="glass-nav">
             <div class="user-info">
@@ -42,47 +38,12 @@
         </header>
 
         <div class="grid-dashboard">
-            <div class="card green" onclick="openInventory('sacolao')">
-                <i data-lucide="leaf"></i><span>Sacolão</span>
-            </div>
-            <div class="card yellow" onclick="openProduction()">
-                <i data-lucide="scale"></i><span>Produção</span>
-            </div>
-            <div class="card blue" onclick="openInventory('limpeza')">
-                <i data-lucide="sparkles"></i><span>Limpeza</span>
-            </div>
-            <div class="card grey" onclick="openInventory('insumos')">
-                <i data-lucide="package"></i><span>Insumos</span>
-            </div>
-            <div class="card red" onclick="openInventory('bebidas')">
-                <i data-lucide="beer"></i><span>Bebidas</span>
-            </div>
-            <div class="card purple" onclick="openHistory()">
-                <i data-lucide="scroll-text"></i><span>Histórico</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Produção (Amarelo) -->
-    <div id="modal-prod" class="modal-full hidden">
-        <div class="modal-header glass">
-            <button onclick="closeModals()"><i data-lucide="chevron-left"></i></button>
-            <h2>Calculadora & POPs</h2>
-        </div>
-        <div class="modal-body">
-            <div class="calc-section card-inner glass">
-                <h3>🔢 Quantidade de Massas</h3>
-                <input type="number" id="input-massas" placeholder="Ex: 30" oninput="runCalculator()">
-                <div id="res-calc" class="results-grid">
-                    <!-- Resultados via JS -->
-                </div>
-            </div>
-            <div class="pop-section">
-                <h3>📖 Manuais Técnicos</h3>
-                <button class="btn-pop" onclick="showPOP(1)">POP 01: Batimento</button>
-                <button class="btn-pop" onclick="showPOP(2)">POP 02: Boleamento</button>
-                <button class="btn-pop" onclick="showPOP(3)">POP 03: Clima</button>
-            </div>
+            <div class="card green" onclick="openInventory('sacolao')"><i data-lucide="leaf"></i>Sacolão</div>
+            <div class="card yellow" onclick="openProduction()"><i data-lucide="scale"></i>Produção</div>
+            <div class="card blue" onclick="openInventory('limpeza')"><i data-lucide="sparkles"></i>Limpeza</div>
+            <div class="card grey" onclick="openInventory('insumos')"><i data-lucide="package"></i>Insumos</div>
+            <div class="card red" onclick="openInventory('bebidas')"><i data-lucide="beer"></i>Bebidas</div>
+            <div class="card purple" onclick="openHistory()"><i data-lucide="scroll-text"></i>Histórico</div>
         </div>
     </div>
 

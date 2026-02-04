@@ -3,41 +3,23 @@
     --glass: rgba(255, 255, 255, 0.75);
     --border: rgba(255, 255, 255, 0.4);
     --radius: 28px;
-    --accent: #007aff;
 }
 
-body {
-    background: var(--bg);
-    font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-    margin: 0;
-    overflow: hidden;
-}
+body { background: var(--bg); font-family: sans-serif; margin: 0; overflow: hidden; }
 
 .glass {
     background: var(--glass);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
 }
 
-.grid-dashboard {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    padding: 20px;
-}
+.grid-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
 
 .card {
-    height: 140px;
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-weight: 700;
-    color: white;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    height: 140px; border-radius: var(--radius); display: flex;
+    flex-direction: column; justify-content: center; align-items: center;
+    font-weight: 700; color: white; box-shadow: 0 10px 20px rgba(0,0,0,0.05);
 }
 
 .green { background: linear-gradient(135deg, #34c759, #248a3d); }
@@ -47,12 +29,6 @@ body {
 .grey { background: linear-gradient(135deg, #8e8e93, #48484a); }
 .purple { background: linear-gradient(135deg, #af52de, #763696); }
 
-/* HyperOS Inputs */
-input {
-    background: rgba(0,0,0,0.04);
-    border: 1px solid rgba(0,0,0,0.05);
-    border-radius: 18px;
-    padding: 16px;
-    font-size: 16px;
-    outline: none;
-}
+.screen { display: none; height: 100vh; flex-direction: column; }
+.active { display: flex; }
+.hidden { display: none !important; }
