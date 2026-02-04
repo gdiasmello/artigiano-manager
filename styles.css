@@ -1,33 +1,39 @@
 :root {
-    --ios-bg: linear-gradient(180deg, #d1d5db 0%, #f3f4f6 100%);
+    --bg: #f2f2f7;
     --glass: rgba(255, 255, 255, 0.75);
-    --radius-xl: 35px;
+    --radius: 28px;
 }
-
 body {
-    background: var(--ios-bg);
-    font-family: -apple-system, system-ui, sans-serif;
-    margin: 0; padding: 0;
-    height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    font-family: -apple-system, sans-serif;
+    margin: 0; padding: 20px;
 }
-
 .glass-card {
     background: var(--glass);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius);
     border: 1px solid rgba(255,255,255,0.4);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    padding: 30px; width: 85%; max-width: 380px; text-align: center;
+    padding: 25px; text-align: center;
 }
-
+.grid-dashboard {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;
+}
+.card {
+    height: 140px; border-radius: var(--radius); display: flex;
+    flex-direction: column; justify-content: center; align-items: center;
+    font-weight: 700; color: white; gap: 10px;
+}
+.green { background: linear-gradient(135deg, #34c759, #248a3d); }
+.yellow { background: linear-gradient(135deg, #ffcc00, #ff9500); color: #333; }
+.blue { background: linear-gradient(135deg, #007aff, #0051a8); }
+.red { background: linear-gradient(135deg, #ff3b30, #c41e15); }
+.grey { background: linear-gradient(135deg, #8e8e93, #48484a); }
+.purple { background: linear-gradient(135deg, #af52de, #763696); }
 input {
-    width: 100%; padding: 15px; margin: 10px 0;
-    border-radius: 15px; border: none; background: white;
-    box-sizing: border-box; font-size: 16px;
+    width: 100%; padding: 15px; border-radius: 18px; border: none;
+    background: white; margin: 10px 0; box-sizing: border-box;
 }
-
 .btn-primary {
     width: 100%; padding: 16px; border-radius: 20px; border: none;
-    background: #1c1c1e; color: white; font-weight: 600; cursor: pointer;
+    background: #1c1c1e; color: white; font-weight: 600;
 }
