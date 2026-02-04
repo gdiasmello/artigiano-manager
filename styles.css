@@ -3,15 +3,16 @@
     --it-white: #FFFFFF;
     --it-red: #CD212A;
     --bg: #f2f2f7;
+    --radius-ios: 28px;
 }
 
 body {
     background: var(--bg);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
     margin: 0;
-    overflow-x: hidden;
 }
 
+/* Faixa Animada no Topo */
 .animated-header {
     position: fixed;
     top: 0;
@@ -32,44 +33,56 @@ body {
     100% { background-position: 0% 50%; }
 }
 
-.glass-card {
-    background: white;
-    border-radius: 30px;
-    padding: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+/* Grid de Quadrados Perfeitos */
+.grid-dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Duas colunas iguais */
+    gap: 20px;
+    padding: 10px;
 }
 
+/* Cartão Quadrado iOS */
 .card-ios {
     background: white;
-    height: 140px;
-    border-radius: 25px;
+    aspect-ratio: 1 / 1; /* FORÇA O QUADRADO PERFEITO */
+    border-radius: var(--radius-ios);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 12px;
+    text-align: center;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+    transition: transform 0.1s, box-shadow 0.2s;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.card-ios:active {
+    transform: scale(0.92);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+}
+
+/* Ícones Grandes e Centralizados */
+.card-ios i {
+    width: 55px; /* Ícone bem grande */
+    height: 55px;
+    margin-bottom: 15px;
+}
+
+.card-ios span {
+    font-size: 17px;
     font-weight: 700;
-    color: #333;
-    transition: transform 0.1s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    color: #1c1c1e;
+    letter-spacing: -0.4px;
 }
 
-.card-ios:active { transform: scale(0.95); }
-.card-ios i { width: 45px; height: 45px; }
-
-.zoom-out { animation: zoomOutAnim 0.6s forwards cubic-bezier(0.4, 0, 0.2, 1); }
-@keyframes zoomOutAnim {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(3); opacity: 0; }
-}
-
-.btn-primary {
-    background: var(--it-red);
-    color: white;
-    border: none;
-    border-radius: 15px;
-    padding: 18px;
-    font-weight: 800;
-    width: 100%;
-    text-transform: uppercase;
+/* Vidro para o Header de Saudação */
+.glass-welcome {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 22px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255,255,255,0.3);
 }
