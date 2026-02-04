@@ -2,29 +2,52 @@ import { render } from "../main.js";
 
 export function carregarLogin() {
     render(`
-        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; padding:30px;">
-            <div style="text-align:center; margin-bottom:40px;">
-                <h1 style="font-size:40px; font-weight:900; margin:0;">LOGIN</h1>
-                <p style="color:var(--it-green); font-weight:800; letter-spacing:2px;">ARTIGIANO SYSTEM</p>
+        <div style="height: 100vh; background: #000; display: flex; flex-direction: column; justify-content: center; padding: 40px; box-sizing: border-box;">
+            <div style="text-align: center; margin-bottom: 50px;">
+                <h1 style="font-size: 50px; font-weight: 900; letter-spacing: -3px; margin: 0; line-height: 0.8;">
+                    PiZZA<br><span style="color: var(--it-green);">MASER</span>
+                </h1>
             </div>
-            
-            <input type="text" id="user-name" placeholder="USUÁRIO" style="width:100%; margin-bottom:10px; text-align:center;">
-            <input type="password" id="pin-input" placeholder="PIN" maxlength="4" style="width:100%; margin-bottom:20px; text-align:center; font-size:24px;">
-            
-            <button onclick="window.app.executarLogin()" style="width:100%; height:60px; background:var(--it-green); border:none; color:white; font-weight:900; font-size:18px;">
-                ACESSAR TERMINAL
-            </button>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="background: #111; padding: 10px; border: 1px solid #222;">
+                    <label style="font-size: 10px; color: var(--it-green); font-weight: 900; display: block; margin-bottom: 5px;">OPERADOR</label>
+                    <input type="text" id="user-name" value="Gabriel" style="width: 100%; background: none; border: none; color: #fff; font-size: 20px; font-weight: 700; outline: none;">
+                </div>
+
+                <div style="background: #111; padding: 10px; border: 1px solid #222;">
+                    <label style="font-size: 10px; color: var(--it-green); font-weight: 900; display: block; margin-bottom: 5px;">CÓDIGO PIN</label>
+                    <input type="password" id="pin-input" placeholder="****" maxlength="4" inputmode="numeric" style="width: 100%; background: none; border: none; color: #fff; font-size: 20px; font-weight: 700; outline: none; letter-spacing: 10px;">
+                </div>
+
+                <button onclick="window.app.forcarEntrada()" 
+                    style="margin-top: 10px; height: 70px; background: var(--it-green); border: none; color: #000; font-weight: 900; font-size: 20px;">
+                    ENTRAR NO SISTEMA
+                </button>
+            </div>
         </div>
     `);
 
-    window.app.executarLogin = () => {
-        const nome = document.getElementById('user-name').value;
+    window.app.forcarEntrada = () => {
+        const nome = document.getElementById('user-name').value.trim();
         const pin = document.getElementById('pin-input').value;
 
+        // Validação local imediata para evitar o erro de Promessa Rejeitada
         if (pin === "1821" || pin === "2026") {
+            const userData = {
+                nome: nome,
+                role: pin === "1821" ? "ADMIN" : "OPERADOR",
+                time: Date.now()
+            };
+            
+            // Grava no navegador primeiro
+            localStorage.setItem('pizzamaser_user', JSON.stringify(userData));
+            
+            // Toca o som e pula para o dashboard sem esperar o Firebase
             window.app.tocarSom('click');
-            localStorage.setItem('artigiano_user', JSON.stringify({ nome, cargo: pin === "1821" ? 'ADM' : 'GERENTE' }));
-            location.reload();
+            
+            // REDIRECIONAMENTO DE EMERGÊNCIA
+            window.location.replace(window.location.origin + window.location.pathname);
         } else {
             alert("PIN INVÁLIDO");
         }
