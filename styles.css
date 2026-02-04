@@ -1,22 +1,40 @@
 :root {
     --it-green: #008C45;
     --it-red: #C41E3A;
-    --it-gold: #FFB400;
     --it-blue: #0078D7;
-    --it-purple: #744DA9;
-    --bg-dark: #050505;
+    --it-gold: #FFB400;
+    --bg-black: #000000;
+    --tile-border: rgba(255, 255, 255, 0.15);
 }
 
 body {
-    background: var(--bg-dark);
-    color: white;
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    background-color: var(--bg-black);
+    color: #ffffff;
+    font-family: 'Segoe UI', 'Arial Black', sans-serif;
     margin: 0;
+    padding: 0;
     overflow-x: hidden;
+    user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Sistema de Blocos (Tiles) */
+/* Identidade PiZZA Maser */
+.app-header {
+    padding: 25px 20px;
+    border-bottom: 2px solid var(--it-green);
+    background: #0a0a0a;
+}
+
+.brand {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin: 0;
+}
+
+.brand span { color: var(--it-green); }
+
+/* Grade de Blocos (Tiles) */
 .tile-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -26,54 +44,56 @@ body {
 
 .tile {
     aspect-ratio: 1 / 1;
-    border: none;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: 900;
+    border: 1px solid var(--tile-border);
+    text-align: center;
+    padding: 10px;
+    transition: transform 0.05s, brightness 0.2s;
+}
+
+.tile:active {
+    transform: scale(0.92);
+    filter: brightness(1.5);
+}
+
+.tile i {
+    width: 42px !important;
+    height: 42px !important;
+    margin-bottom: 15px;
+}
+
+.tile-text {
     font-size: 13px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: transform 0.1s;
-    cursor: pointer;
 }
 
-.tile i { 
-    width: 38px !important; 
-    height: 38px !important; 
-    margin-bottom: 12px; 
+/* Cores de Categoria */
+.bg-green { background-color: var(--it-green); }
+.bg-blue { background-color: var(--it-blue); }
+.bg-red { background-color: var(--it-red); }
+.bg-gold { background-color: var(--it-gold); }
+.bg-dark { background-color: #1a1a1a; }
+
+/* Lista de Locais (Chips) */
+.location-tag {
+    font-size: 10px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    margin: 2px;
+    border-radius: 2px;
+    display: inline-block;
 }
 
-.tile:active { 
-    transform: scale(0.94); 
-    filter: brightness(1.2); 
+/* Animações */
+.fade-in {
+    animation: fadeIn 0.2s ease-out;
 }
 
-/* Cores Sólidas Windows 10 */
-.bg-green { background: var(--it-green); }
-.bg-red { background: var(--it-red); }
-.bg-blue { background: var(--it-blue); }
-.bg-purple { background: var(--it-purple); }
-.bg-gold { background: var(--it-gold); }
-
-/* Animações de Transição */
-.page-transition {
-    animation: slideIn 0.25s ease-out forwards;
-}
-
-@keyframes slideIn {
-    from { transform: translateX(30px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-/* Input Estilo Industrial */
-input, select {
-    background: #1a1a1a !important;
-    border: 2px solid #333 !important;
-    color: white !important;
-    border-radius: 0px !important; /* Bordas retas Windows 10 */
-    height: 55px;
-    font-weight: 700;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
