@@ -9,42 +9,76 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
+
     <div id="modal-terms" class="modal-overlay">
         <div class="modal-content glass">
-            <h2>🛡️ Segurança Jurídica</h2>
-            <p>App independente desenvolvido por Gabriel. Sem vínculo jurídico com a Artigiano. Responsabilidade do usuário. Suporte apenas presencial.</p>
-            <button onclick="acceptTerms()" class="btn-primary">Concordar</button>
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">🍕</h1>
+            <h2>Segurança Jurídica</h2>
+            <p>App independente desenvolvido por <strong>Gabriel</strong>. Sem vínculo jurídico com a Artigiano. Uso sob responsabilidade do usuário.</p>
+            <button onclick="acceptTerms()" class="btn-primary">Concordar e Entrar</button>
         </div>
     </div>
 
     <div id="screen-login" class="screen active">
         <div class="login-card glass">
-            <h1>Artigiano <span>PRO</span></h1>
-            <input type="password" id="pin-input" placeholder="PIN de 4 dígitos" maxlength="4" inputmode="numeric">
+            <div class="pizza-icon">🍕</div>
+            <h1 class="logo-text">Artigiano <span>PRO</span></h1>
+            <div class="input-group">
+                <input type="text" id="user-input" placeholder="Usuário">
+                <input type="password" id="pin-input" placeholder="PIN" maxlength="4" inputmode="numeric">
+            </div>
             <button onclick="handleLogin()" class="btn-login">Entrar</button>
+            <span class="version-tag">v1.5.0-PWA</span>
         </div>
     </div>
 
     <div id="screen-dash" class="screen">
-        <header class="glass-nav">
-            <div class="user-info">
-                <span id="user-name">Usuário</span>
-                <small id="user-role">Pizzaiolo</small>
+        <header class="header-ios glass">
+            <div class="welcome-text">
+                <h1 id="user-name">Olá, Gabriel</h1>
             </div>
-            <div class="nav-icons">
-                <i data-lucide="help-circle" onclick="showHelp()"></i>
-                <i data-lucide="settings" id="admin-icon" class="hidden"></i>
+            <div id="badge-feriado" class="badge-feriado hidden">
+                Feriado Ativo <i data-lucide="power"></i>
             </div>
         </header>
 
         <div class="grid-dashboard">
-            <div class="card green" onclick="openInventory('sacolao')"><i data-lucide="leaf"></i>Sacolão</div>
-            <div class="card yellow" onclick="openProduction()"><i data-lucide="scale"></i>Produção</div>
-            <div class="card blue" onclick="openInventory('limpeza')"><i data-lucide="sparkles"></i>Limpeza</div>
-            <div class="card grey" onclick="openInventory('insumos')"><i data-lucide="package"></i>Insumos</div>
-            <div class="card red" onclick="openInventory('bebidas')"><i data-lucide="beer"></i>Bebidas</div>
-            <div class="card purple" onclick="openHistory()"><i data-lucide="scroll-text"></i>Histórico</div>
+            <div class="card-ios" onclick="openInventory('sacolao')">
+                <div class="icon-box green"><i data-lucide="leaf"></i></div>
+                <span>Sacolão</span>
+            </div>
+            <div class="card-ios" onclick="openProduction()">
+                <div class="icon-box yellow"><i data-lucide="scale"></i></div>
+                <span>Produção</span>
+            </div>
+            <div class="card-ios" onclick="openInventory('limpeza')">
+                <div class="icon-box blue"><i data-lucide="sparkles"></i></div>
+                <span>Limpeza</span>
+            </div>
+            <div class="card-ios" onclick="openInventory('insumos')">
+                <div class="icon-box grey"><i data-lucide="package"></i></div>
+                <span>Insumos</span>
+            </div>
+            <div class="card-ios" onclick="openInventory('bebidas')">
+                <div class="icon-box red"><i data-lucide="beer"></i></div>
+                <span>Bebidas</span>
+            </div>
+            <div class="card-ios" onclick="openHistory()">
+                <div class="icon-box purple"><i data-lucide="scroll-text"></i></div>
+                <span>Histórico</span>
+            </div>
         </div>
+
+        <nav class="tab-bar-ios glass">
+            <button class="nav-item active"><i data-lucide="home"></i></button>
+            <div class="nav-item cart-wrapper" onclick="openCart()">
+                <div class="cart-floating glass">
+                    <i data-lucide="shopping-cart"></i>
+                    <span id="cart-badge" class="badge-count">3</span>
+                </div>
+            </div>
+            <button class="nav-item" onclick="openSettings()"><i data-lucide="settings"></i></button>
+        </nav>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>

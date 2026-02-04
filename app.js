@@ -1,46 +1,40 @@
-const firebaseConfig = { /* Insira suas chaves do Firebase aqui */ };
+// Substitua pelas suas chaves do Firebase
+const firebaseConfig = { apiKey: "...", databaseURL: "..." }; 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let currentUser = null;
-
 function handleLogin() {
     const pin = document.getElementById('pin-input').value;
-    if (pin === "1821") {
-        initApp({ nome: "Gabriel", cargo: "admin" });
-        return;
+    const user = document.getElementById('user-input').value.toLowerCase();
+    
+    if (user === "gabriel" && pin === "1821") {
+        showDash("Gabriel", "Administrador");
+    } else {
+        db.ref('usuarios/' + user).once('value', snap => {
+            if (snap.exists() && snap.val().pin === pin) {
+                showDash(snap.val().nome, snap.val().cargo);
+            } else { alert("Acesso negado."); }
+        });
     }
-    db.ref('usuarios').orderByChild('pin').equalTo(pin).once('value', snapshot => {
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            initApp(data[Object.keys(data)[0]]);
-        } else { alert("PIN Inválido!"); }
-    });
 }
 
-function initApp(user) {
-    currentUser = user;
+function showDash(nome, cargo) {
     document.getElementById('screen-login').classList.remove('active');
     document.getElementById('screen-dash').classList.add('active');
-    document.getElementById('user-name').innerText = user.nome;
-    if (user.cargo === 'admin') document.getElementById('admin-icon').classList.remove('hidden');
+    document.getElementById('user-name').innerText = `Olá, ${nome}`;
     lucide.createIcons();
+    checkFeriado();
 }
 
-function runCalculator(n) {
-    const farinha = (n * 220) / 1.6987;
-    return {
-        farinha: Math.round(farinha),
-        agua: Math.round(farinha * 0.4365),
-        gelo: Math.round(farinha * 0.1872),
-        sal: Math.round(farinha * 0.03),
-        levain: Math.round(farinha * 0.045)
-    };
+function checkFeriado() {
+    const hoje = new Date();
+    // Exemplo: Se for sexta-feira, ativa badge
+    if (hoje.getDay() === 5) document.getElementById('badge-feriado').classList.remove('hidden');
 }
 
-function acceptTerms() { 
-    localStorage.setItem('art-terms', 'ok'); 
-    document.getElementById('modal-terms').classList.add('hidden'); 
+function acceptTerms() {
+    localStorage.setItem('art_terms', 'ok');
+    document.getElementById('modal-terms').style.display = 'none';
 }
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if(localStorage.getItem('art_terms')) document.getElementById('modal-terms').style.display = 'none';
