@@ -1,4 +1,3 @@
-
 const firebaseConfig = {
   apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
   authDomain: "artigiano-app.firebaseapp.com",
@@ -18,19 +17,30 @@ createApp({
         return {
             sessaoAtiva: false, telaAtiva: null,
             usuarioLogado: null, loginUser: '', loginPass: '', msgAuth: '', loginErro: false,
-            localAtual: '', contagemAtiva: {}, mostrandoResumo: false, textoWhatsApp: '', numeroDestinoAtual: '',
-            mostrandoHistorico: false, mostrarInstalacao: false, mostrandoNovoUsuario: false, mostrarSucesso: false,
+            localAtual: '', contagemAtiva: {}, obsPorItem: {}, 
+            mostrandoResumo: false, textoWhatsApp: '', textoBase: '', itensExtras: '', numeroDestinoAtual: '',
+            mostrandoHistorico: false, mostrarSucesso: false,
             notificacao: { ativa: false, texto: '', tipo: '', icone: '' },
-            novoLocal: '', novoInsumo: { nome: '', un_contagem: '', un_pedido: '', conversao: 1, bloco: '' },
-            novoUser: { nome: '', user: '', pass: '' },
-            qtdBolinhas: 0,
+            
+            // Dados Específicos
+            qtdGeloAtual: null,
+            checklistItens: [
+                { texto: 'Ligar Forno', feito: false },
+                { texto: 'Verificar Gás', feito: false },
+                { texto: 'Temperaturas Geladeiras', feito: false },
+                { texto: 'Higienizar Bancadas', feito: false },
+                { texto: 'Organizar Caixa', feito: false }
+            ],
+            
+            novoInsumo: { nome: '', un_contagem: '', un_pedido: '', tipo_calculo: 'direto', fator: 1, meta: 0, bloco: '', locais: [] },
+            novoLocal: '', qtdBolinhas: 0,
             
             listaTodosBlocos: [
                 { id: 'sacolao', nome: 'SACOLÃO', icon: 'fas fa-leaf', cor: 'green' },
                 { id: 'insumos', nome: 'INSUMOS', icon: 'fas fa-box', cor: 'red' },
                 { id: 'producao', nome: 'PRODUÇÃO', icon: 'fas fa-mortar-pestle', cor: 'gold' },
-                { id: 'gelo', nome: 'GELO', icon: 'fas fa-cube', cor: 'ice' },
-                { id: 'temp', nome: 'TEMP.', icon: 'fas fa-thermometer-half', cor: 'temp' },
+                { id: 'gelo', nome: 'GELO', icon: 'fas fa-cube', cor: 'ice' }, // Bloco Especial
+                { id: 'checklist', nome: 'CHECKLIST', icon: 'fas fa-clipboard-check', cor: 'temp' }, // Substituiu Temp
                 { id: 'bebidas', nome: 'BEBIDAS', icon: 'fas fa-wine-bottle', cor: 'purple' },
                 { id: 'limpeza', nome: 'LIMPEZA', icon: 'fas fa-hands-bubbles', cor: 'blue' }
             ],
@@ -47,10 +57,14 @@ createApp({
             const bloco = this.listaTodosBlocos.find(b => b.id === this.telaAtiva);
             return bloco ? bloco.nome : 'PIZZA MASTER';
         },
-        // FILTRO: Mostra apenas itens que pertencem ao bloco aberto
-        itensDoBlocoAtivo() {
-            if (!this.telaAtiva || this.telaAtiva === 'config') return [];
-            return this.catalogoDNA.filter(item => item.bloco === this.telaAtiva);
+        itensDoLocalAtivo() {
+            // Filtra itens do bloco atual E do local atual
+            if (!this.telaAtiva || ['config','producao','gelo','checklist'].includes(this.telaAtiva)) return [];
+            return this.catalogoDNA.filter(item => {
+                const pertenceLocal = item.locais && item.locais.includes(this.localAtual);
+                const legado = (!item.locais || item.locais.length === 0) && this.localAtual === this.config.rota[0];
+                return item.bloco === this.telaAtiva && (pertenceLocal || legado);
+            });
         },
         receita() {
             const farinha = Math.ceil(this.qtdBolinhas * 133);
@@ -62,104 +76,134 @@ createApp({
         }
     },
     methods: {
-        exibirSucesso() {
-            this.mostrarSucesso = true;
-            setTimeout(() => this.mostrarSucesso = false, 1500);
-        },
-        mostrarNotificacao(texto, tipo = 'info') {
-            this.notificacao = { ativa: true, texto, tipo, icone: tipo === 'success' ? 'fas fa-check-circle' : 'fas fa-info-circle' };
-            setTimeout(() => this.notificacao.ativa = false, 3000);
-        },
+        exibirSucesso() { this.mostrarSucesso = true; setTimeout(() => this.mostrarSucesso = false, 1500); },
         efetuarLogin() {
-            this.loginErro = false;
-            const u = this.loginUser.trim().toLowerCase();
-            const p = String(this.loginPass).trim();
+            this.loginErro = false; const u = this.loginUser.trim().toLowerCase(); const p = String(this.loginPass).trim();
             if (u === 'gabriel' && p === '1821') {
-                this.entrar({ id: 'master', nome: 'Gabriel', user: 'gabriel', pass: '1821', permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, temp: true, bebidas: true, limpeza: true } });
+                this.entrar({ id: 'master', nome: 'Gabriel', user: 'gabriel', pass: '1821', permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, checklist: true, bebidas: true, limpeza: true } }); 
                 return;
             }
             const user = this.usuarios.find(x => x.user.toLowerCase() === u && String(x.pass) === p);
             if (user) this.entrar(user);
-            else { 
-                this.loginErro = true; this.msgAuth = "PIN INVÁLIDO";
-                if(navigator.vibrate) navigator.vibrate(200);
-                setTimeout(() => this.loginErro = false, 500);
-            }
+            else { this.loginErro = true; this.msgAuth = "PIN INVÁLIDO"; if(navigator.vibrate) navigator.vibrate(200); setTimeout(() => this.loginErro = false, 500); }
         },
-        entrar(user) { 
-            this.usuarioLogado = user; 
-            this.sessaoAtiva = true; 
-            localStorage.setItem('artigiano_session_v1', JSON.stringify(user)); 
-        },
+        entrar(user) { this.usuarioLogado = user; this.sessaoAtiva = true; localStorage.setItem('artigiano_session_v1', JSON.stringify(user)); },
         logout() { localStorage.removeItem('artigiano_session_v1'); location.reload(); },
         
         abrirBloco(id) {
             this.telaAtiva = id; 
-            if (!this.config.rota || this.config.rota.length === 0) {
-                this.config.rota = ['Geral'];
-                db.ref('config/rota').set(['Geral']);
-            }
+            if (!this.config.rota || this.config.rota.length === 0) { this.config.rota = ['Geral']; db.ref('config/rota').set(['Geral']); }
             this.localAtual = this.config.rota[0];
             this.config.rota.forEach(l => { 
                 if(!this.contagemAtiva[l]) this.contagemAtiva[l] = {}; 
+                if(!this.obsPorItem[l]) this.obsPorItem[l] = {};
             });
+            if (id === 'gelo') this.qtdGeloAtual = null; // Reset Gelo
         },
         voltarInicio() { this.telaAtiva = null; },
 
+        // --- GELO ---
+        enviarPedidoGelo() {
+            if (this.qtdGeloAtual === null) return;
+            const falta = 8 - this.qtdGeloAtual;
+            if (falta <= 0) { alert("Estoque cheio!"); return; }
+            
+            const texto = `*PEDIDO GELO*\nEstoque: ${this.qtdGeloAtual}\n*PEDIR: ${falta} SACOS*\nObrigado!`;
+            const dest = this.config.destinos['gelo'];
+            if(!dest) { alert("Configure telefone do Gelo!"); return; }
+            
+            window.open(`https://api.whatsapp.com/send?phone=${dest}&text=${encodeURIComponent(texto)}`, '_blank');
+            db.ref('historico').push({ data: new Date().toLocaleString(), usuario: this.usuarioLogado.nome, itens: "Gelo: " + falta + " sacos" });
+            this.telaAtiva = null;
+        },
+
+        // --- CHECKLIST ---
+        salvarChecklist() {
+            const feitos = this.checklistItens.filter(i => i.feito).length;
+            const total = this.checklistItens.length;
+            const texto = `*CHECKLIST*\n${feitos}/${total} itens OK.\nPor: ${this.usuarioLogado.nome}`;
+            db.ref('historico').push({ data: new Date().toLocaleString(), usuario: this.usuarioLogado.nome, itens: texto });
+            this.exibirSucesso();
+            this.checklistItens.forEach(i => i.feito = false);
+            this.telaAtiva = null;
+        },
+
+        // --- GERAL ---
         gerarResumo() {
-            let texto = `*PEDIDO: ${this.telaAtiva.toUpperCase()}*\n`;
-            let totais = {};
+            const hora = new Date().getHours();
+            const saudacao = hora < 12 ? 'Bom dia' : (hora < 18 ? 'Boa tarde' : 'Boa noite');
+            this.textoBase = `*${saudacao}! Segue lista (${this.telaAtiva.toUpperCase()}):*\n\n`; 
+            
+            let estoqueTotal = {}; let obsTotal = {};
             this.config.rota.forEach(l => {
-                for(let item in this.contagemAtiva[l]) totais[item] = (totais[item] || 0) + this.contagemAtiva[l][item];
+                for(let item in this.contagemAtiva[l]) {
+                    estoqueTotal[item] = (estoqueTotal[item] || 0) + this.contagemAtiva[l][item];
+                    if (this.obsPorItem[l] && this.obsPorItem[l][item]) {
+                        obsTotal[item] = (obsTotal[item] ? obsTotal[item] + ', ' : '') + this.obsPorItem[l][item];
+                    }
+                }
             });
-            let itensCount = 0;
-            for(let item in totais) { 
-                const dna = this.catalogoDNA.find(d => d.nome === item);
-                // Filtra para somar apenas itens do bloco atual
-                if(dna && dna.bloco === this.telaAtiva && totais[item] > 0) {
-                    texto += `• ${item}: ${totais[item]} ${dna.un_contagem}\n`; 
-                    itensCount++;
+
+            let corpoPedido = ''; let temItens = false;
+            for(let itemNome in estoqueTotal) { 
+                const dna = this.catalogoDNA.find(d => d.nome === itemNome);
+                if(dna && dna.bloco === this.telaAtiva) {
+                    const estoque = estoqueTotal[itemNome];
+                    const meta = dna.meta || 0;
+                    if (meta > estoque) {
+                        const falta = meta - estoque;
+                        let qtdFinal = 0, unFinal = '';
+                        
+                        if (dna.tipo_calculo === 'cx') { qtdFinal = Math.ceil(falta / (dna.fator || 1)); unFinal = 'Cx'; } 
+                        else if (dna.tipo_calculo === 'kg') { qtdFinal = (falta * (dna.fator || 1)).toFixed(1).replace('.0', ''); unFinal = 'Kg'; } 
+                        else { qtdFinal = falta; unFinal = dna.un_contagem; }
+
+                        if (qtdFinal > 0) {
+                            corpoPedido += `• ${qtdFinal} ${unFinal} ${itemNome}`;
+                            if (obsTotal[itemNome]) corpoPedido += ` _(${obsTotal[itemNome]})_`;
+                            corpoPedido += `\n`;
+                            temItens = true;
+                        }
+                    }
                 }
             }
-            if (itensCount === 0) { alert("Nenhum item contado."); return; }
             
-            this.textoWhatsApp = texto;
-            // Pega o telefone salvo para este bloco
-            this.numeroDestinoAtual = this.config.destinos && this.config.destinos[this.telaAtiva] ? this.config.destinos[this.telaAtiva] : '';
+            if (!temItens && !this.itensExtras) { if(!confirm("Nada para pedir. Continuar?")) return; }
+            this.textoBase += corpoPedido;
+            this.itensExtras = ''; this.atualizarTextoFinal();
+            this.numeroDestinoAtual = this.config.destinos[this.telaAtiva] || '';
             this.mostrandoResumo = true;
         },
+        atualizarTextoFinal() {
+            let final = this.textoBase;
+            if (this.itensExtras.trim()) final += `\n*EXTRAS:*\n${this.itensExtras}\n`;
+            final += `\nObrigado! 🍕`;
+            this.textoWhatsApp = final;
+        },
         enviarWhatsApp() {
-            if(!this.numeroDestinoAtual) { alert("Configure o telefone deste setor em Ajustes!"); return; }
+            if(!this.numeroDestinoAtual) { alert("Sem telefone!"); return; }
             window.open(`https://api.whatsapp.com/send?phone=${this.numeroDestinoAtual}&text=${encodeURIComponent(this.textoWhatsApp)}`, '_blank');
             db.ref('historico').push({ data: new Date().toLocaleString(), usuario: this.usuarioLogado.nome, itens: this.textoWhatsApp });
             this.telaAtiva = null; this.mostrandoResumo = false; this.exibirSucesso();
         },
         finalizarProducao() {
-            const texto = `*PRODUÇÃO DE MASSA*\nQuant: ${this.qtdBolinhas} un\nResponsável: ${this.usuarioLogado.nome}`;
+            const texto = `*PRODUÇÃO DE MASSA*\nQuant: ${this.qtdBolinhas} un\nPor: ${this.usuarioLogado.nome}`;
             db.ref('historico').push({ data: new Date().toLocaleString(), usuario: this.usuarioLogado.nome, itens: texto });
             this.qtdBolinhas = 0; this.telaAtiva = null; this.exibirSucesso();
         },
 
-        // --- CONFIG ---
         adicionarAoDNA() { 
             if(!this.novoInsumo.bloco) { alert("Selecione o setor!"); return; }
+            if(!this.novoInsumo.locais || this.novoInsumo.locais.length === 0) { alert("Selecione o local!"); return; }
             db.ref('catalogoDNA').push(this.novoInsumo); 
-            this.novoInsumo = { nome: '', un_contagem: '', un_pedido: '', conversao: 1, bloco: '' }; 
+            this.novoInsumo = { nome: '', un_contagem: '', un_pedido: '', conversao: 1, bloco: '', meta: 0, fator: 1, tipo_calculo: 'direto', locais: [] }; 
             this.exibirSucesso(); 
         },
-        removerDoDNA(id) { if(confirm("Remover item?")) db.ref('catalogoDNA').child(id).remove(); },
+        removerDoDNA(id) { if(confirm("Excluir item?")) db.ref('catalogoDNA').child(id).remove(); },
         adicionarLocal() { this.config.rota.push(this.novoLocal); db.ref('config/rota').set(this.config.rota); this.novoLocal = ''; this.exibirSucesso(); },
         removerLocal(i) { this.config.rota.splice(i, 1); db.ref('config/rota').set(this.config.rota); },
         salvarDestinos() { db.ref('config/destinos').set(this.config.destinos); this.exibirSucesso(); },
-        atualizarUsuario(u) { db.ref('usuarios').child(u.id).update(u); this.exibirSucesso(); },
-        removerUsuario(id) { if(confirm("Remover?")) db.ref('usuarios').child(id).remove(); },
-        criarUsuario() {
-            if(!this.novoUser.user || !this.novoUser.pass) return;
-            const u = { ...this.novoUser, permissoes: { sacolao: true, insumos: true, producao: false, admin: false } };
-            db.ref('usuarios').push(u); this.mostrandoNovoUsuario = false; this.novoUser = { nome: '', user: '', pass: '' };
-            this.exibirSucesso();
-        },
-
+        
         sincronizar() {
             db.ref('usuarios').on('value', s => { const d=s.val(); this.usuarios = d ? Object.keys(d).map(k=>({...d[k], id:k})) : []; });
             db.ref('catalogoDNA').on('value', s => { const d=s.val(); this.catalogoDNA = d ? Object.keys(d).map(k=>({...d[k], id:k})) : []; });
