@@ -1,7 +1,4 @@
-:root {
-    --ita-green: #008C45; --ita-red: #CD212A; --dark: #1f2937; --bg: #f3f4f6; --primary: #CD212A; --accent: #008C45;
-    --gold: #D4AF37; --purple: #8B5CF6; --blue: #3B82F6; --ice: #0ea5e9; --temp: #fb7185; --gray: #6B7280;
-}
+:root { --ita-green: #008C45; --ita-red: #CD212A; --dark: #1f2937; --bg: #f3f4f6; --primary: #CD212A; --gold: #D4AF37; }
 body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #333; overflow-x: hidden; }
 #app { width: 100%; max-width: 480px; min-height: 100vh; background: var(--bg); margin: 0 auto; position: relative; }
 
@@ -27,7 +24,7 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #33
 .config-area { padding: 15px; padding-bottom: 80px; }
 .config-header-top { display: flex; align-items: center; gap: 10px; padding: 10px 0 20px; font-weight: 900; color: #1e293b; font-size: 1.2rem; }
 .config-card { background: white; border-radius: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 15px; overflow: hidden; border: 1px solid #e2e8f0; }
-.card-head { padding: 18px; display: flex; align-items: center; gap: 12px; background: #fff; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #334155; }
+.card-head { padding: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; color: #334155; }
 .card-head i { color: var(--ita-green); font-size: 1.2rem; }
 .card-body { padding: 18px; }
 .input-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
@@ -43,18 +40,8 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #33
 .add-local-row { display: flex; gap: 8px; margin-top: 10px; }
 .add-local-row input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; }
 .add-local-row button { padding: 0 20px; border-radius: 10px; border: none; background: var(--dark); color: white; font-weight: 800; }
-
-/* Produção */
-.producao-area { padding: 15px; }
-.producao-card { background: white; border-radius: 15px; padding: 0; margin-bottom: 15px; overflow: hidden; border: 1px solid #ddd; }
-.prod-header { background: #f8fafc; padding: 15px; font-weight: 800; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
-.prod-body { padding: 20px; }
-.input-wrapper input { width: 80px; padding: 10px; text-align: center; font-size: 1.5rem; font-weight: 900; border: 2px solid var(--gold); border-radius: 10px; }
-.receita-box { background: #fdfdfd; border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-top: 15px; }
-.ingrediente-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 0.9rem; }
-.highlight { color: var(--ita-green); font-weight: 900; } .highlight-blue { color: #0ea5e9; font-weight: 900; }
-.pop-step { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
-.checked { text-decoration: line-through; color: #aaa; }
+.mini-lista { margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+.mini-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.85rem; }
 
 /* Contagem & Utils */
 .contagem-area { padding: 15px; padding-bottom: 80px; }
@@ -65,20 +52,25 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #33
 .item-input-box input { width: 60px; padding: 8px; text-align: center; border-radius: 8px; border: 1px solid #DDD; font-weight: 800; }
 .contagem-footer { position: fixed; bottom: 0; width: 100%; max-width: 480px; background: white; padding: 15px; display: flex; gap: 10px; border-top: 1px solid #eee; z-index: 90; }
 
-.btn-primary { background: var(--ita-green); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; }
+/* Novidades Modal */
+.news-icon { font-size: 50px; color: var(--gold); margin-bottom: 15px; text-align: center; }
+.news-list { text-align: left; list-style: none; padding: 0; margin-bottom: 20px; }
+.news-list li { margin-bottom: 10px; font-size: 0.9rem; }
+.news-list i { color: var(--ita-green); margin-right: 10px; }
+
+/* Colors & Buttons */
+.green { background: var(--ita-green); } .red { background: var(--ita-red); } .gold { background: #D4AF37; } .ice { background: #0ea5e9; }
+.temp { background: #fb7185; } .purple { background: #8b5cf6; } .blue { background: #3b82f6; } .gray { background: #6b7280; } .dark { background: #333; }
+.btn-primary { background: var(--ita-green); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; width: 100%; }
 .btn-outline { background: transparent; color: var(--dark); border: 2px solid var(--dark); padding: 12px; border-radius: 10px; font-weight: 800; }
 .btn-danger { background: var(--ita-red); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; }
 .btn-danger-ghost { background: transparent; color: var(--ita-red); border: 2px solid var(--ita-red); padding: 12px; border-radius: 10px; font-weight: 800; margin-top: 20px; }
 .btn-cancelar { flex: 1; padding: 15px; border-radius: 12px; border: none; background: #e2e8f0; color: #475569; font-weight: 800; }
 .btn-whatsapp { background: #25D366; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 800; font-size: 1rem; }
-
-/* Colors */
-.green { background: var(--ita-green); } .red { background: var(--ita-red); } .gold { background: var(--gold); } .ice { background: var(--ice); }
-.temp { background: var(--temp); } .purple { background: var(--purple); } .blue { background: var(--blue); } .gray { background: var(--gray); } .dark { background: var(--dark); }
-.full { width: 100%; } .text-red { color: var(--ita-red); cursor: pointer; }
+.full { width: 100%; } .text-red { color: var(--ita-red); cursor: pointer; } .mb-15 { margin-bottom: 15px; } .text-center { text-align: center; }
 
 /* Modais */
-.modal-backdrop { position: fixed; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
+.modal-backdrop { position: fixed; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
 .modal-window { background: white; width: 90%; max-width: 400px; border-radius: 20px; overflow: hidden; animation: zoomIn 0.3s ease-out; }
 .modal-top { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
 .modal-content { padding: 20px; max-height: 70vh; overflow-y: auto; }
