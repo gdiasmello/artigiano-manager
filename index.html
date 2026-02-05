@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PiZZA Master V1.1</title>
+    <title>PiZZA Master V1.2</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     
@@ -20,18 +18,12 @@
 <body>
 <div id="app" v-cloak>
 
-    <div v-if="mostrarNovidades" class="modal-backdrop">
-        <div class="modal-window">
-            <div class="modal-top"><h3>Novidades V1.1</h3></div>
-            <div class="modal-content text-center">
-                <div class="news-icon"><i class="fas fa-rocket"></i></div>
-                <ul class="news-list">
-                    <li><i class="fas fa-check"></i> <strong>Cadastro Liberado:</strong> Agora toda a equipe pode adicionar novos itens ao sistema.</li>
-                    <li><i class="fas fa-check"></i> <strong>Correção de Rota:</strong> Os blocos de contagem abrem automaticamente mesmo sem locais definidos.</li>
-                    <li><i class="fas fa-check"></i> <strong>Painel Admin:</strong> Gestão completa de usuários e permissões na tela de Ajustes.</li>
-                </ul>
-                <button class="btn-primary full" @click="fecharNovidades">ENTENDIDO</button>
+    <div v-if="mostrarSucesso" class="success-overlay fade-in">
+        <div class="success-card">
+            <div class="checkmark-circle">
+                <div class="checkmark draw"></div>
             </div>
+            <h3>Salvo!</h3>
         </div>
     </div>
 
@@ -45,9 +37,8 @@
         <div class="brand-box">
             <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
             <h1>PiZZA <span>Mas</span><i>ter</i></h1>
-            <p>ARTIGIANO · v1.1</p>
+            <p>ARTIGIANO · v1.2</p>
         </div>
-        
         <div class="login-card" :class="{ 'shake-error': loginErro }">
             <div class="input-group">
                 <i class="fas fa-user"></i>
@@ -55,15 +46,7 @@
             </div>
             <div class="input-group">
                 <i class="fas fa-lock"></i>
-                <input 
-                    type="password" 
-                    v-model="loginPass" 
-                    placeholder="PIN" 
-                    maxlength="4" 
-                    inputmode="numeric" 
-                    pattern="[0-9]*"
-                    @keyup.enter="efetuarLogin"
-                >
+                <input type="password" v-model="loginPass" placeholder="PIN" maxlength="4" inputmode="numeric">
             </div>
             <button @click="efetuarLogin" class="btn-entrar">ENTRAR NA COZINHA</button>
             <p v-if="msgAuth" class="error-msg">{{ msgAuth }}</p>
@@ -118,7 +101,7 @@
                     </div>
                 </div>
             </div>
-            <button class="btn-primary full" @click="finalizarProducao" :disabled="qtdBolinhas <= 0">REGISTRAR PRODUÇÃO</button>
+            <button class="btn-primary full" @click="finalizarProducao" :disabled="qtdBolinhas <= 0">REGISTRAR</button>
         </div>
 
         <div v-if="telaAtiva && telaAtiva !== 'config' && telaAtiva !== 'producao'" class="contagem-area">
@@ -128,66 +111,72 @@
                     {{ local }}
                 </button>
             </div>
+            
             <div class="lista-contagem">
-                <div v-for="item in catalogoDNA" :key="item.id" class="item-card-contagem">
-                    <div class="item-info"><strong>{{ item.nome }}</strong><small>Conta: {{ item.un_contagem }}</small></div>
+                <div v-for="item in itensDoBlocoAtivo" :key="item.id" class="item-card-contagem">
+                    <div class="item-info">
+                        <strong>{{ item.nome }}</strong>
+                        <small>Conta: {{ item.un_contagem }}</small>
+                    </div>
                     <div class="item-input-box">
                         <input type="number" v-model.number="contagemAtiva[localAtual][item.nome]" inputmode="numeric" placeholder="0">
                     </div>
                 </div>
+                <div v-if="itensDoBlocoAtivo.length === 0" class="empty-msg">
+                    Sem itens neste setor.<br>Vá em Ajustes para cadastrar.
+                </div>
             </div>
+
             <div class="contagem-footer">
                 <button class="btn-cancelar" @click="telaAtiva = null">VOLTAR</button>
                 <button class="btn-primary" @click="gerarResumo">FINALIZAR</button>
             </div>
         </div>
 
-        <div v-if="telaAtiva === 'config'" class="config-area fade-in">
+        <div v-if="telaAtiva === 'config'" class="config-area">
             <div class="config-header-top"><i class="fas fa-tools"></i> <span>Painel de Controle</span></div>
-            
-            <button class="btn-outline full mb-15" @click="mostrarNovidades = true">
-                <i class="fas fa-star"></i> VER NOVIDADES
-            </button>
 
             <div class="config-card">
-                <div class="card-head"><i class="fas fa-dna"></i> <span>DNA de Insumos (Cadastro)</span></div>
+                <div class="card-head"><i class="fas fa-dna"></i> <span>Cadastrar Produto</span></div>
                 <div class="card-body">
-                    <div class="input-field"><label>Nome do Item</label><input v-model="novoInsumo.nome" placeholder="Ex: Mussarela"></div>
+                    <div class="input-field">
+                        <label>Para qual setor?</label>
+                        <select v-model="novoInsumo.bloco">
+                            <option value="" disabled>Selecione...</option>
+                            <option v-for="b in listaTodosBlocos" :value="b.id">{{ b.nome }}</option>
+                        </select>
+                    </div>
+                    <div class="input-field"><label>Nome</label><input v-model="novoInsumo.nome" placeholder="Ex: Detergente"></div>
                     <div class="grid-inputs">
                         <div class="input-field"><label>Conta em</label><input v-model="novoInsumo.un_contagem" placeholder="Un"></div>
                         <div class="input-field"><label>Pede em</label><input v-model="novoInsumo.un_pedido" placeholder="Cx"></div>
                     </div>
-                    <div class="input-field"><label>Fator (Quantos na caixa?)</label><input type="number" v-model="novoInsumo.conversao" inputmode="numeric"></div>
-                    <button class="btn-primary full" @click="adicionarAoDNA">CADASTRAR ITEM</button>
+                    <div class="input-field"><label>Fator Conversão</label><input type="number" v-model="novoInsumo.conversao" inputmode="numeric"></div>
+                    <button class="btn-primary full" @click="adicionarAoDNA">SALVAR ITEM</button>
                     
                     <div class="mini-lista" v-if="usuarioLogado.permissoes.admin">
                         <div v-for="item in catalogoDNA" :key="item.id" class="mini-item">
-                            <span>{{ item.nome }}</span> <i class="fas fa-times" @click="removerDoDNA(item.id)"></i>
+                            <span>{{ item.nome }} <small>({{ item.bloco ? item.bloco.toUpperCase() : 'GERAL' }})</small></span>
+                            <i class="fas fa-times" @click="removerDoDNA(item.id)"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="config-card" v-if="usuarioLogado.permissoes.admin">
-                <div class="card-head"><i class="fas fa-user-shield"></i> <span>Área Administrativa</span></div>
+                <div class="card-head"><i class="fab fa-whatsapp"></i> <span>Telefones de Pedido</span></div>
                 <div class="card-body">
-                    
-                    <h4 class="sub-title">EQUIPE</h4>
-                    <div v-for="u in usuarios" :key="u.id" class="user-manage-card">
-                        <div class="user-header">
-                            <div class="u-info"><strong>{{ u.nome }}</strong><span>PIN: {{ u.pass }}</span></div>
-                            <i class="fas fa-trash-alt text-red" @click="removerUsuario(u.id)"></i>
-                        </div>
-                        <div class="perms-matrix">
-                            <label v-for="b in listaTodosBlocos" :key="b.id" class="perm-label">
-                                <input type="checkbox" v-model="u.permissoes[b.id]" @change="atualizarUsuario(u)"> {{ b.nome }}
-                            </label>
-                            <label class="perm-label admin"><input type="checkbox" v-model="u.permissoes.admin" @change="atualizarUsuario(u)"> ADMIN</label>
-                        </div>
+                    <p class="instr">Cole o mesmo número se o fornecedor for o mesmo.</p>
+                    <div v-for="b in listaTodosBlocos" :key="b.id" class="input-field">
+                        <label>{{ b.nome }}</label>
+                        <input type="tel" v-model="config.destinos[b.id]" placeholder="5543999999999" @change="salvarDestinos">
                     </div>
-                    <button class="btn-outline full mb-15" @click="mostrandoNovoUsuario = true">+ NOVO FUNCIONÁRIO</button>
+                </div>
+            </div>
 
-                    <h4 class="sub-title" style="margin-top:20px">ROTA FÍSICA</h4>
+            <div class="config-card" v-if="usuarioLogado.permissoes.admin">
+                <div class="card-head"><i class="fas fa-route"></i> <span>Rota</span></div>
+                <div class="card-body">
                     <div class="rota-lista">
                         <div v-for="(l, i) in config.rota" :key="i" class="rota-item">
                             <span>{{ l }}</span> <i class="fas fa-trash" @click="removerLocal(i)"></i>
@@ -197,13 +186,30 @@
                         <input v-model="novoLocal" placeholder="Novo Local">
                         <button class="btn-primary" @click="adicionarLocal">ADD</button>
                     </div>
+                </div>
+            </div>
 
+            <div class="config-card" v-if="usuarioLogado.permissoes.admin">
+                <div class="card-head"><i class="fas fa-users-cog"></i> <span>Equipe</span></div>
+                <div class="card-body">
+                    <div v-for="u in usuarios" :key="u.id" class="user-manage-card">
+                        <div class="user-header">
+                            <strong>{{ u.nome }} ({{ u.pass }})</strong>
+                            <i class="fas fa-trash text-red" @click="removerUsuario(u.id)"></i>
+                        </div>
+                        <div class="perms-matrix">
+                            <label v-for="b in listaTodosBlocos" :key="b.id" class="perm-label">
+                                <input type="checkbox" v-model="u.permissoes[b.id]" @change="atualizarUsuario(u)"> {{ b.nome }}
+                            </label>
+                            <label class="perm-label admin"><input type="checkbox" v-model="u.permissoes.admin" @change="atualizarUsuario(u)"> ADMIN</label>
+                        </div>
+                    </div>
+                    <button class="btn-outline full" @click="mostrandoNovoUsuario = true">+ NOVO</button>
                 </div>
             </div>
 
             <button class="btn-danger-ghost full" @click="logout">SAIR DO SISTEMA</button>
         </div>
-
     </div>
 
     <div v-if="mostrandoNovoUsuario" class="modal-backdrop">
@@ -212,19 +218,36 @@
             <div class="modal-content">
                 <div class="input-field"><label>Nome</label><input v-model="novoUser.nome"></div>
                 <div class="input-field"><label>Login</label><input v-model="novoUser.user"></div>
-                <div class="input-field"><label>PIN (4 dígitos)</label><input v-model="novoUser.pass" maxlength="4" inputmode="numeric"></div>
-                <button class="btn-primary full" @click="criarUsuario">CRIAR ACESSO</button>
+                <div class="input-field"><label>PIN</label><input v-model="novoUser.pass" maxlength="4" inputmode="numeric"></div>
+                <button class="btn-primary full" @click="criarUsuario">CRIAR</button>
             </div>
         </div>
     </div>
 
     <div v-if="mostrandoResumo" class="modal-backdrop">
         <div class="modal-window">
-            <div class="modal-top"><h3>Resumo do Pedido</h3></div>
+            <div class="modal-top"><h3>Enviar Pedido</h3></div>
             <div class="modal-content">
                 <pre class="whatsapp-preview">{{ textoWhatsApp }}</pre>
-                <button class="btn-whatsapp full" @click="enviarWhatsApp">ENVIAR PEDIDO</button>
+                <div class="input-field">
+                    <label>Enviando para:</label>
+                    <input type="text" v-model="numeroDestinoAtual" readonly style="background:#eee; text-align:center; font-weight:bold;">
+                </div>
+                <button class="btn-whatsapp full" @click="enviarWhatsApp">ENVIAR AGORA</button>
                 <button class="btn-cancelar full" @click="mostrandoResumo = false" style="margin-top:10px">VOLTAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="mostrandoHistorico" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false">×</button></div>
+            <div class="modal-content">
+                <div v-for="h in historico" :key="h.id" class="history-card">
+                    <div class="h-head"><span>{{ h.data }}</span><strong>{{ h.usuario }}</strong></div>
+                    <p>{{ h.itens }}</p>
+                </div>
+                <div v-if="historico.length === 0" class="empty-msg">Nenhum registro.</div>
             </div>
         </div>
     </div>

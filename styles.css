@@ -12,7 +12,6 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #33
 .input-group { display: flex; align-items: center; background: #F9F9F9; padding: 12px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #DDD; }
 .input-group input { border: none; background: transparent; width: 100%; text-align: center; outline: none; font-size: 1rem; }
 .btn-entrar { width: 100%; padding: 15px; background: var(--ita-green); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
-.terms-link { font-size: 0.75rem; color: #888; margin-top: 15px; } .terms-link span { color: var(--ita-green); text-decoration: underline; cursor: pointer; }
 
 /* Header & Dashboard */
 .app-header { background: var(--dark); color: white; padding: 15px; border-radius: 0 0 20px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -52,18 +51,11 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #33
 .item-input-box input { width: 60px; padding: 8px; text-align: center; border-radius: 8px; border: 1px solid #DDD; font-weight: 800; }
 .contagem-footer { position: fixed; bottom: 0; width: 100%; max-width: 480px; background: white; padding: 15px; display: flex; gap: 10px; border-top: 1px solid #eee; z-index: 90; }
 
-/* Novidades Modal */
-.news-icon { font-size: 50px; color: var(--gold); margin-bottom: 15px; text-align: center; }
-.news-list { text-align: left; list-style: none; padding: 0; margin-bottom: 20px; }
-.news-list li { margin-bottom: 10px; font-size: 0.9rem; }
-.news-list i { color: var(--ita-green); margin-right: 10px; }
-
 /* Colors & Buttons */
 .green { background: var(--ita-green); } .red { background: var(--ita-red); } .gold { background: #D4AF37; } .ice { background: #0ea5e9; }
 .temp { background: #fb7185; } .purple { background: #8b5cf6; } .blue { background: #3b82f6; } .gray { background: #6b7280; } .dark { background: #333; }
 .btn-primary { background: var(--ita-green); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; width: 100%; }
 .btn-outline { background: transparent; color: var(--dark); border: 2px solid var(--dark); padding: 12px; border-radius: 10px; font-weight: 800; }
-.btn-danger { background: var(--ita-red); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; }
 .btn-danger-ghost { background: transparent; color: var(--ita-red); border: 2px solid var(--ita-red); padding: 12px; border-radius: 10px; font-weight: 800; margin-top: 20px; }
 .btn-cancelar { flex: 1; padding: 15px; border-radius: 12px; border: none; background: #e2e8f0; color: #475569; font-weight: 800; }
 .btn-whatsapp { background: #25D366; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 800; font-size: 1rem; }
@@ -77,8 +69,18 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: #000; color: #33
 .whatsapp-preview { background: #F0F0F0; padding: 15px; white-space: pre-wrap; font-size: 0.8rem; border-radius: 10px; margin-bottom: 15px; border: 1px solid #ddd; }
 .notification-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 20px; border-radius: 30px; display: flex; align-items: center; gap: 10px; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-size: 0.85rem; font-weight: 600; }
 .notification-toast.success { background: var(--ita-green); }
-.install-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 3000; }
-.install-content i { font-size: 24px; color: var(--ita-green); margin-right: 10px; }
-.install-banner button { background: var(--dark); color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 700; }
 
+/* TELA DE SUCESSO ANIMADA */
+.success-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 5000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+.success-card { background: white; padding: 30px; border-radius: 30px; text-align: center; width: 200px; animation: zoomIn 0.3s; }
+.success-card h3 { margin: 15px 0 0; color: var(--ita-green); font-weight: 900; }
+.checkmark-circle { width: 80px; height: 80px; position: relative; display: inline-block; vertical-align: top; margin: auto; }
+.checkmark-circle .checkmark.draw:after { animation-duration: 800ms; animation-timing-function: ease; animation-name: checkmark; transform: scaleX(-1) rotate(135deg); }
+.checkmark-circle .checkmark:after { opacity: 1; height: 40px; width: 20px; transform-origin: left top; border-right: 5px solid var(--ita-green); border-top: 5px solid var(--ita-green); content: ''; left: 20px; top: 40px; position: absolute; }
+@keyframes checkmark { 0% { height: 0; width: 0; opacity: 1; } 20% { height: 0; width: 20px; opacity: 1; } 40% { height: 40px; width: 20px; opacity: 1; } 100% { height: 40px; width: 20px; opacity: 1; } }
 @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+/* Fix Select */
+select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.9rem; -webkit-appearance: none; }
+.instr { font-size: 0.8rem; color: #666; margin-bottom: 10px; font-style: italic; }
+.empty-msg { text-align: center; color: #999; font-size: 0.9rem; margin-top: 20px; font-style: italic; }
