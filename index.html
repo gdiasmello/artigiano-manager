@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PiZZA Master V1.5</title>
+    <title>PiZZA Master V1.6.1</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,10 +19,21 @@
 <body>
 <div id="app" v-cloak>
 
-    <div v-if="mostrarSucesso" class="success-overlay fade-in">
-        <div class="success-card">
-            <div class="checkmark-circle"><div class="checkmark draw"></div></div>
-            <h3>Salvo!</h3>
+    <div v-if="atualizandoApp" class="update-screen">
+        <div class="pizza-loader"><i class="fas fa-pizza-slice"></i><div class="progress-bar"><div class="fill"></div></div><p>ATUALIZANDO...</p></div>
+    </div>
+
+    <div v-if="mostrarNovidades" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Novidades V1.6.1</h3></div>
+            <div class="modal-content">
+                <ul class="news-list">
+                    <li><i class="fas fa-check-circle"></i> <strong>Gestão de Equipe:</strong> Painel de usuários restaurado nas configurações.</li>
+                    <li><i class="fas fa-check-circle"></i> <strong>Vibração:</strong> Feedback tátil nas ações.</li>
+                    <li><i class="fas fa-check-circle"></i> <strong>Sacolão Isolado:</strong> Itens organizados por setor.</li>
+                </ul>
+                <button class="btn-primary full" @click="fecharNovidades">OK</button>
+            </div>
         </div>
     </div>
 
@@ -30,17 +41,23 @@
         <i :class="notificacao.icone"></i><span>{{ notificacao.texto }}</span>
     </div>
 
+    <div v-if="mostrarSucesso" class="success-overlay fade-in">
+        <div class="success-card">
+            <div class="checkmark-circle"><div class="checkmark draw"></div></div><h3>Salvo!</h3>
+        </div>
+    </div>
+
     <div v-if="!sessaoAtiva" class="login-screen">
         <div class="italy-stripe-top"></div>
         <div class="brand-box">
             <div class="logo-circle"><i class="fas fa-pizza-slice"></i></div>
             <h1>PiZZA <span>Mas</span><i>ter</i></h1>
-            <p>ARTIGIANO · v1.5</p>
+            <p>ARTIGIANO · v1.6.1</p>
         </div>
         <div class="login-card" :class="{ 'shake-error': loginErro }">
             <div class="input-group"><i class="fas fa-user"></i><input type="text" v-model="loginUser" placeholder="Usuário"></div>
             <div class="input-group"><i class="fas fa-lock"></i><input type="password" v-model="loginPass" placeholder="PIN" maxlength="4" inputmode="numeric"></div>
-            <button @click="efetuarLogin" class="btn-entrar">ENTRAR NA COZINHA</button>
+            <button @click="efetuarLogin" class="btn-entrar">ENTRAR</button>
             <p v-if="msgAuth" class="error-msg">{{ msgAuth }}</p>
         </div>
         <div class="italy-stripe-bottom"></div>
@@ -65,55 +82,38 @@
 
         <div v-if="telaAtiva === 'gelo'" class="gelo-area">
             <div class="gelo-card">
-                <i class="fas fa-cube big-icon"></i>
-                <h3>Estoque de Gelo</h3>
-                <p>Meta da Loja: <strong>8 Sacos</strong></p>
-                
-                <div class="input-gelo-wrapper">
-                    <label>Quantos sacos temos agora?</label>
-                    <input type="number" v-model.number="qtdGeloAtual" inputmode="numeric" placeholder="0">
-                </div>
-
-                <div class="resultado-gelo" v-if="qtdGeloAtual !== null && qtdGeloAtual !== ''">
-                    <span v-if="8 - qtdGeloAtual > 0">FALTA PEDIR: <strong>{{ 8 - qtdGeloAtual }}</strong> SACOS</span>
-                    <span v-else class="text-ok">ESTOQUE COMPLETO! ✅</span>
-                </div>
+                <i class="fas fa-cube big-icon"></i><h3>Gelo</h3><p>Meta: <strong>8 Sacos</strong></p>
+                <div class="input-gelo-wrapper"><label>Atual:</label><input type="number" v-model.number="qtdGeloAtual" inputmode="numeric" placeholder="0"></div>
+                <div class="resultado-gelo" v-if="qtdGeloAtual !== null"><span v-if="8 - qtdGeloAtual > 0">PEDIR: <strong>{{ 8 - qtdGeloAtual }}</strong></span><span v-else class="text-ok">OK! ✅</span></div>
             </div>
-            <button class="btn-primary full" @click="enviarPedidoGelo">ENVIAR PEDIDO</button>
+            <button class="btn-primary full" @click="enviarPedidoGelo">ENVIAR</button>
             <button class="btn-cancelar full mt-10" @click="telaAtiva = null">VOLTAR</button>
         </div>
 
         <div v-if="telaAtiva === 'checklist'" class="checklist-area">
             <div class="checklist-card">
-                <h3><i class="fas fa-tasks"></i> Rotina Diária</h3>
+                <h3><i class="fas fa-tasks"></i> Rotina</h3>
                 <div class="check-list-container">
-                    <div v-for="(task, i) in checklistItens" :key="i" class="check-item">
-                        <input type="checkbox" v-model="task.feito" :id="'chk'+i">
-                        <label :for="'chk'+i" :class="{ riscado: task.feito }">{{ task.texto }}</label>
+                    <div v-for="(task, i) in checklistItens" :key="i" class="check-item" @click="vibrar">
+                        <input type="checkbox" v-model="task.feito" :id="'chk'+i"><label :for="'chk'+i" :class="{ riscado: task.feito }">{{ task.texto }}</label>
                     </div>
                 </div>
             </div>
-            <button class="btn-primary full" @click="salvarChecklist">SALVAR NO HISTÓRICO</button>
+            <button class="btn-primary full" @click="salvarChecklist">CONCLUIR</button>
             <button class="btn-cancelar full mt-10" @click="telaAtiva = null">VOLTAR</button>
         </div>
 
         <div v-if="telaAtiva === 'producao'" class="producao-area">
             <div class="producao-card">
-                <div class="prod-header"><i class="fas fa-calculator"></i> Calculadora de Massa</div>
+                <div class="prod-header"><i class="fas fa-calculator"></i> Massa</div>
                 <div class="prod-body">
-                    <div class="input-bolinhas">
-                        <label>Quantas bolinhas hoje?</label>
-                        <div class="input-wrapper">
-                            <input type="number" v-model.number="qtdBolinhas" inputmode="numeric">
-                            <span>UN</span>
-                        </div>
-                    </div>
+                    <div class="input-bolinhas"><label>Bolinhas:</label><div class="input-wrapper"><input type="number" v-model.number="qtdBolinhas" inputmode="numeric"><span>UN</span></div></div>
                     <div class="receita-box" v-if="qtdBolinhas > 0">
-                        <div class="ingrediente-row"><span>Farinha</span><strong>{{ receita.farinha }} g</strong></div>
-                        <div class="ingrediente-row highlight"><span>Água (Líq)</span><strong>{{ receita.agua }} g</strong></div>
-                        <div class="ingrediente-row highlight-blue"><span>Gelo (30%)</span><strong>{{ receita.gelo }} g</strong></div>
-                        <div class="ingrediente-row"><span>Levain</span><strong>{{ receita.levain }} g</strong></div>
-                        <div class="ingrediente-row"><span>Sal</span><strong>{{ receita.sal }} g</strong></div>
+                        <div class="ingrediente-row"><span>Farinha</span><strong>{{ receita.farinha }}g</strong></div>
+                        <div class="ingrediente-row highlight"><span>Água</span><strong>{{ receita.agua }}g</strong></div>
+                        <div class="ingrediente-row highlight-blue"><span>Gelo</span><strong>{{ receita.gelo }}g</strong></div>
+                        <div class="ingrediente-row"><span>Levain</span><strong>{{ receita.levain }}g</strong></div>
+                        <div class="ingrediente-row"><span>Sal</span><strong>{{ receita.sal }}g</strong></div>
                     </div>
                 </div>
             </div>
@@ -121,118 +121,143 @@
         </div>
 
         <div v-if="telaAtiva && !['config','producao','gelo','checklist'].includes(telaAtiva)" class="contagem-area">
-            <div class="rota-tabs">
-                <button v-for="(local, idx) in config.rota" :key="idx" :class="{ active: localAtual === local }" @click="localAtual = local">{{ local }}</button>
-            </div>
-            
+            <div class="rota-tabs"><button v-for="(local, idx) in config.rota" :key="idx" :class="{ active: localAtual === local }" @click="localAtual = local">{{ local }}</button></div>
             <div class="lista-contagem">
                 <div v-for="item in itensDoLocalAtivo" :key="item.id" class="item-card-contagem">
                     <div class="item-top">
-                        <div class="item-info">
-                            <strong>{{ item.nome }}</strong>
-                            <small>Meta: {{ item.meta }} {{ item.un_contagem }}</small>
-                        </div>
-                        <div class="item-input-box">
-                            <input type="number" v-model.number="contagemAtiva[localAtual][item.nome]" inputmode="numeric" placeholder="0">
-                        </div>
+                        <div class="item-info"><strong>{{ item.nome }}</strong><small>Meta: {{ item.meta }} {{ item.un_contagem }}</small></div>
+                        <div class="item-input-box"><input type="number" v-model.number="contagemAtiva[localAtual][item.nome]" inputmode="numeric" placeholder="0"></div>
                     </div>
-                    <div class="item-obs">
-                        <input type="text" v-model="obsPorItem[localAtual][item.nome]" placeholder="Obs (vencimento, avaria...)">
-                    </div>
+                    <div class="item-obs"><input type="text" v-model="obsPorItem[localAtual][item.nome]" placeholder="Obs..."></div>
                 </div>
-                <div v-if="itensDoLocalAtivo.length === 0" class="empty-msg">
-                    Nenhum item de {{ telaAtiva.toUpperCase() }} neste local.
-                </div>
+                <div v-if="itensDoLocalAtivo.length === 0" class="empty-msg">Vazio neste local.</div>
             </div>
-
-            <div class="contagem-footer">
-                <button class="btn-cancelar" @click="telaAtiva = null">VOLTAR</button>
-                <button class="btn-primary" @click="gerarResumo">AVANÇAR</button>
-            </div>
+            <div class="contagem-footer"><button class="btn-cancelar" @click="telaAtiva = null">VOLTAR</button><button class="btn-primary" @click="gerarResumo">AVANÇAR</button></div>
         </div>
 
         <div v-if="telaAtiva === 'config'" class="config-area">
-            <div class="config-header-top"><i class="fas fa-tools"></i> <span>Painel de Controle</span></div>
+            <div class="config-header-top"><i class="fas fa-tools"></i> <span>Ajustes</span></div>
 
             <div class="config-card">
-                <div class="card-head"><i class="fas fa-plus-circle"></i> <span>Novo Produto</span></div>
-                <div class="card-body">
-                    <div class="input-field"><label>Nome do Produto</label><input v-model="novoInsumo.nome" placeholder="Ex: Detergente"></div>
+                <div class="card-head" @click="toggleConfig('dna')">
+                    <i class="fas fa-plus-circle"></i> <span>Novo Produto</span>
+                    <i :class="configAberto === 'dna' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" style="margin-left:auto"></i>
+                </div>
+                <div class="card-body" v-if="configAberto === 'dna'">
+                    <div class="input-field"><label>Nome</label><input v-model="novoInsumo.nome"></div>
                     <div class="input-field"><label>Setor</label>
                         <select v-model="novoInsumo.bloco">
                             <option v-for="b in listaTodosBlocos" :value="b.id" v-show="b.id !== 'gelo' && b.id !== 'checklist'">{{ b.nome }}</option>
                         </select>
                     </div>
-                    <div class="input-field"><label>Locais de Armazenamento</label>
+                    <div class="input-field"><label>Locais</label>
                         <div class="checkbox-grid">
-                            <label v-for="local in config.rota" :key="local" class="check-box-item">
-                                <input type="checkbox" :value="local" v-model="novoInsumo.locais"> {{ local }}
-                            </label>
+                            <label v-for="local in config.rota" :key="local" class="check-box-item"><input type="checkbox" :value="local" v-model="novoInsumo.locais"> {{ local }}</label>
                         </div>
                     </div>
                     <div class="grid-inputs">
-                        <div class="input-field"><label>Conta em</label><input v-model="novoInsumo.un_contagem" placeholder="Un/Lt"></div>
+                        <div class="input-field"><label>Conta</label><input v-model="novoInsumo.un_contagem"></div>
                         <div class="input-field"><label>Meta</label><input type="number" v-model="novoInsumo.meta"></div>
                     </div>
                     <div class="input-field"><label>Pede em</label>
                         <select v-model="novoInsumo.tipo_calculo">
-                            <option value="direto">Igual (Direto)</option>
+                            <option value="direto">Igual</option>
                             <option value="cx">Caixa/Fardo</option>
-                            <option value="kg">Quilo (Kg)</option>
+                            <option value="kg">Quilo</option>
                         </select>
                     </div>
                     <div class="grid-inputs" v-if="novoInsumo.tipo_calculo !== 'direto'">
-                        <div class="input-field"><label>Fator Conversão</label><input type="number" v-model="novoInsumo.fator"></div>
+                        <div class="input-field"><label>Fator</label><input type="number" v-model="novoInsumo.fator"></div>
                     </div>
                     <button class="btn-primary full mt-10" @click="adicionarAoDNA">CADASTRAR</button>
                     
                     <div class="mini-lista" v-if="usuarioLogado.permissoes.admin">
                         <div v-for="item in catalogoDNA" :key="item.id" class="mini-item">
-                            <span>{{ item.nome }} <small>({{ item.bloco ? item.bloco.toUpperCase() : '' }})</small></span>
-                            <i class="fas fa-trash text-red" @click="removerDoDNA(item.id)"></i>
+                            <span>{{ item.nome }}</span> <i class="fas fa-trash text-red" @click="removerDoDNA(item.id)"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="config-card" v-if="usuarioLogado.permissoes.admin">
-                <div class="card-head"><i class="fas fa-cogs"></i> <span>Configuração Avançada</span></div>
-                <div class="card-body">
-                    <h4 class="sub-title">Telefones WhatsApp</h4>
-                    <p class="instr">Cole o número (55+DDD+Nº). Limpeza e Insumos podem ser o mesmo.</p>
-                    <div v-for="b in listaTodosBlocos" :key="b.id" class="input-field" v-show="b.id !== 'checklist'">
-                        <label>{{ b.nome }}</label>
-                        <input type="tel" v-model="config.destinos[b.id]" @change="salvarDestinos">
+                <div class="card-head" @click="toggleConfig('equipe')">
+                    <i class="fas fa-users-cog"></i> <span>Gestão de Equipe</span>
+                    <i :class="configAberto === 'equipe' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" style="margin-left:auto"></i>
+                </div>
+                <div class="card-body" v-if="configAberto === 'equipe'">
+                    <div v-for="u in usuarios" :key="u.id" class="user-manage-card">
+                        <div class="user-header"><strong>{{ u.nome }} ({{ u.pass }})</strong><i class="fas fa-trash text-red" @click="removerUsuario(u.id)"></i></div>
+                        <div class="perms-matrix">
+                            <label v-for="b in listaTodosBlocos" :key="b.id" class="perm-label">
+                                <input type="checkbox" v-model="u.permissoes[b.id]" @change="atualizarUsuario(u)"> {{ b.nome }}
+                            </label>
+                            <label class="perm-label admin"><input type="checkbox" v-model="u.permissoes.admin" @change="atualizarUsuario(u)"> ADMIN</label>
+                        </div>
                     </div>
-                    
+                    <button class="btn-outline full mt-10" @click="mostrandoNovoUsuario = true">+ NOVO FUNCIONÁRIO</button>
+                </div>
+            </div>
+
+            <div class="config-card" v-if="usuarioLogado.permissoes.admin">
+                <div class="card-head" @click="toggleConfig('geral')">
+                    <i class="fas fa-cogs"></i> <span>Rota & Checklist</span>
+                    <i :class="configAberto === 'geral' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" style="margin-left:auto"></i>
+                </div>
+                <div class="card-body" v-if="configAberto === 'geral'">
+                    <h4 class="sub-title">Checklist</h4>
+                    <div v-for="(task, i) in config.checklist" :key="i" class="mini-item">
+                        <span>{{ task }}</span> <i class="fas fa-trash text-red" @click="removerChecklist(i)"></i>
+                    </div>
+                    <div class="add-local-row mt-10"><input v-model="novaTarefa" placeholder="Nova Tarefa"><button class="btn-primary" @click="adicionarChecklist">ADD</button></div>
+
+                    <h4 class="sub-title mt-10">WhatsApp</h4>
+                    <div v-for="b in listaTodosBlocos" :key="b.id" class="input-field" v-show="b.id !== 'checklist'">
+                        <label>{{ b.nome }}</label><input type="tel" v-model="config.destinos[b.id]" @change="salvarDestinos">
+                    </div>
+
                     <h4 class="sub-title mt-10">Rota Física</h4>
                     <div class="rota-lista">
-                        <div v-for="(l, i) in config.rota" :key="i" class="rota-item">
-                            <span>{{ l }}</span> <i class="fas fa-trash" @click="removerLocal(i)"></i>
-                        </div>
+                        <div v-for="(l, i) in config.rota" :key="i" class="rota-item"><span>{{ l }}</span> <i class="fas fa-trash" @click="removerLocal(i)"></i></div>
                     </div>
                     <div class="add-local-row"><input v-model="novoLocal"><button class="btn-primary" @click="adicionarLocal">ADD</button></div>
                 </div>
             </div>
 
+            <div class="config-card">
+                <div class="card-head" @click="toggleConfig('perfil')">
+                    <i class="fas fa-user-circle"></i> <span>Meu Perfil</span>
+                    <i :class="configAberto === 'perfil' ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" style="margin-left:auto"></i>
+                </div>
+                <div class="card-body" v-if="configAberto === 'perfil'">
+                    <div class="input-field"><label>Alterar PIN</label><input type="password" v-model="usuarioLogado.pass" maxlength="4" inputmode="numeric"></div>
+                    <button class="btn-primary full" @click="atualizarUsuario(usuarioLogado)">SALVAR</button>
+                </div>
+            </div>
+
+            <button class="btn-outline full mt-10" @click="mostrandoTermos = true">TERMOS DE USO</button>
             <button class="btn-danger-ghost full" @click="logout">SAIR</button>
+        </div>
+    </div>
+
+    <div v-if="mostrandoNovoUsuario" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Novo Funcionário</h3><button @click="mostrandoNovoUsuario = false">×</button></div>
+            <div class="modal-content">
+                <div class="input-field"><label>Nome</label><input v-model="novoUser.nome"></div>
+                <div class="input-field"><label>Login</label><input v-model="novoUser.user"></div>
+                <div class="input-field"><label>PIN</label><input v-model="novoUser.pass" maxlength="4" inputmode="numeric"></div>
+                <button class="btn-primary full" @click="criarUsuario">CRIAR</button>
+            </div>
         </div>
     </div>
 
     <div v-if="mostrandoResumo" class="modal-backdrop">
         <div class="modal-window">
-            <div class="modal-top"><h3>Enviar Pedido</h3></div>
+            <div class="modal-top"><h3>Resumo</h3></div>
             <div class="modal-content">
                 <pre class="whatsapp-preview">{{ textoWhatsApp }}</pre>
-                <div class="input-field">
-                    <label>Algo mais?</label>
-                    <textarea v-model="itensExtras" rows="2" placeholder="Ex: Lâmpada, Vassoura..." @input="atualizarTextoFinal"></textarea>
-                </div>
-                <div class="input-field mt-10">
-                    <label>Destino:</label>
-                    <input type="text" v-model="numeroDestinoAtual" readonly style="background:#eee; text-align:center; font-weight:bold;">
-                </div>
-                <button class="btn-whatsapp full" @click="enviarWhatsApp">ENVIAR</button>
+                <div class="input-field"><label>Algo mais?</label><textarea v-model="itensExtras" rows="2" @input="atualizarTextoFinal"></textarea></div>
+                <button class="btn-whatsapp full mt-10" @click="enviarWhatsApp">ENVIAR</button>
                 <button class="btn-cancelar full mt-10" @click="mostrandoResumo = false">VOLTAR</button>
             </div>
         </div>
@@ -243,9 +268,19 @@
             <div class="modal-top"><h3>Histórico</h3><button @click="mostrandoHistorico = false">×</button></div>
             <div class="modal-content">
                 <div v-for="h in historico" :key="h.id" class="history-card">
-                    <div class="h-head"><span>{{ h.data }}</span><strong>{{ h.usuario }}</strong></div>
-                    <p>{{ h.itens }}</p>
+                    <div class="h-head"><span>{{ h.data }}</span><strong>{{ h.usuario }}</strong></div><p>{{ h.itens }}</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="mostrandoTermos" class="modal-backdrop">
+        <div class="modal-window">
+            <div class="modal-top"><h3>Termos de Uso</h3></div>
+            <div class="modal-content">
+                <p><strong>1. Propriedade:</strong> Software desenvolvido por Gabriel.</p>
+                <p><strong>2. Uso:</strong> Conferência final é responsabilidade do operador.</p>
+                <button class="btn-primary full" @click="mostrandoTermos = false">FECHAR</button>
             </div>
         </div>
     </div>
