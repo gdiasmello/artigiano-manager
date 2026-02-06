@@ -13,16 +13,10 @@
             font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: contain;
+            transition: background-color 0.5s ease;
         }
         .italy-gradient {
             background: linear-gradient(to right, #008C45 33.3%, #FDFBF7 33.3%, #FDFBF7 66.6%, #CD212A 66.6%);
-        }
-        .pizza-loader {
-            animation: spin 2s infinite linear;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
         @keyframes shake {
             10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -31,13 +25,28 @@
         .shake-error {
             animation: shake 0.4s both;
         }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .dark-inventory input {
+            background: rgba(255,255,255,0.05) !important;
+            border-color: rgba(255,255,255,0.1) !important;
+            color: white !important;
+        }
+        .dark-inventory .bg-white {
+            background: #1E1E1E !important;
+            border-color: rgba(255,255,255,0.05) !important;
+        }
+        .dark-inventory h4 { color: white !important; }
+        .dark-inventory .bg-gray-50 { background: rgba(255,255,255,0.02) !important; }
     </style>
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.4",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^0.21.0"
   }
 }
 </script>

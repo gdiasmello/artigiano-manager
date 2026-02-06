@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { BlocoId } from './types';
+import { BlocoId, User, Permissions } from './types';
 
 export const COLORS = {
   GREEN: '#008C45',
@@ -20,13 +19,44 @@ export const BLOCAS_CONFIG = [
   { id: BlocoId.LIMPEZA, nome: 'LIMPEZA', icon: 'fa-hands-bubbles', color: 'bg-[#3b82f6]' }
 ];
 
-export const MASTER_USER = {
+export const PERMISSION_PRESETS: Record<string, Permissions> = {
+  pizzaiolo: {
+    admin: false,
+    gerente: false,
+    [BlocoId.SACOLAO]: true,
+    [BlocoId.INSUMOS]: true,
+    [BlocoId.PRODUCAO]: true,
+    [BlocoId.GELO]: true,
+  },
+  atendente: {
+    admin: false,
+    gerente: false,
+    [BlocoId.BEBIDAS]: true,
+    [BlocoId.LIMPEZA]: true,
+    [BlocoId.CHECKLIST]: true,
+  },
+  gerente: {
+    admin: false,
+    gerente: true,
+    [BlocoId.SACOLAO]: true,
+    [BlocoId.INSUMOS]: true,
+    [BlocoId.PRODUCAO]: true,
+    [BlocoId.GELO]: true,
+    [BlocoId.BEBIDAS]: true,
+    [BlocoId.LIMPEZA]: true,
+    [BlocoId.CHECKLIST]: true,
+  }
+};
+
+export const MASTER_USER: User = {
   id: 'master',
   nome: 'Gabriel',
   user: 'gabriel',
   pass: '1821',
+  cargo: 'admin',
   permissoes: {
     admin: true,
+    gerente: true,
     sacolao: true,
     insumos: true,
     producao: true,

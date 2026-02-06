@@ -15,9 +15,12 @@ export enum CalcType {
   KG = 'kg'
 }
 
+export type UserCargo = 'admin' | 'gerente' | 'pizzaiolo' | 'atendente';
+
 export interface Permissions {
   admin: boolean;
-  [key: string]: boolean;
+  gerente: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export interface User {
@@ -25,7 +28,7 @@ export interface User {
   nome: string;
   user: string;
   pass: string;
-  cargo?: string;
+  cargo: UserCargo;
   permissoes: Permissions;
 }
 
@@ -44,13 +47,17 @@ export interface Config {
   rota: string[];
   destinos: Record<string, string>;
   checklist: string[];
+  notices: string;
+  isLocked: boolean;
 }
 
 export interface HistoryRecord {
   id: string;
   data: string;
+  timestamp: number;
   usuario: string;
   itens: string;
+  localizacao?: string;
 }
 
 export interface ContagemState {
