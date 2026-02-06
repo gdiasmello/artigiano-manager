@@ -1,12 +1,41 @@
-import { db } from './js/firebase-config.js';
-import { initialData } from './js/data-models.js';
-import { authMethods } from './js/auth-methods.js';
-import { estoqueMethods } from './js/estoque-methods.js'; // Vamos criar este abaixo
+const firebaseConfig = {
+  apiKey: "AIzaSyBL70gtkhjBvC9BiKvz5HBivH07JfRKuo4",
+  authDomain: "artigiano-app.firebaseapp.com",
+  databaseURL: "https://artigiano-app-default-rtdb.firebaseio.com",
+  projectId: "artigiano-app",
+  storageBucket: "artigiano-app.firebasestorage.app",
+  messagingSenderId: "212218495726",
+  appId: "1:212218495726:web:dd6fec7a4a8c7ad572a9ff"
+};
 
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 const { createApp } = Vue;
 
 createApp({
-    data() { return { ...initialData }; },
+    data() {
+        return {
+            versionNum: '1.8.0',
+            versionName: 'Gestão Premium',
+            atualizandoApp: false, mostrarNovidades: false,
+            sessaoAtiva: false, telaAtiva: null,
+            usuarioLogado: null, loginUser: '', loginPass: '', msgAuth: '', loginErro: false,
+            localAtual: '', contagemAtiva: {}, obsPorItem: {}, 
+            mostrandoResumo: false, textoWhatsApp: '',
+            mostrandoHistorico: false, mostrarSucesso: false,
+            qtdGeloAtual: null,
+            listaTodosBlocos: [
+                { id: 'sacolao', nome: 'SACOLÃO', icon: 'fas fa-leaf', cor: 'green' },
+                { id: 'insumos', nome: 'INSUMOS', icon: 'fas fa-box', cor: 'red' },
+                { id: 'producao', nome: 'PRODUÇÃO', icon: 'fas fa-mortar-pestle', cor: 'gold' },
+                { id: 'gelo', nome: 'GELO', icon: 'fas fa-cube', cor: 'ice' },
+                { id: 'checklist', nome: 'CHECKLIST', icon: 'fas fa-clipboard-check', cor: 'temp' },
+                { id: 'bebidas', nome: 'BEBIDAS', icon: 'fas fa-wine-bottle', cor: 'purple' },
+                { id: 'limpeza', nome: 'LIMPEZA', icon: 'fas fa-hands-bubbles', cor: 'blue' }
+            ],
+            usuarios: [], catalogoDNA: [], config: { rota: ['Geral'], destinos: {} }, historico: []
+        }
+    },
     computed: {
         fullVersion() { return `v${this.versionNum} • ${this.versionName}`; },
         blocosPermitidos() {
@@ -15,62 +44,55 @@ createApp({
         },
         tituloTela() {
             if (this.telaAtiva === 'config') return 'AJUSTES';
-            const bloco = this.listaTodosBlocos.find(b => b.id === this.telaAtiva);
-            return bloco ? bloco.nome : 'PIZZA MASTER';
-        },
-        itensDoLocalAtivo() {
-            if (!this.telaAtiva || ['config','producao','gelo','checklist'].includes(this.telaAtiva)) return [];
-            return this.catalogoDNA.filter(item => {
-                if (this.telaAtiva === 'sacolao' && item.bloco !== 'sacolao') return false;
-                if (this.telaAtiva !== 'sacolao' && item.bloco === 'sacolao') return false;
-                const pertenceLocal = item.locais && item.locais.includes(this.localAtual);
-                const legado = (!item.locais || item.locais.length === 0) && this.localAtual === this.config.rota[0];
-                return item.bloco === this.telaAtiva && (pertenceLocal || legado);
-            });
-        },
-        receita() {
-            const farinha = Math.ceil(this.qtdBolinhas * 133);
-            const totalAgua = Math.ceil(farinha * 0.70);
-            return { farinha, sal: Math.ceil(this.qtdBolinhas * 4), levain: Math.ceil(farinha * 0.06), agua: Math.ceil(totalAgua * 0.70), gelo: Math.ceil(totalAgua * 0.30) };
+            const b = this.listaTodosBlocos.find(x => x.id === this.telaAtiva);
+            return b ? b.nome : 'PIZZA MASTER';
         }
     },
     methods: {
-        ...authMethods,
-        ...estoqueMethods,
-        
-        vibrar() { if (navigator.vibrate) navigator.vibrate(50); },
-        exibirSucesso() { this.mostrarSucesso = true; this.vibrar(); setTimeout(() => this.mostrarSucesso = false, 1500); },
-        toggleConfig(id) { this.configAberto = this.configAberto === id ? null : id; },
-        
-        verificarVersao() {
-            const last = localStorage.getItem('artigiano_version');
-            if (last !== this.fullVersion) { 
-                this.atualizandoApp = true; 
-                setTimeout(() => { 
-                    this.atualizandoApp = false; 
-                    this.mostrarNovidades = true; 
-                    localStorage.setItem('artigiano_version', this.fullVersion); 
-                }, 3000); 
+        efetuarLogin() {
+            this.msgAuth = "";
+            const u = this.loginUser.trim().toLowerCase();
+            const p = String(this.loginPass).trim();
+
+            // Login Mestre (Gabriel)
+            if (u === 'gabriel' && p === '1821') {
+                this.entrar({ nome: 'Gabriel', user: 'gabriel', permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, checklist: true, bebidas: true, limpeza: true } });
+                return;
+            }
+
+            // Login Funcionários
+            const user = this.usuarios.find(x => x.user.toLowerCase() === u && String(x.pass) === p);
+            if (user) {
+                this.entrar(user);
+            } else {
+                this.loginErro = true;
+                this.msgAuth = "PIN INVÁLIDO";
+                setTimeout(() => this.loginErro = false, 500);
             }
         },
-        fecharNovidades() { this.mostrarNovidades = false; },
-
+        entrar(user) {
+            this.usuarioLogado = user;
+            this.sessaoAtiva = true;
+            localStorage.setItem('artigiano_session_v1', JSON.stringify(user));
+        },
+        logout() {
+            localStorage.removeItem('artigiano_session_v1');
+            location.reload();
+        },
+        abrirBloco(id) {
+            this.telaAtiva = id;
+            if (id === 'gelo') this.qtdGeloAtual = null;
+        },
+        voltarInicio() { this.telaAtiva = null; },
         sincronizar() {
             db.ref('usuarios').on('value', s => { const d=s.val(); this.usuarios = d ? Object.keys(d).map(k=>({...d[k], id:k})) : []; });
             db.ref('catalogoDNA').on('value', s => { const d=s.val(); this.catalogoDNA = d ? Object.keys(d).map(k=>({...d[k], id:k})) : []; });
-            db.ref('config').on('value', s => { const d=s.val() || {}; this.config.rota = d.rota || ['Geral']; this.config.destinos = d.destinos || {}; this.config.checklist = d.checklist || []; });
-            db.ref('historico').limitToLast(50).on('value', s => { const d=s.val(); this.historico = d ? Object.values(d).reverse() : []; });
+            db.ref('config').on('value', s => { const d=s.val() || {}; this.config.rota = d.rota || ['Geral']; this.config.destinos = d.destinos || {}; });
         }
     },
     mounted() {
         this.sincronizar();
         const s = localStorage.getItem('artigiano_session_v1');
-        if(s) { this.usuarioLogado = JSON.parse(s); this.sessaoAtiva = true; this.verificarVersao(); }
-        
-        document.body.style.overscrollBehavior = 'none';
-        window.history.pushState(null, null, window.location.href);
-        window.onpopstate = () => {
-            if(this.telaAtiva) { this.telaAtiva = null; window.history.pushState(null, null, window.location.href); }
-        };
+        if (s) { this.usuarioLogado = JSON.parse(s); this.sessaoAtiva = true; }
     }
 }).mount('#app');
