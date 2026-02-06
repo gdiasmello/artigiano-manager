@@ -1,0 +1,5 @@
+{
+  "name": "PiZZA Master v1.8.0",
+  "description": "Premium management system for Italian pizzerias, covering inventory, production, and logistics with WhatsApp integration and real-time synchronization features.",
+  "requestFramePermissions": []
+}
