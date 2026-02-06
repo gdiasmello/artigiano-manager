@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { Config, Insumo, BlocoId, ContagemState, ObsState, CalcType } from '../types';
-import { storageService } from '../services/storageService';
 
 interface InventoryScreenProps {
   blocoId: BlocoId;
@@ -20,7 +19,6 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
 
   const itensFiltrados = useMemo(() => {
     return dna.filter(item => {
-      // Logic from legacy: Sacolão is separate, others are grouped or filtered by sector
       if (blocoId === BlocoId.SACOLAO) return item.bloco === BlocoId.SACOLAO && item.locais.includes(localAtual);
       return item.bloco === blocoId && item.locais.includes(localAtual);
     });
@@ -62,13 +60,11 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
     
     let summary = `*${saudacao}! Segue lista (${blocoId.toUpperCase()}):*\n\n`;
     
-    // Aggregate totals from all locations
     const totals: Record<string, number> = {};
     const allObs: Record<string, string[]> = {};
 
     Object.keys(contagem).forEach(loc => {
       Object.entries(contagem[loc]).forEach(([name, val]) => {
-        // Fix: Explicitly cast 'val' as number to resolve type mismatch in arithmetic operation
         totals[name] = (totals[name] || 0) + (val as number);
       });
     });
@@ -77,7 +73,6 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
       Object.entries(obs[loc]).forEach(([name, val]) => {
         if (val) {
           if (!allObs[name]) allObs[name] = [];
-          // Fix: Explicitly cast 'val' as string to resolve type mismatch when pushing to string array
           allObs[name].push(val as string);
         }
       });
@@ -92,10 +87,14 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
         const falta = item.meta - current;
         let finalQtd: number | string = 0;
         let finalUn = '';
+        let calcNote = '';
 
         if (item.tipo_calculo === CalcType.CAIXA) {
           finalQtd = Math.ceil(falta / (item.fator || 1));
-          finalUn = 'Cx';
+          finalUn = 'unidades de compra';
+          if (item.fator > 1) {
+             calcNote = ` (Falta: ${falta}${item.un_contagem} / Fator ${item.fator})`;
+          }
         } else if (item.tipo_calculo === CalcType.KG) {
           finalQtd = (falta * (item.fator || 1)).toFixed(1).replace('.0', '');
           finalUn = 'Kg';
@@ -105,9 +104,9 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
         }
 
         if (Number(finalQtd) > 0) {
-          summary += `• ${finalQtd} ${finalUn} ${item.nome}`;
+          summary += `• ${finalQtd} ${finalUn} ${item.nome}${calcNote}`;
           if (allObs[item.nome]) {
-            summary += ` _(${allObs[item.nome].join(', ')})_`;
+            summary += ` _[Obs: ${allObs[item.nome].join(', ')}]_`;
           }
           summary += `\n`;
           hasItems = true;
@@ -115,8 +114,8 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
       }
     });
 
-    if (!hasItems) summary += "_Estoque em dia! Nada a pedir._\n";
-    summary += `\nObrigado! 🍕`;
+    if (!hasItems) summary += "_Estoque 100% em dia! Nada a pedir._\n";
+    summary += `\nGerado por PiZZA Master Pro 🍕`;
     onFinish(summary);
   };
 
@@ -161,7 +160,7 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
               </div>
               <input
                 type="text"
-                placeholder="Observações..."
+                placeholder="Obs..."
                 className="w-full text-xs p-2 bg-transparent border-b border-gray-200 focus:border-[#008C45] outline-none text-gray-600"
                 value={obs[localAtual]?.[item.nome] || ''}
                 onChange={(e) => handleObsChange(item.nome, e.target.value)}
@@ -169,7 +168,7 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
             </div>
           ))}
           {itensFiltrados.length === 0 && (
-            <p className="text-center py-10 text-gray-400 italic text-sm">Nenhum item deste setor neste local.</p>
+            <p className="text-center py-10 text-gray-400 italic text-sm">Nada para contar aqui.</p>
           )}
         </div>
       </div>
@@ -179,13 +178,13 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
           onClick={onBack}
           className="flex-1 py-4 rounded-xl bg-gray-200 text-gray-600 font-bold hover:bg-gray-300 transition-all"
         >
-          CANCELAR
+          VOLTAR
         </button>
         <button 
           onClick={handleNext}
-          className="flex-1 py-4 rounded-xl bg-[#008C45] text-white font-bold shadow-lg shadow-green-900/20 active:scale-95 transition-all"
+          className="flex-1 py-4 rounded-xl bg-[#008C45] text-white font-bold shadow-lg active:scale-95 transition-all"
         >
-          {localIndex < config.rota.length - 1 ? 'PRÓXIMO' : 'FINALIZAR'}
+          {localIndex < config.rota.length - 1 ? 'PRÓXIMO' : 'FECHAR LISTA'}
         </button>
       </div>
     </div>
