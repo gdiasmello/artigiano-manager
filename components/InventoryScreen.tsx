@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Config, Insumo, BlocoId, ContagemState, ObsState, CalcType } from '../types';
+import { Config, Insumo, BlocoId, ContagemState, ObsState, QualityState, CalcType } from '../types';
 import { audio } from '../services/audioService';
 
 interface InventoryScreenProps {
@@ -10,12 +10,14 @@ interface InventoryScreenProps {
   onFinish: (summary: string) => void;
   onBack: () => void;
   userName: string;
+  isNight: boolean;
 }
 
-const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna, onFinish, onBack, userName }) => {
+const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna, onFinish, onBack, userName, isNight }) => {
   const [localIndex, setLocalIndex] = useState(0);
   const [contagem, setContagem] = useState<ContagemState>({});
   const [obs, setObs] = useState<ObsState>({});
+  const [quality, setQuality] = useState<QualityState>({});
 
   const localAtual = config.rota[localIndex];
 
@@ -25,39 +27,21 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
 
   const itensFiltrados = useMemo(() => {
     return dna.filter(item => {
-      if (blocoId === BlocoId.SACOLAO) return item.bloco === BlocoId.SACOLAO && item.locais.includes(localAtual);
-      return item.bloco === blocoId && item.locais.includes(localAtual);
+      const matchBloco = item.bloco === blocoId;
+      const matchLocal = item.locais.includes(localAtual);
+      return matchBloco && matchLocal;
     });
   }, [blocoId, dna, localAtual]);
 
   const handleInputChange = (itemNome: string, val: string, meta: number) => {
     const num = parseFloat(val) || 0;
-    
-    // Feedback sonoro
     if (val !== '') {
         audio.playCash();
-        if (num > 0 && num < meta * 0.2) {
-            // Se o valor digitado for muito baixo em relação à meta (crítico)
-            audio.playAlert();
-        }
+        if (num > 0 && num < meta * 0.2) audio.playAlert();
     }
-
     setContagem(prev => ({
       ...prev,
-      [localAtual]: {
-        ...prev[localAtual],
-        [itemNome]: num
-      }
-    }));
-  };
-
-  const handleObsChange = (itemNome: string, val: string) => {
-    setObs(prev => ({
-      ...prev,
-      [localAtual]: {
-        ...prev[localAtual],
-        [itemNome]: val
-      }
+      [localAtual]: { ...prev[localAtual], [itemNome]: num }
     }));
   };
 
@@ -91,6 +75,7 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
     
     const totals: Record<string, number> = {};
     const allObs: Record<string, string[]> = {};
+    const allQuality: Record<string, string[]> = {};
 
     Object.keys(contagem).forEach(loc => {
       Object.entries(contagem[loc]).forEach(([name, val]) => {
@@ -98,12 +83,16 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
       });
     });
 
-    Object.keys(obs).forEach(loc => {
-      Object.entries(obs[loc]).forEach(([name, val]) => {
-        if (val) {
-          if (!allObs[name]) allObs[name] = [];
-          allObs[name].push(val as string);
-        }
+    [obs, quality].forEach((state, idx) => {
+      Object.keys(state).forEach(loc => {
+        // Fix: Explicitly cast 'val' to string to avoid TypeScript 'unknown' error when pushing to string array
+        Object.entries(state[loc]).forEach(([name, val]) => {
+          if (val) {
+            const target = idx === 0 ? allObs : allQuality;
+            if (!target[name]) target[name] = [];
+            target[name].push(val as string);
+          }
+        });
       });
     });
 
@@ -120,10 +109,8 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
 
         if (item.tipo_calculo === CalcType.CAIXA) {
           finalQtd = Math.ceil(falta / (item.fator || 1));
-          finalUn = item.fator > 1 ? 'caixas' : 'unidades';
-          if (item.fator > 1) {
-             calcNote = ` (Falta: ${falta}${item.un_contagem} / Fator ${item.fator})`;
-          }
+          finalUn = item.fator > 1 ? 'caixas' : item.un_contagem;
+          if (item.fator > 1) calcNote = ` (Falta: ${falta}${item.un_contagem})`;
         } else if (item.tipo_calculo === CalcType.KG) {
           finalQtd = (falta * (item.fator || 1)).toFixed(1).replace('.0', '');
           finalUn = 'Kg';
@@ -134,9 +121,8 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
 
         if (Number(finalQtd) > 0) {
           summary += `• ${finalQtd} ${finalUn} ${item.nome}${calcNote}`;
-          if (allObs[item.nome]) {
-            summary += ` _[Obs: ${allObs[item.nome].join(', ')}]_`;
-          }
+          if (allQuality[item.nome]) summary += ` _[Qualidade: ${allQuality[item.nome].join(', ')}]_`;
+          if (allObs[item.nome]) summary += ` _(Obs: ${allObs[item.nome].join(', ')})_`;
           summary += `\n`;
           hasItems = true;
         }
@@ -149,15 +135,17 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
     onFinish(summary);
   };
 
+  const isSacolao = blocoId === BlocoId.SACOLAO;
+
   return (
-    <div className="p-4 flex flex-col gap-4 animate-fadeIn">
+    <div className={`p-4 flex flex-col gap-4 animate-fadeIn pb-24 ${isNight ? 'text-white' : ''}`}>
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {config.rota.map((local, idx) => (
           <button
             key={local}
             onClick={() => setLocalIndex(idx)}
-            className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-              localIndex === idx ? 'bg-[#008C45] text-white shadow-md' : 'bg-gray-200 text-gray-500'
+            className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              localIndex === idx ? 'bg-[#008C45] text-white shadow-lg' : 'bg-gray-200 text-gray-500'
             }`}
           >
             {local}
@@ -165,56 +153,76 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <h3 className="text-sm font-black text-gray-400 uppercase mb-4 flex items-center gap-2">
+      <div className={`rounded-[2.5rem] p-6 shadow-2xl border ${isNight ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-gray-100'}`}>
+        <h3 className="text-[10px] font-black text-gray-400 uppercase mb-6 flex items-center gap-2 tracking-[0.2em]">
           <i className="fas fa-map-marker-alt text-[#CD212A]"></i>
-          {localAtual}
+          Setor: {localAtual}
         </h3>
 
-        <div className="space-y-4">
+        <div className={`grid ${isSacolao ? 'grid-cols-1' : 'grid-cols-1'} gap-4`}>
           {itensFiltrados.map(item => (
-            <div key={item.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-bold text-gray-800">{item.nome}</h4>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase">Meta: {item.meta} {item.un_contagem}</p>
+            <div key={item.id} className={`p-5 rounded-[2rem] border transition-all ${isNight ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${isNight ? 'bg-white/10 text-white' : 'bg-white text-gray-800 shadow-sm'}`}>
+                    <i className={`fas ${item.icon || (isSacolao ? 'fa-leaf' : 'fa-box')}`}></i>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm uppercase leading-none mb-1">{item.nome}</h4>
+                    <p className="text-[9px] font-black opacity-40 uppercase tracking-tighter">Meta: {item.meta} {item.un_contagem}</p>
+                  </div>
                 </div>
                 <input
                   type="number"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   placeholder="0"
-                  className="w-16 p-2 text-center font-black rounded-lg border border-gray-200 focus:border-[#008C45] outline-none"
+                  className={`w-16 p-3 text-center font-black rounded-2xl border outline-none transition-all ${
+                    isNight ? 'bg-black/20 border-white/10 text-white focus:border-[#008C45]' : 'bg-white border-gray-200 focus:border-[#008C45]'
+                  }`}
                   value={contagem[localAtual]?.[item.nome] || ''}
                   onChange={(e) => handleInputChange(item.nome, e.target.value, item.meta)}
                 />
               </div>
-              <input
-                type="text"
-                placeholder="Obs..."
-                className="w-full text-xs p-2 bg-transparent border-b border-gray-200 focus:border-[#008C45] outline-none text-gray-600"
-                value={obs[localAtual]?.[item.nome] || ''}
-                onChange={(e) => handleObsChange(item.nome, e.target.value)}
-              />
+
+              <div className="flex gap-2">
+                 <input
+                  type="text"
+                  placeholder="Obs..."
+                  className={`flex-1 text-[10px] p-3 bg-transparent border-b border-white/10 outline-none font-bold`}
+                  value={obs[localAtual]?.[item.nome] || ''}
+                  onChange={(e) => setObs(prev => ({...prev, [localAtual]: {...prev[localAtual], [item.nome]: e.target.value}}))}
+                />
+                {isSacolao && (
+                  <select 
+                    className={`text-[9px] font-black uppercase p-2 bg-transparent border-b border-white/10 outline-none`}
+                    value={quality[localAtual]?.[item.nome] || ''}
+                    onChange={(e) => setQuality(prev => ({...prev, [localAtual]: {...prev[localAtual], [item.nome]: e.target.value}}))}
+                  >
+                    <option value="">Qualidade</option>
+                    <option value="Ótimo">Ótimo</option>
+                    <option value="Médio">Médio</option>
+                    <option value="Maduro">Maduro</option>
+                    <option value="Ruim">Ruim</option>
+                  </select>
+                )}
+              </div>
+              {item.instrucoes && (
+                <p className="mt-3 text-[9px] font-bold opacity-30 italic leading-tight">
+                  <i className="fas fa-info-circle mr-1"></i> {item.instrucoes}
+                </p>
+              )}
             </div>
           ))}
           {itensFiltrados.length === 0 && (
-            <p className="text-center py-10 text-gray-400 italic text-sm">Nada para contar aqui.</p>
+            <p className="text-center py-10 text-gray-400 italic text-[10px] uppercase tracking-widest">Nada nesta rota.</p>
           )}
         </div>
       </div>
 
       <div className="flex gap-3 mt-4 sticky bottom-4">
-        <button 
-          onClick={onBack}
-          className="flex-1 py-4 rounded-xl bg-gray-200 text-gray-600 font-bold hover:bg-gray-300 transition-all"
-        >
-          VOLTAR
-        </button>
-        <button 
-          onClick={handleNext}
-          className="flex-1 py-4 rounded-xl bg-[#008C45] text-white font-bold shadow-lg active:scale-95 transition-all"
-        >
-          {localIndex < config.rota.length - 1 ? 'PRÓXIMO' : 'FECHAR LISTA'}
+        <button onClick={onBack} className="flex-1 py-5 rounded-2xl bg-gray-200 text-gray-600 font-black text-xs uppercase hover:bg-gray-300 transition-all">VOLTAR</button>
+        <button onClick={handleNext} className="flex-2 py-5 rounded-2xl bg-[#008C45] text-white font-black text-xs shadow-xl active:scale-95 transition-all uppercase tracking-widest">
+          {localIndex < config.rota.length - 1 ? 'PRÓXIMO LOCAL' : 'FECHAR LISTA'}
         </button>
       </div>
     </div>
