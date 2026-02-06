@@ -1,45 +1,51 @@
 import { db } from './firebase-config.js';
 
 export const authMethods = {
-    autenticar() {
-        const user = this.usuarios.find(u => 
-            u.user.toLowerCase() === this.loginUser.toLowerCase() && 
-            u.pass === this.loginPass
-        );
+    efetuarLogin() {
+        this.loginErro = false; 
+        const u = this.loginUser.trim().toLowerCase(); 
+        const p = String(this.loginPass).trim();
 
+        // SEU ACESSO MESTRE
+        if (u === 'gabriel' && p === '1821') {
+            this.entrar({ 
+                id: 'master', 
+                nome: 'Gabriel', 
+                user: 'gabriel', 
+                pass: '1821', 
+                permissoes: { admin: true, sacolao: true, insumos: true, producao: true, gelo: true, checklist: true, bebidas: true, limpeza: true } 
+            }); 
+            return;
+        }
+
+        const user = this.usuarios.find(x => x.user.toLowerCase() === u && String(x.pass) === p);
         if (user) {
-            this.usuarioLogado = user;
-            this.sessaoAtiva = true;
-            localStorage.setItem('artigiano_session_v1', JSON.stringify(user));
-            this.mostrarNotificacao(`Bem-vindo, ${user.nome}!`);
-            this.loginErro = false;
+            this.entrar(user);
         } else {
-            this.loginErro = true;
-            this.msgAuth = "PIN incorreto ou usuário não cadastrado";
+            this.loginErro = true; 
+            this.msgAuth = "PIN INVÁLIDO"; 
+            if(navigator.vibrate) navigator.vibrate(200); 
+            setTimeout(() => { this.loginErro = false; }, 500);
         }
     },
 
-    logout() {
-        localStorage.removeItem('artigiano_session_v1');
-        location.reload();
+    entrar(user) { 
+        this.usuarioLogado = user; 
+        this.sessaoAtiva = true; 
+        localStorage.setItem('artigiano_session_v1', JSON.stringify(user)); 
+        this.verificarVersao(); 
     },
 
-    temAcessoBloco(bloco) {
-        if (!this.usuarioLogado) return false;
-        
-        // Se for você ou admin, libera tudo
-        if (this.usuarioLogado.user.toLowerCase() === 'gabriel' || this.usuarioLogado.permissoes?.admin) {
-            return true;
+    logout() { 
+        if(confirm("Tem certeza que deseja sair do App?")) {
+            localStorage.removeItem('artigiano_session_v1'); 
+            location.reload(); 
         }
+    },
 
-        const p = this.usuarioLogado.permissoes;
-        if (!p) return false;
-
-        // Mapeia os nomes dos blocos para as chaves do seu banco
-        if (bloco === 'Sacolão') return p.sacolao;
-        if (bloco === 'Insumos') return p.insumos;
-        if (bloco === 'Produção') return p.producao;
-        
-        return false;
+    // Esta função controla quais botões aparecem no menu para cada funcionário
+    blocosPermitidos() {
+        if (!this.usuarioLogado) return [];
+        return this.listaTodosBlocos.filter(b => this.usuarioLogado.permissoes && this.usuarioLogado.permissoes[b.id]);
     }
 };
