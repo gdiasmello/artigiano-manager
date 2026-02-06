@@ -49,6 +49,8 @@ export interface Config {
   checklist: string[];
   notices: string;
   isLocked: boolean;
+  templateSaudacao: string;
+  templateAgradecimento: string;
 }
 
 export interface HistoryRecord {
