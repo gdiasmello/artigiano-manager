@@ -1,9 +1,13 @@
 import { db } from './firebase-config.js';
 
 export const authMethods = {
-    // Tenta validar o usuário e criar a sessão no celular
     autenticar() {
-        const user = this.usuarios.find(u => u.user === this.loginUser && u.pass === this.loginPass);
+        // Busca o usuário na lista que veio do Firebase
+        const user = this.usuarios.find(u => 
+            u.user.toLowerCase() === this.loginUser.toLowerCase() && 
+            u.pass === this.loginPass
+        );
+
         if (user) {
             this.usuarioLogado = user;
             this.sessaoAtiva = true;
@@ -12,50 +16,48 @@ export const authMethods = {
             this.loginErro = false;
         } else {
             this.loginErro = true;
-            this.msgAuth = "PIN incorreto ou usuário inválido";
+            this.msgAuth = "PIN incorreto ou usuário não encontrado";
         }
     },
 
-    // Sai do sistema e limpa o celular
     logout() {
         localStorage.removeItem('artigiano_session_v1');
         location.reload();
     },
 
-    // Adiciona um novo funcionário ao Firebase com o cargo escolhido
-    criarUsuario() {
-        if (!this.novoUser.nome || !this.novoUser.user || !this.novoUser.pass) {
-            this.mostrarNotificacao('Preencha todos os campos!', 'error', 'fas fa-exclamation-triangle');
-            return;
+    // ESTA É A PARTE QUE VOCÊ PERGUNTOU:
+    temAcessoBloco(nomeBloco) {
+        if (!this.usuarioLogado) return false;
+
+        // 1. Se o seu nome for Gabriel (como no original) ou tiver flag admin, libera TUDO
+        if (this.usuarioLogado.user.toLowerCase() === 'gabriel' || 
+            this.usuarioLogado.permissoes?.admin === true) {
+            return true;
         }
+
+        // 2. Para os outros funcionários, verifica a regra do cargo deles
+        const cargo = this.usuarioLogado.cargo;
+        return this.permissoesGlobais[cargo]?.blocos?.includes(nomeBloco);
+    },
+
+    criarUsuario() {
+        if (!this.novoUser.user || !this.novoUser.pass) return;
         
+        // Salva com a estrutura que o seu original esperava
         db.ref('usuarios').push({
             nome: this.novoUser.nome,
             user: this.novoUser.user,
             pass: this.novoUser.pass,
-            cargo: this.novoUser.cargo
+            cargo: this.novoUser.cargo,
+            permissoes: { 
+                admin: false, // Só você é admin por padrão
+                sacolao: true, 
+                insumos: true 
+            }
         });
-
+        
         this.mostrandoNovoUsuario = false;
         this.novoUser = { nome: '', user: '', pass: '', cargo: 'pizzaiolo' };
-        this.mostrarNotificacao('Membro cadastrado!', 'success', 'fas fa-user-plus');
-    },
-
-    // Salva quais blocos cada cargo pode ver (Configurações)
-    salvarPermissoesCargo() {
-        db.ref('config/permissoesCargos').set(this.permissoesGlobais);
-        this.mostrarNotificacao('Regras de acesso salvas!', 'success', 'fas fa-shield-alt');
-    },
-
-    // Função que decide se o botão aparece ou não no menu
-    temAcessoBloco(nomeBloco) {
-        if (!this.usuarioLogado) return false;
-        
-        // Se o usuário tiver a flag "admin" no banco, ele vê TUDO
-        if (this.usuarioLogado.permissoes?.admin) return true;
-        
-        const cargo = this.usuarioLogado.cargo;
-        // Verifica se o bloco (ex: 'Sacolão') está na lista permitida do cargo dele
-        return this.permissoesGlobais[cargo]?.blocos?.includes(nomeBloco);
+        this.mostrarNotificacao('Funcionário cadastrado!', 'success', 'fas fa-user-plus');
     }
 };
