@@ -21,7 +21,9 @@ const DEFAULT_CONFIG: Config = {
     sacolao: '5511999999999',
     insumos: '5511988888888'
   },
-  checklist: ['Ligar forno', 'Verificar gás', 'Limpar bancadas', 'Conferir validade']
+  checklist: ['Ligar forno', 'Verificar gás', 'Limpar bancadas', 'Conferir validade'],
+  notices: 'Equipe, hoje o movimento será forte! Foco na higienização.',
+  isLocked: false
 };
 
 export const storageService = {
@@ -47,10 +49,14 @@ export const storageService = {
     const data = localStorage.getItem(KEYS.HISTORY);
     return data ? JSON.parse(data) : [];
   },
-  addHistory: (record: Omit<HistoryRecord, 'id'>) => {
+  addHistory: (record: Omit<HistoryRecord, 'id' | 'timestamp'>) => {
     const history = storageService.getHistory();
-    const newRecord = { ...record, id: Date.now().toString() };
-    localStorage.setItem(KEYS.HISTORY, JSON.stringify([newRecord, ...history].slice(0, 50)));
+    const newRecord: HistoryRecord = { 
+      ...record, 
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: Date.now()
+    };
+    localStorage.setItem(KEYS.HISTORY, JSON.stringify([newRecord, ...history]));
   },
 
   getSession: (): User | null => {
