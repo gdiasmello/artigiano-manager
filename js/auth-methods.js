@@ -2,7 +2,6 @@ import { db } from './firebase-config.js';
 
 export const authMethods = {
     autenticar() {
-        // Busca o usuário na lista que veio do Firebase
         const user = this.usuarios.find(u => 
             u.user.toLowerCase() === this.loginUser.toLowerCase() && 
             u.pass === this.loginPass
@@ -12,11 +11,11 @@ export const authMethods = {
             this.usuarioLogado = user;
             this.sessaoAtiva = true;
             localStorage.setItem('artigiano_session_v1', JSON.stringify(user));
-            this.mostrarNotificacao(`Bem-vindo, ${user.nome}!`, 'success', 'fas fa-check');
+            this.mostrarNotificacao(`Bem-vindo, ${user.nome}!`);
             this.loginErro = false;
         } else {
             this.loginErro = true;
-            this.msgAuth = "PIN incorreto ou usuário não encontrado";
+            this.msgAuth = "PIN incorreto ou usuário não cadastrado";
         }
     },
 
@@ -25,39 +24,22 @@ export const authMethods = {
         location.reload();
     },
 
-    // ESTA É A PARTE QUE VOCÊ PERGUNTOU:
-    temAcessoBloco(nomeBloco) {
+    temAcessoBloco(bloco) {
         if (!this.usuarioLogado) return false;
-
-        // 1. Se o seu nome for Gabriel (como no original) ou tiver flag admin, libera TUDO
-        if (this.usuarioLogado.user.toLowerCase() === 'gabriel' || 
-            this.usuarioLogado.permissoes?.admin === true) {
+        
+        // Se for você ou admin, libera tudo
+        if (this.usuarioLogado.user.toLowerCase() === 'gabriel' || this.usuarioLogado.permissoes?.admin) {
             return true;
         }
 
-        // 2. Para os outros funcionários, verifica a regra do cargo deles
-        const cargo = this.usuarioLogado.cargo;
-        return this.permissoesGlobais[cargo]?.blocos?.includes(nomeBloco);
-    },
+        const p = this.usuarioLogado.permissoes;
+        if (!p) return false;
 
-    criarUsuario() {
-        if (!this.novoUser.user || !this.novoUser.pass) return;
+        // Mapeia os nomes dos blocos para as chaves do seu banco
+        if (bloco === 'Sacolão') return p.sacolao;
+        if (bloco === 'Insumos') return p.insumos;
+        if (bloco === 'Produção') return p.producao;
         
-        // Salva com a estrutura que o seu original esperava
-        db.ref('usuarios').push({
-            nome: this.novoUser.nome,
-            user: this.novoUser.user,
-            pass: this.novoUser.pass,
-            cargo: this.novoUser.cargo,
-            permissoes: { 
-                admin: false, // Só você é admin por padrão
-                sacolao: true, 
-                insumos: true 
-            }
-        });
-        
-        this.mostrandoNovoUsuario = false;
-        this.novoUser = { nome: '', user: '', pass: '', cargo: 'pizzaiolo' };
-        this.mostrarNotificacao('Funcionário cadastrado!', 'success', 'fas fa-user-plus');
+        return false;
     }
 };

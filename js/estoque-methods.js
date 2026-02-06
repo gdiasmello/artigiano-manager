@@ -1,22 +1,21 @@
+import { db } from './firebase-config.js';
+
 export const estoqueMethods = {
     abrirOperacao(tipo) {
         this.telaAtiva = tipo;
-        // Lógica original: Se for sacolão, filtra direto. Se for insumo, abre no primeiro local.
         this.localAtual = tipo === 'sacolao' ? 'Sacolão' : 'Estoque seco';
+        this.contagemAtiva = {};
         window.scrollTo(0,0);
     },
 
-    // Filtro idêntico ao original
     get itensFiltrados() {
         if (!this.telaAtiva) return [];
         return this.catalogoDNA.filter(item => {
             if (this.telaAtiva === 'sacolao') return item.local === 'Sacolão';
-            if (this.telaAtiva === 'insumos') return item.local === this.localAtual;
-            return false;
+            return item.local === this.localAtual;
         });
     },
 
-    // Preparação do WhatsApp (Igual ao seu código)
     revisarPedido() {
         let resumo = `*PEDIDO ARTIGIANO - ${new Date().toLocaleDateString()}*\n`;
         resumo += `Responsável: ${this.usuarioLogado.nome}\n\n`;
@@ -31,11 +30,27 @@ export const estoqueMethods = {
         }
 
         if (!temItens) {
-            this.mostrarNotificacao('Nenhum item preenchido!', 'error', 'fas fa-exclamation');
+            this.mostrarNotificacao('Preencha pelo menos um item!', 'error');
             return;
         }
 
-        const msg = encodeURIComponent(resumo);
-        window.open(`https://wa.me/5543991212450?text=${msg}`); // Número de exemplo do seu código
+        this.textoWhatsApp = resumo;
+        this.mostrandoResumo = true;
+    },
+
+    enviarWhatsApp() {
+        const dataH = new Date().toLocaleString();
+        
+        // Salva no histórico do Firebase antes de enviar
+        db.ref('historico').push({
+            data: dataH,
+            usuario: this.usuarioLogado.nome,
+            itens: this.textoWhatsApp
+        });
+
+        const msg = encodeURIComponent(this.textoWhatsApp);
+        window.open(`https://wa.me/5543991212450?text=${msg}`);
+        this.mostrandoResumo = false;
+        this.telaAtiva = null;
     }
 };
