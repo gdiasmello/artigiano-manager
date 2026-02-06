@@ -1,23 +1,41 @@
-import { db } from './firebase-config.js';
-
 export const estoqueMethods = {
-    // Prepara a tela para começar a contagem
     abrirOperacao(tipo) {
         this.telaAtiva = tipo;
-        // Se for sacolão, já trava no local Sacolão, senão começa no Estoque Seco
+        // Lógica original: Se for sacolão, filtra direto. Se for insumo, abre no primeiro local.
         this.localAtual = tipo === 'sacolao' ? 'Sacolão' : 'Estoque seco';
-        this.contagemAtiva = {}; 
         window.scrollTo(0,0);
     },
 
-    // Lógica para revisar o que foi contado antes de mandar pro WhatsApp
+    // Filtro idêntico ao original
+    get itensFiltrados() {
+        if (!this.telaAtiva) return [];
+        return this.catalogoDNA.filter(item => {
+            if (this.telaAtiva === 'sacolao') return item.local === 'Sacolão';
+            if (this.telaAtiva === 'insumos') return item.local === this.localAtual;
+            return false;
+        });
+    },
+
+    // Preparação do WhatsApp (Igual ao seu código)
     revisarPedido() {
-        const itensContados = Object.keys(this.contagemAtiva).length;
-        if (itensContados === 0) {
-            this.mostrarNotificacao('Nada foi contado!', 'error', 'fas fa-times');
+        let resumo = `*PEDIDO ARTIGIANO - ${new Date().toLocaleDateString()}*\n`;
+        resumo += `Responsável: ${this.usuarioLogado.nome}\n\n`;
+        
+        let temItens = false;
+        for (const [id, qtd] of Object.entries(this.contagemAtiva)) {
+            if (qtd > 0) {
+                const item = this.catalogoDNA.find(i => i.id === id);
+                resumo += `• ${item.nome}: *${qtd}* ${item.un_contagem}\n`;
+                temItens = true;
+            }
+        }
+
+        if (!temItens) {
+            this.mostrarNotificacao('Nenhum item preenchido!', 'error', 'fas fa-exclamation');
             return;
         }
-        this.mostrarNotificacao('Gerando resumo do pedido...', 'success', 'fas fa-paper-plane');
-        // Aqui chamaremos a função de montar o texto (que faremos no script principal)
+
+        const msg = encodeURIComponent(resumo);
+        window.open(`https://wa.me/5543991212450?text=${msg}`); // Número de exemplo do seu código
     }
 };
