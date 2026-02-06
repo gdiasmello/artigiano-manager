@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PiZZA Master Pro</title>
+    <title>PiZZA Master</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#CD212A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -33,7 +34,7 @@
             <span>ARTIGIANO PIZZARIA</span>
         </div>
         <div class="login-form">
-            <input v-model="loginUser" placeholder="Usuário" type="text" autocomplete="username">
+            <input v-model="loginUser" placeholder="Usuário" type="text">
             <input v-model="loginPass" placeholder="PIN" type="password" maxlength="4" inputmode="numeric">
             <button @click="autenticar" class="btn-login">ENTRAR</button>
             <p v-if="loginErro" class="error-msg">{{ msgAuth }}</p>
@@ -45,7 +46,7 @@
         <header class="main-header">
             <div class="user-info">
                 <strong>Olá, {{ usuarioLogado.nome }}</strong>
-                <span>{{ usuarioLogado.cargo }}</span>
+                <span>{{ versionName }} v{{ versionNum }}</span>
             </div>
             <button @click="configAberto = true" class="btn-config-top">
                 <i class="fas fa-cog"></i>
@@ -62,7 +63,7 @@
             <div v-if="temAcessoBloco('Produção')" class="card-bloco" @click="abrirOperacao('producao')">
                 <i class="fas fa-mitten"></i> <span>Produção</span>
             </div>
-            <div v-if="temAcessoBloco('Histórico')" class="card-bloco" @click="mostrandoHistorico = true">
+            <div v-if="usuarioLogado.permissoes?.admin" class="card-bloco" @click="mostrandoHistorico = true">
                 <i class="fas fa-history"></i> <span>Histórico</span>
             </div>
         </main>
@@ -72,91 +73,46 @@
                 <button @click="telaAtiva = null"><i class="fas fa-arrow-left"></i></button>
                 <h2>{{ telaAtiva.toUpperCase() }}</h2>
             </div>
-            
-            <div class="content-scroll">
-                <div class="local-selector" v-if="telaAtiva === 'insumos'">
-                    <button v-for="local in locaisEstoque" :key="local" 
-                            :class="{active: localAtual === local}" @click="localAtual = local">
-                        {{ local }}
-                    </button>
-                </div>
-
-                <div class="items-list">
-                    <div v-for="item in itensFiltrados" :key="item.id" class="item-card">
-                        <div class="item-info">
-                            <strong>{{ item.nome }}</strong>
-                            <span>{{ item.un_contagem }}</span>
-                        </div>
-                        <div class="item-control">
-                            <input type="number" v-model.number="contagemAtiva[item.id]" placeholder="0">
-                        </div>
-                    </div>
+            <div class="local-selector" v-if="telaAtiva === 'insumos'">
+                <button v-for="l in locaisEstoque" :class="{active: localAtual === l}" @click="localAtual = l">{{l}}</button>
+            </div>
+            <div class="items-list">
+                <div v-for="i in itensFiltrados" :key="i.id" class="item-card">
+                    <div class="item-info"><strong>{{i.nome}}</strong><span>{{i.un_contagem}}</span></div>
+                    <div class="item-control"><input type="number" v-model.number="contagemAtiva[i.id]" placeholder="0" inputmode="numeric"></div>
                 </div>
             </div>
-            
             <button class="btn-primary full-fixed" @click="revisarPedido">REVISAR PEDIDO</button>
         </div>
 
         <div v-if="configAberto" class="modal-backdrop">
             <div class="modal-window">
-                <div class="modal-top">
-                    <h3>Configurações</h3>
-                    <button @click="configAberto = false">×</button>
-                </div>
+                <div class="modal-top"><h3>Menu</h3><button @click="configAberto = false">×</button></div>
                 <div class="modal-content">
-                    
-                    <div v-if="usuarioLogado.permissoes?.admin || usuarioLogado.cargo === 'gerente'">
-                        <section class="admin-section">
-                            <h4><i class="fas fa-users"></i> Gestão de Equipe</h4>
-                            <button class="btn-primary-outline full" @click="mostrandoNovoUsuario = true">
-                                + ADICIONAR MEMBRO
-                            </button>
-                            
-                            <hr>
-                            
-                            <h4><i class="fas fa-user-shield"></i> Permissões por Cargo</h4>
-                            <div v-for="c in cargosDisponiveis" :key="c" class="cargo-config-card">
-                                <label class="cargo-title">{{ c }}</label>
-                                <div class="checks-grid">
-                                    <label v-for="b in nomesBlocos" :key="b">
-                                        <input type="checkbox" :value="b" v-model="permissoesGlobais[c].blocos"> {{ b }}
-                                    </label>
-                                </div>
-                            </div>
-                            <button class="btn-success full" @click="salvarPermissoesCargo">SALVAR REGRAS</button>
-                        </section>
-                    </div>
-
-                    <button class="btn-danger-ghost full" @click="logout" style="margin-top:20px">SAIR DO SISTEMA</button>
-                    <p class="version-tag">PiZZA Master Pro v{{ versionNum }}</p>
+                    <button v-if="usuarioLogado.permissoes?.admin" class="btn-primary-outline full" @click="mostrandoNovoUsuario = true; configAberto = false">+ NOVO FUNCIONÁRIO</button>
+                    <button class="btn-danger-ghost full" @click="logout" style="margin-top:15px">SAIR DO SISTEMA</button>
                 </div>
             </div>
         </div>
 
-        <div v-if="mostrandoNovoUsuario" class="modal-backdrop">
+        <div v-if="mostrandoResumo" class="modal-backdrop">
             <div class="modal-window">
-                <div class="modal-top"><h3>Novo Acesso</h3><button @click="mostrandoNovoUsuario = false">×</button></div>
+                <div class="modal-top"><h3>Resumo do Pedido</h3></div>
                 <div class="modal-content">
-                    <div class="input-field"><label>Nome</label><input v-model="novoUser.nome"></div>
-                    <div class="input-field"><label>Login</label><input v-model="novoUser.user"></div>
-                    <div class="input-field"><label>PIN (4 dígitos)</label><input v-model="novoUser.pass" maxlength="4"></div>
-                    <div class="input-field">
-                        <label>Cargo</label>
-                        <select v-model="novoUser.cargo">
-                            <option v-for="cargo in cargosDisponiveis" :value="cargo">{{ cargo }}</option>
-                        </select>
-                    </div>
-                    <button class="btn-primary full" @click="criarUsuario">CRIAR CONTA</button>
+                    <pre class="whatsapp-preview">{{ textoWhatsApp }}</pre>
+                    <button class="btn-success full" @click="enviarWhatsApp">ENVIAR WHATSAPP</button>
+                    <button class="btn-danger-ghost full" @click="mostrandoResumo = false" style="margin-top:10px">VOLTAR</button>
                 </div>
             </div>
         </div>
 
-        <div v-if="notificacao.ativa" :class="['notification-toast', notificacao.tipo]">
-            <i :class="notificacao.icone"></i> {{ notificacao.texto }}
-        </div>
     </div>
-</div>
 
+    <div v-if="notificacao.ativa" :class="['notification-toast', notificacao.tipo]">
+        <i :class="notificacao.icone"></i> {{ notificacao.texto }}
+    </div>
+
+</div>
 <script type="module" src="script.js"></script>
 </body>
 </html>

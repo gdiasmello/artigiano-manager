@@ -15,46 +15,68 @@ createApp({
         ...authMethods,
         ...estoqueMethods,
 
-        mostrarNotificacao(texto, tipo, icone) {
-            this.notificacao = { ativa: true, texto, tipo, icone };
+        mostrarNotificacao(texto, tipo = 'success') {
+            this.notificacao = { 
+                ativa: true, 
+                texto, 
+                tipo, 
+                icone: tipo === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle' 
+            };
             setTimeout(() => { this.notificacao.ativa = false; }, 3000);
         },
 
+        exibirSucesso() {
+            this.mostrarSucesso = true;
+            setTimeout(() => { this.mostrarSucesso = false; }, 2000);
+        },
+
+        verificarVersao() {
+            const v = localStorage.getItem('pizzamaster_version');
+            if (v !== this.versionNum) {
+                this.mostrarNovidades = true;
+                localStorage.setItem('pizzamaster_version', this.versionNum);
+            }
+        },
+
         sincronizar() {
-            // Monitora usuários
-            db.ref('usuarios').on('value', s => {
-                const d = s.val();
-                this.usuarios = d ? Object.keys(d).map(k => ({ ...d[k], id: k })) : [];
+            db.ref('usuarios').on('value', s => { 
+                const d = s.val(); 
+                this.usuarios = d ? Object.keys(d).map(k => ({...d[k], id: k})) : []; 
             });
-
-            // Monitora permissões de cargos
-            db.ref('config/permissoesCargos').on('value', s => {
-                if (s.val()) this.permissoesGlobais = s.val();
+            db.ref('catalogoDNA').on('value', s => { 
+                const d = s.val(); 
+                this.catalogoDNA = d ? Object.keys(d).map(k => ({...d[k], id: k})) : []; 
             });
-
-            // Monitora Catálogo DNA
-            db.ref('catalogoDNA').on('value', s => {
-                const d = s.val();
-                this.catalogoDNA = d ? Object.keys(d).map(k => ({ ...d[k], id: k })) : [];
-                // Esconde a tela de carregamento após receber os dados
-                setTimeout(() => { this.atualizandoApp = false; }, 1500);
+            db.ref('config').on('value', s => { 
+                const d = s.val() || {}; 
+                this.config.rota = d.rota || ['Geral']; 
+                this.config.destinos = d.destinos || {}; 
+                this.config.checklist = d.checklist || []; 
             });
-
-            // Monitora Histórico
-            db.ref('historico').limitToLast(30).on('value', s => {
-                const d = s.val();
-                this.historico = d ? Object.values(d).reverse() : [];
+            db.ref('historico').limitToLast(50).on('value', s => { 
+                const d = s.val(); 
+                this.historico = d ? Object.values(d).reverse() : []; 
             });
         }
     },
-    mounted() {
-        this.sincronizar();
-        
-        // Recupera sessão salva
-        const sessao = localStorage.getItem('artigiano_session_v1');
-        if (sessao) {
-            this.usuarioLogado = JSON.parse(sessao);
-            this.sessaoAtiva = true;
+    mounted() { 
+        this.sincronizar(); 
+        const s = localStorage.getItem('artigiano_session_v1'); 
+        if(s) { 
+            this.usuarioLogado = JSON.parse(s); 
+            this.sessaoAtiva = true; 
+            this.verificarVersao(); 
         }
+        
+        document.body.style.overscrollBehavior = 'none';
+        
+        // Lógica do botão voltar (Original)
+        window.history.pushState(null, null, window.location.href);
+        window.onpopstate = () => {
+            if(this.telaAtiva) {
+                this.telaAtiva = null;
+                window.history.pushState(null, null, window.location.href);
+            }
+        };
     }
 }).mount('#app');
