@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PiZZA Master</title>
+    <title>PiZZA Master V1.8.0</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#CD212A">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,26 +21,17 @@
 <div id="app" v-cloak>
 
     <div v-if="atualizandoApp" class="update-screen">
-        <div class="pizza-loader"><i class="fas fa-pizza-slice"></i><div class="progress-bar"><div class="fill"></div></div><p>ATUALIZANDO...</p></div>
-    </div>
-
-    <div v-if="mostrarNovidades" class="modal-backdrop">
-        <div class="modal-window">
-            <div class="modal-top"><h3>{{ fullVersion }}</h3></div>
-            <div class="modal-content">
-                <ul class="news-list">
-                    <li><i class="fas fa-id-badge"></i> <strong>Cargos Definidos:</strong> Configure Pizzaiolo, Atendente ou Gerente.</li>
-                    <li><i class="fas fa-paint-brush"></i> <strong>Visual Premium:</strong> Interface com as cores da Itália.</li>
-                    <li><i class="fas fa-shield-alt"></i> <strong>Segurança:</strong> Sistema de login blindado.</li>
-                </ul>
-                <button class="btn-primary full" @click="fecharNovidades">BORA!</button>
-            </div>
+        <div class="pizza-loader">
+            <i class="fas fa-pizza-slice"></i>
+            <div class="progress-bar"><div class="fill"></div></div>
+            <p>ATUALIZANDO SISTEMA...</p>
         </div>
     </div>
 
     <div v-if="mostrarSucesso" class="success-overlay fade-in">
         <div class="success-card">
-            <div class="checkmark-circle"><div class="checkmark draw"></div></div><h3>Salvo!</h3>
+            <div class="checkmark-circle"><div class="checkmark draw"></div></div>
+            <h3>Salvo!</h3>
         </div>
     </div>
 
@@ -55,11 +46,11 @@
             <div class="input-group"><i class="fas fa-user"></i><input type="text" v-model="loginUser" placeholder="Usuário"></div>
             <div class="input-group"><i class="fas fa-lock"></i><input type="password" v-model="loginPass" placeholder="PIN" maxlength="4" inputmode="numeric"></div>
             <button @click="efetuarLogin" class="btn-entrar">ENTRAR</button>
-            <p v-if="msgAuth" class="error-msg" style="color:red; margin-top:10px; font-weight:bold;">{{ msgAuth }}</p>
+            <p v-if="msgAuth" class="error-msg">{{ msgAuth }}</p>
         </div>
 
         <div class="login-footer">
-            <p class="version">{{ fullVersion }}</p>
+            <p class="version">v1.8.0 • Gestão Premium</p>
             <p class="terms-link" @click="mostrandoTermos = true">Termos de Uso</p>
         </div>
         <div class="italy-stripe-bottom"></div>
@@ -70,40 +61,89 @@
             <div class="header-inner">
                 <i class="fas fa-chevron-left" v-if="telaAtiva" @click="voltarInicio"></i>
                 <h2>{{ tituloTela }}</h2>
-                <div class="user-badge" @click="telaAtiva = 'config'"><span>{{ usuarioLogado.nome }}</span><i class="fas fa-cog"></i></div>
+                <div class="user-badge" @click="telaAtiva = 'config'">
+                    <span>{{ usuarioLogado.nome }}</span>
+                    <i class="fas fa-cog"></i>
+                </div>
             </div>
         </header>
 
         <div v-if="!telaAtiva" class="menu-grid">
-            <button v-for="bloco in blocosPermitidos" :key="bloco.id" :class="['menu-card', bloco.cor]" @click="abrirBloco(bloco.id)">
-                <i :class="bloco.icon"></i><span>{{ bloco.nome }}</span>
+            <button v-for="bloco in blocosVisiveis" :key="bloco.id" :class="['menu-card', bloco.cor]" @click="abrirBloco(bloco.id)">
+                <i :class="bloco.icon"></i>
+                <span>{{ bloco.nome }}</span>
             </button>
-            <button class="menu-card gray" @click="mostrandoHistorico = true"><i class="fas fa-history"></i><span>HISTÓRICO</span></button>
-            <button class="menu-card dark" @click="telaAtiva = 'config'"><i class="fas fa-tools"></i><span>AJUSTES</span></button>
+            <button class="menu-card gray" @click="mostrandoHistorico = true">
+                <i class="fas fa-history"></i>
+                <span>HISTÓRICO</span>
+            </button>
         </div>
 
-        <div v-if="telaAtiva === 'gelo'" class="gelo-area">
-            <div class="gelo-card">
-                <i class="fas fa-cube big-icon"></i><h3>Gelo</h3><p>Meta: <strong>8 Sacos</strong></p>
-                <div class="input-gelo-wrapper"><input type="number" v-model.number="qtdGeloAtual" placeholder="0"></div>
+        <div v-if="['sacolao', 'insumos', 'bebidas', 'limpeza'].includes(telaAtiva)" class="contagem-area">
+            <div class="local-selector">
+                <button v-for="loc in config.rota" :key="loc" :class="{ active: localAtual === loc }" @click="localAtual = loc">
+                    {{ loc }}
+                </button>
             </div>
-            <button class="btn-primary full mt-10" @click="enviarPedidoGelo">ENVIAR</button>
+
+            <div class="items-list">
+                <div v-for="item in itensDoSetor" :key="item.id" class="item-row">
+                    <div class="item-info">
+                        <span class="item-name">{{ item.nome }}</span>
+                        <span class="item-meta">Meta: {{ item.meta }} {{ item.un_contagem }}</span>
+                    </div>
+                    <div class="item-actions">
+                        <input type="number" v-model.number="contagemAtiva[localAtual][item.nome]" placeholder="0">
+                        <button class="btn-obs" @click="toggleObs(item.nome)"><i class="far fa-comment"></i></button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary full sticky-bottom" @click="gerarResumo">FECHAR CONTAGEM</button>
         </div>
 
         <div v-if="telaAtiva === 'config'" class="config-area">
-            <button class="btn-danger-ghost full" @click="logout">SAIR DO APP</button>
+            <div class="config-tabs">
+                <button v-for="t in ['DNA', 'Rota', 'Acessos']" :key="t" :class="{active: configAberto === t}" @click="configAberto = t">{{t}}</button>
+            </div>
+
+            <div v-if="configAberto === 'DNA'" class="config-content">
+                <div class="add-box">
+                    <input v-model="novoInsumo.nome" placeholder="Nome do item">
+                    <select v-model="novoInsumo.bloco">
+                        <option value="">Setor...</option>
+                        <option v-for="b in listaTodosBlocos" :value="b.id">{{b.nome}}</option>
+                    </select>
+                    <button @click="adicionarAoDNA" class="btn-add">ADICIONAR</button>
+                </div>
+                <div class="dna-list">
+                    <div v-for="i in catalogoDNA" class="dna-item">
+                        <span>{{i.nome}} ({{i.bloco}})</span>
+                        <i class="fas fa-trash" @click="removerDoDNA(i.id)"></i>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-danger-ghost full" @click="logout">SAIR DO SISTEMA</button>
         </div>
     </div>
 
     <div v-if="mostrandoResumo" class="modal-backdrop">
         <div class="modal-window">
-            <div class="modal-top"><h3>Resumo</h3></div>
+            <div class="modal-top"><h3>Resumo do Pedido</h3></div>
             <div class="modal-content">
                 <pre class="whatsapp-preview">{{ textoWhatsApp }}</pre>
+                <div class="input-field">
+                    <label>Itens Extras / Observações:</label>
+                    <textarea v-model="itensExtras" @input="atualizarTextoFinal"></textarea>
+                </div>
                 <button class="btn-whatsapp full" @click="enviarWhatsApp">ENVIAR WHATSAPP</button>
+                <button class="btn-cancelar full" @click="mostrandoResumo = false">VOLTAR</button>
             </div>
         </div>
     </div>
+
+    <div v-if="mostrandoHistorico" class="modal-backdrop">...</div>
+    <div v-if="mostrandoTermos" class="modal-backdrop">...</div>
 
 </div>
 
