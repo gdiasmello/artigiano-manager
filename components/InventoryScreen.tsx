@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Config, Insumo, BlocoId, ContagemState, ObsState, CalcType } from '../types';
+import { audio } from '../services/audioService';
 
 interface InventoryScreenProps {
   blocoId: BlocoId;
@@ -8,14 +9,19 @@ interface InventoryScreenProps {
   dna: Insumo[];
   onFinish: (summary: string) => void;
   onBack: () => void;
+  userName: string;
 }
 
-const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna, onFinish, onBack }) => {
+const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna, onFinish, onBack, userName }) => {
   const [localIndex, setLocalIndex] = useState(0);
   const [contagem, setContagem] = useState<ContagemState>({});
   const [obs, setObs] = useState<ObsState>({});
 
   const localAtual = config.rota[localIndex];
+
+  useEffect(() => {
+    audio.playPop();
+  }, [localIndex]);
 
   const itensFiltrados = useMemo(() => {
     return dna.filter(item => {
@@ -24,8 +30,18 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
     });
   }, [blocoId, dna, localAtual]);
 
-  const handleInputChange = (itemNome: string, val: string) => {
+  const handleInputChange = (itemNome: string, val: string, meta: number) => {
     const num = parseFloat(val) || 0;
+    
+    // Feedback sonoro
+    if (val !== '') {
+        audio.playCash();
+        if (num > 0 && num < meta * 0.2) {
+            // Se o valor digitado for muito baixo em relação à meta (crítico)
+            audio.playAlert();
+        }
+    }
+
     setContagem(prev => ({
       ...prev,
       [localAtual]: {
@@ -55,10 +71,23 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
 
   const generateSummary = () => {
     const now = new Date();
-    const hora = now.getHours();
-    const saudacao = hora < 12 ? 'Bom dia' : (hora < 18 ? 'Boa tarde' : 'Boa noite');
-    
-    let summary = `*${saudacao}! Segue lista (${blocoId.toUpperCase()}):*\n\n`;
+    const horaNum = now.getHours();
+    const saudacaoVar = horaNum < 12 ? 'Bom dia' : (horaNum < 18 ? 'Boa tarde' : 'Boa noite');
+    const dataVar = now.toLocaleDateString('pt-BR');
+    const horaVar = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const blocoNome = blocoId.toUpperCase();
+
+    const replaceVars = (template: string) => {
+      if (!template) return '';
+      return template
+        .replace(/\[saudacao\]/g, saudacaoVar)
+        .replace(/\[nome\]/g, userName)
+        .replace(/\[bloco\]/g, blocoNome)
+        .replace(/\[data\]/g, dataVar)
+        .replace(/\[hora\]/g, horaVar);
+    };
+
+    let summary = replaceVars(config.templateSaudacao || '*[saudacao]! Segue lista de [bloco]:*') + '\n\n';
     
     const totals: Record<string, number> = {};
     const allObs: Record<string, string[]> = {};
@@ -91,7 +120,7 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
 
         if (item.tipo_calculo === CalcType.CAIXA) {
           finalQtd = Math.ceil(falta / (item.fator || 1));
-          finalUn = 'unidades de compra';
+          finalUn = item.fator > 1 ? 'caixas' : 'unidades';
           if (item.fator > 1) {
              calcNote = ` (Falta: ${falta}${item.un_contagem} / Fator ${item.fator})`;
           }
@@ -114,8 +143,9 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
       }
     });
 
-    if (!hasItems) summary += "_Estoque 100% em dia! Nada a pedir._\n";
-    summary += `\nGerado por PiZZA Master Pro 🍕`;
+    if (!hasItems) summary += "_Estoque em dia! Nada a pedir._\n";
+    summary += '\n' + replaceVars(config.templateAgradecimento || '_Enviado via PiZZA Master Pro 🍕_');
+    
     onFinish(summary);
   };
 
@@ -155,7 +185,7 @@ const InventoryScreen: React.FC<InventoryScreenProps> = ({ blocoId, config, dna,
                   placeholder="0"
                   className="w-16 p-2 text-center font-black rounded-lg border border-gray-200 focus:border-[#008C45] outline-none"
                   value={contagem[localAtual]?.[item.nome] || ''}
-                  onChange={(e) => handleInputChange(item.nome, e.target.value)}
+                  onChange={(e) => handleInputChange(item.nome, e.target.value, item.meta)}
                 />
               </div>
               <input
