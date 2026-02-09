@@ -1,71 +1,48 @@
 
-export enum BlocoId {
-  SACOLAO = 'sacolao',
-  INSUMOS = 'insumos',
-  PRODUCAO = 'producao',
-  GELO = 'gelo',
-  CHECKLIST = 'checklist',
-  BEBIDAS = 'bebidas',
-  LIMPEZA = 'limpeza'
+export enum UserRole {
+  ADM = 'ADM',
+  MANAGER = 'MANAGER',
+  STAFF = 'STAFF'
 }
 
-export enum CalcType {
-  DIRETO = 'direto',
-  CAIXA = 'cx',
-  KG = 'kg'
-}
-
-export type UserCargo = 'admin' | 'gerente' | 'pizzaiolo' | 'atendente';
-
-export interface Permissions {
-  admin: boolean;
-  gerente: boolean;
-  [key: string]: boolean | undefined;
-}
+export type ModuleId = 'massas' | 'estoque' | 'sacolao' | 'check' | 'perfil';
 
 export interface User {
   id: string;
-  nome: string;
-  user: string;
-  pass: string;
-  cargo: UserCargo;
-  permissoes: Permissions;
+  name: string;
+  email: string;
+  pin: string;
+  role: UserRole;
+  birthday?: string;
+  termsAccepted?: boolean;
+  allowedModules?: ModuleId[];
 }
 
-export interface Insumo {
+export type Category = 'insumos' | 'sacolao' | 'gelo' | 'limpeza';
+
+export interface StockItem {
   id: string;
-  nome: string;
-  bloco: BlocoId;
-  un_contagem: string;
-  meta: number;
-  tipo_calculo: CalcType;
-  fator: number;
-  locais: string[];
+  name: string;
+  unit: string;
+  goal: number;
+  boxFactor: number;
+  category: Category;
+  countsByLocation: Record<string, number>;
 }
 
-export interface Config {
-  rota: string[];
-  destinos: Record<string, string>;
-  checklist: string[];
-  notices: string;
-  isLocked: boolean;
-  templateSaudacao: string;
-  templateAgradecimento: string;
-}
-
-export interface HistoryRecord {
+export interface ChecklistItem {
   id: string;
-  data: string;
+  task: string;
+  completed: boolean;
+  category: 'abertura' | 'fechamento' | 'producao';
+}
+
+export interface ProductionBatch {
+  massas: number;
+  farinha: number;
+  aguaLiquida: number;
+  gelo: number;
+  levain: number;
+  sal: number;
   timestamp: number;
-  usuario: string;
-  itens: string;
-  localizacao?: string;
-}
-
-export interface ContagemState {
-  [local: string]: Record<string, number>;
-}
-
-export interface ObsState {
-  [local: string]: Record<string, string>;
 }

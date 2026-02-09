@@ -1,7 +1,7 @@
 {
-  "name": "PiZZA Master",
-  "description": "Premium management system for Italian pizzerias, covering inventory, production, and logistics with WhatsApp integration and real-time synchronization features.",
+  "name": "PiZZA Master v3.0 - Artigiano",
+  "description": "PWA de gestão de estoque, logística de produção e controle operacional com estética Glassmorphism e lógica preditiva.",
   "requestFramePermissions": [
-    "geolocation"
+    "camera"
   ]
 }
